@@ -1305,6 +1305,7 @@ The 4 GB model download is optional.
         review = json.loads(template_path.read_text())
         original_score = review["score"]["overall"]
         attack = '</title><script>alert("x")</script><img src=x onerror=alert(1)>'
+        review["description"] = attack
         review["summary"] = attack
         claim_index = next(
             index
@@ -1360,6 +1361,34 @@ The 4 GB model download is optional.
             atomic_json(artifact / "review.json", review)
             with self.assertRaises(ValueError):
                 build_site(root / "reviews", site)
+
+    def test_publication_leads_with_what_the_tool_is_and_the_verdict(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            site = Path(temporary) / "site"
+            self.assertEqual(
+                build_site(
+                    ROOT / "reviews",
+                    site,
+                    base_path="/worthit/",
+                    site_url="https://drj0e.github.io",
+                ),
+                3,
+            )
+            home = (site / "index.html").read_text()
+            self.assertIn("Make JSON greppable!", home)
+            self.assertIn("Worth installing for the tested workflow.", home)
+            self.assertLess(home.index("Make JSON greppable!"), home.index("7/7 workflows passed"))
+            review = next((site / "reviews" / "tomnomnom" / "gron").rglob("index.html")).read_text()
+            self.assertLess(review.index("Make JSON greppable!"), review.index("WorthIt verdict"))
+            self.assertLess(
+                review.index("What WorthIt actually exercised"),
+                review.index("What it claims, and what survived testing"),
+            )
+            leaders = (site / "leaderboards" / "index.html").read_text()
+            self.assertIn("<th>What it is</th>", leaders)
+            feed = (site / "feed.xml").read_text()
+            self.assertIn("gron: WORTH IT", feed)
+            self.assertIn("Make JSON greppable!", feed)
 
     def test_correction_preserves_original_and_rejects_unsafe_evidence(self) -> None:
         template_path = next((ROOT / "reviews").rglob("review.json"))

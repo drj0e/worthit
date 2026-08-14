@@ -20,7 +20,7 @@ from .models import Claim, TestPlan, jsonable
 from .review import PUBLIC_REVIEW_FILES, _slug, publication_bundle_sha256, render_markdown
 from .runner import redact
 
-CSS = """*{box-sizing:border-box}body{margin:0;background:#f4f1e8;color:#171915;font:16px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}a{color:#174f3a}header,main,footer{max-width:1100px;margin:auto;padding:1rem 1.25rem}header{display:flex;gap:1rem;align-items:center;border-bottom:2px solid #171915}header nav{margin-left:auto;display:flex;gap:.9rem;flex-wrap:wrap}.brand{font-weight:900;text-decoration:none}.hero{padding:4rem 0 2rem;border-bottom:1px solid #777}.hero h1{font:800 clamp(2.4rem,8vw,6.5rem)/.95 Georgia,serif;max-width:900px;margin:.25rem 0}.kicker{text-transform:uppercase;letter-spacing:.12em}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem}.card,.panel{background:#fff;border:1px solid #171915;padding:1rem;box-shadow:4px 4px 0 #171915}.score{font:800 2.5rem/1 Georgia,serif}.meta{color:#4e554d;font-size:.9rem}.badge{display:inline-block;border:1px solid;padding:.1rem .4rem;margin-right:.35rem}table{width:100%;border-collapse:collapse;background:#fff}th,td{text-align:left;vertical-align:top;border:1px solid #777;padding:.55rem;overflow-wrap:anywhere}h1,h2,h3{font-family:Georgia,serif}blockquote{margin-left:0;border-left:4px solid #174f3a;padding-left:1rem}code{overflow-wrap:anywhere}.pass{color:#12633f}.partial{color:#7a4f00}.fail{color:#9b1b1b}footer{margin-top:3rem;border-top:1px solid #777}.stack>*+*{margin-top:1.2rem}@media(max-width:700px){header{align-items:flex-start;flex-direction:column}header nav{margin:0}.hero{padding-top:2rem}table{display:block;overflow-x:auto;font-size:.85rem}th,td{min-width:6rem}}"""
+CSS = """*{box-sizing:border-box}body{margin:0;background:#f4f1e8;color:#171915;font:16px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}a{color:#174f3a}header,main,footer{max-width:1100px;margin:auto;padding:1rem 1.25rem}header{display:flex;gap:1rem;align-items:center;border-bottom:2px solid #171915}header nav{margin-left:auto;display:flex;gap:.9rem;flex-wrap:wrap}.brand{font-weight:900;text-decoration:none}.hero{padding:4rem 0 2rem;border-bottom:1px solid #777}.hero h1{font:800 clamp(2.4rem,8vw,6.5rem)/.95 Georgia,serif;max-width:900px;margin:.25rem 0}.kicker{text-transform:uppercase;letter-spacing:.12em}.lede,.tool-description{font:700 1.15rem/1.4 Georgia,serif}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem}.card,.panel{background:#fff;border:1px solid #171915;padding:1rem;box-shadow:4px 4px 0 #171915}.card h3{margin-bottom:.35rem}.decision{border-top:1px solid #999;padding-top:.75rem}.score{font:800 2.5rem/1 Georgia,serif}.meta{color:#4e554d;font-size:.9rem}.badge{display:inline-block;border:1px solid;padding:.1rem .4rem;margin-right:.35rem}table{width:100%;border-collapse:collapse;background:#fff}th,td{text-align:left;vertical-align:top;border:1px solid #777;padding:.55rem;overflow-wrap:anywhere}h1,h2,h3{font-family:Georgia,serif}blockquote{margin-left:0;border-left:4px solid #174f3a;padding-left:1rem}code{overflow-wrap:anywhere}.pass{color:#12633f}.partial{color:#7a4f00}.fail{color:#9b1b1b}footer{margin-top:3rem;border-top:1px solid #777}.stack>*+*{margin-top:1.2rem}@media(max-width:700px){header{align-items:flex-start;flex-direction:column}header nav{margin:0}.hero{padding-top:2rem}table{display:block;overflow-x:auto;font-size:.85rem}th,td{min-width:6rem}}"""
 MAX_PUBLIC_JSON_BYTES = 2 * 1024 * 1024
 PUBLIC_SUFFIXES = {".css", ".html", ".json", ".md", ".txt", ".xml"}
 HOST_PATH = re.compile(r"(?:/home/|/Users/)[^/\s<]+/")
@@ -55,6 +55,8 @@ def build_site(
         ):
             raise ValueError(f"invalid review artifact: {path}")
         value["_artifact_dir"] = str(path.parent.resolve())
+        plan = _public_json(path.parent / "test-plan.json")
+        value["_core_workflow"] = str(plan.get("core_workflow") or "") if isinstance(plan, dict) else ""
         value["_site_path"] = (
             f"reviews/{_quote(value['repository'].split('/')[0])}/{_quote(value['repository'].split('/')[1])}/{value['commit_sha']}/"
         )
@@ -104,12 +106,12 @@ def build_site(
         "".join(_card(review, base_path) for review in reviews[:12])
         or '<p class="panel">No reviews have passed publication yet.</p>'
     )
-    home = f"""<section class="hero"><p class="kicker">Independent software testing lab</p><h1>AI tools tested so you don't have to.</h1><p>WorthIt inspects the claims, runs the code in a disposable environment, and publishes the evidence. We actually ran the thing.</p></section><section><h2>Latest verification reviews</h2><div class="grid">{cards}</div></section>"""
+    home = f"""<section class="hero"><p class="kicker">Independent software testing lab</p><h1>AI tools tested so you don't have to.</h1><p>See what each tool does, whether its core workflow survived two clean runs, and who should actually install it. Claims are linked to the evidence.</p></section><section><h2>Latest verification reviews</h2><div class="grid">{cards}</div></section>"""
     _write_page(site_dir / "index.html", "WorthIt", home, nav, base_path)
     _write_page(
         site_dir / "latest" / "index.html",
         "Latest Reviews",
-        f'<h1>Latest Reviews</h1><div class="grid">{cards}</div>',
+        f'<h1>Latest Reviews</h1><p>What the tools do, WorthIt\'s verdict, and the tested evidence behind it.</p><div class="grid">{cards}</div>',
         nav,
         base_path,
     )
@@ -214,13 +216,13 @@ def build_site(
     for review in reviews:
         histories.setdefault(review["repository"], []).append(review)
     history_rows = "".join(
-        f'<tr><td><a href="{html.escape(base_path + _history_path(repository), quote=True)}">{html.escape(repository)}</a></td><td>{len(versions)}</td><td>{html.escape(versions[0]["tested_at"][:10])}</td><td>{html.escape(str(versions[0]["score"]["overall"]))}/100</td></tr>'
+        f'<tr><td><a href="{html.escape(base_path + _history_path(repository), quote=True)}">{html.escape(repository)}</a></td><td>{html.escape(_tool_description(versions[0]))}</td><td>{len(versions)}</td><td>{html.escape(versions[0]["tested_at"][:10])}</td><td>{html.escape(str(versions[0]["score"]["overall"]))}/100</td></tr>'
         for repository, versions in sorted(histories.items(), key=lambda item: item[0].casefold())
     )
     _write_page(
         site_dir / "history" / "index.html",
         "Repository History",
-        f"<h1>Repository history</h1><p>Every score remains attached to its tested commit and date.</p><table><thead><tr><th>Repository</th><th>Versions</th><th>Latest test</th><th>Latest score</th></tr></thead><tbody>{history_rows}</tbody></table>",
+        f"<h1>Repository history</h1><p>Every score remains attached to its tested commit and date.</p><table><thead><tr><th>Repository</th><th>What it is</th><th>Versions</th><th>Latest test</th><th>Latest score</th></tr></thead><tbody>{history_rows}</tbody></table>",
         nav,
         base_path,
     )
@@ -404,7 +406,7 @@ def _review_page(review: dict[str, Any], base_path: str) -> str:
         if corrections
         else ""
     )
-    return f"""<p class="kicker">Execution-backed review</p><h1>{e(review["project"])}</h1><p class="meta"><a href="{e(review["repository_url"], quote=True)}">{e(review["repository"])}</a> · <a href="{history}">version history</a> · commit <code>{e(review["commit_sha"])}</code> · tool version <a href="evidence/final/version/stdout.txt"><code>{e(str(review.get("version") or "UNVERIFIED"))}</code></a> · WorthIt <code>{e(review["worthit_version"])}</code> · tested {e(review["tested_at"][:10])}</p>{correction_notice}<div class="panel"><span class="score">{e(str(score["overall"]))}/100</span><p><span class="badge">{e(score["verdict"])}</span><span class="badge">{e(score["confidence"])} confidence</span><span class="badge">Bullshit Ratio {e(bullshit_ratio)}</span></p><p>{e(review["summary"])}</p></div><h2>Claim matrix</h2><div class="stack">{claims}</div><h2>What we ran</h2><table><thead><tr><th>Test</th><th>Result</th><th>Exit</th><th>Runtime</th><th>Evidence</th><th>Purpose</th></tr></thead><tbody>{tests}</tbody></table><h2>Setup and measurements</h2><div class="panel"><p>Setup: {e(review["setup"]["friction"])}. Install {review["setup"]["install_duration_ms"] / 1000:.2f}s; replay {review["setup"]["replay_install_duration_ms"] / 1000:.2f}s; interventions {e(str(review["setup"]["manual_interventions"]))}; candidate network {e(str(review["setup"]["candidate_network"]))}. <a href="evidence/final/install/stdout.txt">Install stdout</a> · <a href="evidence/final/install/stderr.txt">install stderr</a> · <a href="evidence/replay/install/stdout.txt">replay stdout</a>.</p><p>Slowest test {e(str(review["performance"]["slowest_test_ms"]))} ms; peak measured test RAM {e(peak_ram_text)}. No comparative baseline.</p><p>{e(review["setup"]["documented_vs_actual"])}</p><p>{e(review["setup"]["version_note"])}</p></div><h2>What broke</h2>{bullets(review["what_broke"])}<h2>Scorecard</h2><table><thead><tr><th>Dimension</th><th>Score</th><th>Reason</th></tr></thead><tbody>{dimensions}</tbody></table><h2>Who should use it</h2>{bullets(review["who_should_use_it"])}<h2>Who should skip it</h2>{bullets(review["who_should_skip_it"])}<h2>Limitations</h2>{bullets(review["limitations"])}<h2>Reproduction</h2><div class="panel"><p>Source SHA-256 <code>{e(str(review["reproduction"]["source_archive_sha256"]))}</code>. Candidate network: none. Clean replay matched: {e(str(review["reproduction"]["reproduced"]))}. Backend: {e(review["reproduction"]["runtime"])}</p><p><a href="risk.json">Risk assessment</a> · <a href="environment.json">Sandbox environment</a> · <a href="dependency-fetch.json">Dependency provenance</a> · <a href="checkout.json">Source acquisition</a> · <a href="reproducibility.json">Reproducibility</a> · <a href="fact-check.json">Fact check</a> · <a href="editorial-critique.json">Editorial critique</a></p></div>"""
+    return f"""<p class="kicker">Execution-backed review</p><h1>{e(review["project"])}</h1><p class="lede">{e(_tool_description(review))}</p><p class="meta"><a href="{e(review["repository_url"], quote=True)}">{e(review["repository"])}</a> · <a href="{history}">version history</a> · commit <code>{e(review["commit_sha"])}</code> · tool version <a href="evidence/final/version/stdout.txt"><code>{e(str(review.get("version") or "UNVERIFIED"))}</code></a> · WorthIt <code>{e(review["worthit_version"])}</code> · tested {e(review["tested_at"][:10])}</p>{correction_notice}<section class="panel"><p class="kicker">WorthIt verdict</p><span class="score">{e(str(score["overall"]))}/100</span><p><span class="badge">{e(score["verdict"])}</span><span class="badge">{e(score["confidence"])} confidence</span><span class="badge">Bullshit Ratio {e(bullshit_ratio)}</span></p><p><strong>{e(_decision_summary(review))}</strong></p><p class="meta">{e(review["summary"])}</p></section><h2>What WorthIt actually exercised</h2><div class="panel"><p>{e(str(review.get("_core_workflow") or "The claim-linked CLI workflows listed below."))}</p></div><h2>What it claims, and what survived testing</h2><div class="stack">{claims}</div><h2>Test results</h2><table><thead><tr><th>Test</th><th>Result</th><th>Exit</th><th>Runtime</th><th>Evidence</th><th>Purpose</th></tr></thead><tbody>{tests}</tbody></table><h2>Setup and measurements</h2><div class="panel"><p>Setup: {e(review["setup"]["friction"])}. Install {review["setup"]["install_duration_ms"] / 1000:.2f}s; replay {review["setup"]["replay_install_duration_ms"] / 1000:.2f}s; interventions {e(str(review["setup"]["manual_interventions"]))}; candidate network {e(str(review["setup"]["candidate_network"]))}. <a href="evidence/final/install/stdout.txt">Install stdout</a> · <a href="evidence/final/install/stderr.txt">install stderr</a> · <a href="evidence/replay/install/stdout.txt">replay stdout</a>.</p><p>Slowest test {e(str(review["performance"]["slowest_test_ms"]))} ms; peak measured test RAM {e(peak_ram_text)}. No comparative baseline.</p><p>{e(review["setup"]["documented_vs_actual"])}</p><p>{e(review["setup"]["version_note"])}</p></div><h2>What broke</h2>{bullets(review["what_broke"])}<h2>Scorecard</h2><table><thead><tr><th>Dimension</th><th>Score</th><th>Reason</th></tr></thead><tbody>{dimensions}</tbody></table><h2>Who should use it</h2>{bullets(review["who_should_use_it"])}<h2>Who should skip it</h2>{bullets(review["who_should_skip_it"])}<h2>Limitations</h2>{bullets(review["limitations"])}<h2>Reproduction</h2><div class="panel"><p>Source SHA-256 <code>{e(str(review["reproduction"]["source_archive_sha256"]))}</code>. Candidate network: none. Clean replay matched: {e(str(review["reproduction"]["reproduced"]))}. Backend: {e(review["reproduction"]["runtime"])}</p><p><a href="risk.json">Risk assessment</a> · <a href="environment.json">Sandbox environment</a> · <a href="dependency-fetch.json">Dependency provenance</a> · <a href="checkout.json">Source acquisition</a> · <a href="reproducibility.json">Reproducibility</a> · <a href="fact-check.json">Fact check</a> · <a href="editorial-critique.json">Editorial critique</a></p></div>"""
 
 
 def _correction_page(correction: dict[str, Any], base_path: str) -> str:
@@ -433,7 +435,35 @@ def _correction_page(correction: dict[str, Any], base_path: str) -> str:
 
 def _card(review: dict[str, Any], base_path: str) -> str:
     path = html.escape(base_path + review["_site_path"], quote=True)
-    return f'<article class="card"><p class="kicker">{html.escape(review["category"])}</p><h3><a href="{path}">{html.escape(review["project"])}</a></h3><div class="score">{html.escape(str(review["score"]["overall"]))}</div><p>{html.escape(review["summary"])}</p><p class="meta">{html.escape(review["score"]["verdict"])} · {html.escape(review["score"]["confidence"])} confidence · {html.escape(review["tested_at"][:10])}</p></article>'
+    return f'<article class="card"><p class="kicker">{html.escape(review["category"])}</p><h3><a href="{path}">{html.escape(review["project"])}</a></h3><p class="tool-description">{html.escape(_tool_description(review))}</p><p class="decision"><strong>{html.escape(review["score"]["verdict"])}</strong> · {html.escape(_decision_summary(review))}</p><p><span class="score">{html.escape(str(review["score"]["overall"]))}</span>/100</p><p class="meta">{html.escape(review["score"]["confidence"])} confidence · tested {html.escape(review["tested_at"][:10])}</p></article>'
+
+
+def _tool_description(review: dict[str, Any]) -> str:
+    description = " ".join(str(review.get("description") or "").split()).strip()
+    return (
+        description
+        or f"A {str(review.get('category') or 'developer tool').lower()} from {review['repository']}."
+    )
+
+
+def _decision_summary(review: dict[str, Any]) -> str:
+    tests = review.get("tests") or []
+    passed = sum(isinstance(test, dict) and test.get("status") == "PASS" for test in tests)
+    claims = review.get("claim_matrix") or []
+    gaps = sum(isinstance(claim, dict) and claim.get("status") != "PASS" for claim in claims)
+    verdict = str((review.get("score") or {}).get("verdict") or "INSUFFICIENT EVIDENCE")
+    recommendation = {
+        "MUST TRY": "A strong recommendation for the tested workflow.",
+        "WORTH IT": "Worth installing for the tested workflow.",
+        "PROMISING": "Promising, with material gaps still open.",
+        "NICHE": "Useful for a narrower audience than the claims suggest.",
+        "WAIT": "Wait for the documented gaps to close.",
+        "NOT WORTH IT": "Not recommended on the tested evidence.",
+        "BROKEN": "Not installable or runnable in the tested configuration.",
+        "INSUFFICIENT EVIDENCE": "No defensible recommendation yet.",
+    }.get(verdict, f"Verdict: {verdict}.")
+    gap_text = f" {gaps} of {len(claims)} claims have caveats or remain unverified." if gaps else ""
+    return f"{recommendation} {passed}/{len(tests)} workflows passed in both clean runs.{gap_text}"
 
 
 def _leaderboard_table(
@@ -445,12 +475,12 @@ def _leaderboard_table(
 ) -> str:
     rows = (
         "".join(
-            f'<tr><td><a href="{html.escape(base_path + review["_site_path"], quote=True)}">{html.escape(review["repository"])}</a></td><td>{html.escape(metric(review))}</td><td>{html.escape(str(review["score"]["overall"]))}</td><td>{html.escape(review["score"]["confidence"])}</td><td><code>{html.escape(review["commit_sha"][:12])}</code></td><td>{html.escape(review["tested_at"][:10])}</td></tr>'
+            f'<tr><td><a href="{html.escape(base_path + review["_site_path"], quote=True)}">{html.escape(review["repository"])}</a></td><td>{html.escape(_tool_description(review))}</td><td>{html.escape(metric(review))}</td><td>{html.escape(str(review["score"]["overall"]))}</td><td>{html.escape(review["score"]["confidence"])}</td><td><code>{html.escape(review["commit_sha"][:12])}</code></td><td>{html.escape(review["tested_at"][:10])}</td></tr>'
             for review in reviews
         )
-        or '<tr><td colspan="6">No eligible reviews.</td></tr>'
+        or '<tr><td colspan="7">No eligible reviews.</td></tr>'
     )
-    return f"<h2>{html.escape(title)}</h2><table><thead><tr><th>Project</th><th>{html.escape(metric_label)}</th><th>Score</th><th>Confidence</th><th>Commit</th><th>Tested</th></tr></thead><tbody>{rows}</tbody></table>"
+    return f"<h2>{html.escape(title)}</h2><table><thead><tr><th>Project</th><th>What it is</th><th>{html.escape(metric_label)}</th><th>Score</th><th>Confidence</th><th>Commit</th><th>Tested</th></tr></thead><tbody>{rows}</tbody></table>"
 
 
 def _hunt_card(hunt: dict[str, Any], base_path: str) -> str:
@@ -514,7 +544,7 @@ def _history_page(repository: str, versions: list[dict[str, Any]], base_path: st
         f'<tr><td><a href="{e(base_path + version["_site_path"], quote=True)}"><code>{e(version["commit_sha"][:12])}</code></a></td><td>{e(str(version.get("version") or "UNVERIFIED"))}</td><td>{e(version["tested_at"][:10])}</td><td>{e(str(version["score"]["overall"]))}/100</td><td>{e(version["score"]["confidence"])}</td><td>{e(version["score"]["verdict"])}</td></tr>'
         for version in sorted(versions, key=lambda item: item["tested_at"], reverse=True)
     )
-    return f'<p class="kicker">Longitudinal record</p><h1>{e(repository)}</h1><p>Scores describe an exact tested commit, not the repository forever.</p><table><thead><tr><th>Commit</th><th>Version</th><th>Tested</th><th>Score</th><th>Confidence</th><th>Verdict</th></tr></thead><tbody>{rows}</tbody></table>'
+    return f'<p class="kicker">Longitudinal record</p><h1>{e(repository)}</h1><p class="lede">{e(_tool_description(versions[0]))}</p><p>Scores describe an exact tested commit, not the repository forever.</p><table><thead><tr><th>Commit</th><th>Version</th><th>Tested</th><th>Score</th><th>Confidence</th><th>Verdict</th></tr></thead><tbody>{rows}</tbody></table>'
 
 
 def _write_page(path: Path, title: str, body: str, nav: list[tuple[str, str]], base_path: str) -> None:
@@ -548,7 +578,7 @@ def _copy_public_artifacts(source: Path, destination: Path) -> None:
 def _write_feed(path: Path, reviews: list[dict[str, Any]], site_url: str, base_path: str) -> None:
     updated = html.escape(reviews[0]["tested_at"] if reviews else "1970-01-01T00:00:00+00:00")
     entries = "".join(
-        f'<entry><title>{html.escape(review["project"])}</title><id>{html.escape(site_url + base_path + review["_site_path"])}</id><link href="{html.escape(site_url + base_path + review["_site_path"], quote=True)}"/><updated>{html.escape(review["tested_at"])}</updated><summary>{html.escape(review["summary"])}</summary></entry>'
+        f'<entry><title>{html.escape(review["project"])}: {html.escape(review["score"]["verdict"])}</title><id>{html.escape(site_url + base_path + review["_site_path"])}</id><link href="{html.escape(site_url + base_path + review["_site_path"], quote=True)}"/><updated>{html.escape(review["tested_at"])}</updated><summary>{html.escape(_tool_description(review) + " " + _decision_summary(review))}</summary></entry>'
         for review in reviews[:20]
     )
     path.write_text(
@@ -622,6 +652,7 @@ def _valid_review(review: dict[str, Any]) -> bool:
         "project",
         "repository",
         "repository_url",
+        "description",
         "commit_sha",
         "tested_at",
         "category",
@@ -635,6 +666,8 @@ def _valid_review(review: dict[str, Any]) -> bool:
         or not re.fullmatch(r"[0-9A-Za-z.+-]{1,40}", review["worthit_version"])
         or len(review["commit_sha"]) != 40
         or any(character not in "0123456789abcdef" for character in review["commit_sha"].casefold())
+        or len(review["description"]) > 500
+        or "\x00" in review["description"]
     ):
         return False
     score = review.get("score")
