@@ -130,8 +130,8 @@
   ],
   "performance": {
     "baseline": null,
-    "peak_ram_bytes": 10695475,
-    "slowest_test_ms": 1777,
+    "peak_ram_bytes": 10999562,
+    "slowest_test_ms": 1776,
     "workspace_bytes": 4100067
   },
   "project": "UglifyJS",
@@ -145,9 +145,11 @@
   "repository_url": "https://github.com/mishoo/UglifyJS",
   "reproduction": {
     "candidate_network": "none",
-    "image": "sha256:96adf3af31a3e3336000466cd2d5eff7d93b8137f2bb3b49a55d831521301c61",
+    "dockerfile_sha256": "67ccb31bc2661165684d9b81afe00426cce14307a62c9c5d95adae173cfad7be",
+    "image": "sha256:bd3baaea48d3b6a27b0d0793d7c261473bde12bba00eb6b65975681ecd1107dc",
     "reproduced": true,
     "risk_classification": "TRUSTED_ENOUGH_TO_TEST",
+    "runner_sha256": "afc050d76e16bd9332aebe8f8e47d838b4cdf6b8889903f39dff2578c9a9930f",
     "runtime": "docker/runc with seccomp and AppArmor; runc shares the host kernel.",
     "source_archive_sha256": "0bcdc7aa9cb59330cc79b1e553f22385182d47d89711a9f42144ffd5761d07e9",
     "tests_compared": 6,
@@ -178,10 +180,10 @@
       "claim_verification": "Importance-weighted claim results; unverified claim portions reduce coverage rather than becoming failures.",
       "documentation": "README-derived workflows worked; diagnostic execution was needed to correct undocumented exit/format details.",
       "novelty": "Neutral score: WorthIt did not run a comparative novelty study.",
-      "performance_efficiency": "Slowest test was 1777 ms and measured peak RAM was 10695475 bytes; no comparative baseline was used.",
+      "performance_efficiency": "Slowest test was 1776 ms and measured peak RAM was 10999562 bytes; no comparative baseline was used.",
       "reliability": "Two clean runs compared across 6 tests; reproduced=True.",
       "safety_privacy": "Static screening recorded 1 MEDIUM finding(s); candidate execution had no network. Static review is not a safety guarantee.",
-      "setup_experience": "npm global source install with lifecycle scripts disabled took 2012 ms with 0 manual interventions and 0 automated setup adjustments.",
+      "setup_experience": "npm global source install with lifecycle scripts disabled took 2011 ms with 0 manual interventions and 0 automated setup adjustments.",
       "utility": "5/5 core workflow tests (T01, T02, T03, T04, T05) passed."
     },
     "setup_friction": "EASY",
@@ -207,29 +209,29 @@
       "lifecycle scripts disabled",
       "audit and funding requests disabled"
     ],
-    "install_duration_ms": 2012,
+    "install_duration_ms": 2011,
     "installation_method": "npm global source install with lifecycle scripts disabled",
     "manual_interventions": 0,
-    "replay_install_duration_ms": 2011,
+    "replay_install_duration_ms": 2009,
     "toolchain": "v22.23.2",
     "version_note": "The source install reported uglify-js 3.19.3, matching GitHub's latest-release metadata v3.19.3. The commit SHA identifies the exact tested artifact."
   },
   "summary": "The exact commit completed npm global source install with lifecycle scripts disabled in 2.01 seconds with no manual intervention. 6 of 6 accepted tests passed with the same results in a second clean, offline container. Claim coverage gaps: 2 partial, 1 unverified. Evidence confidence is high.",
-  "tested_at": "2026-08-14T03:52:35.710877+00:00",
+  "tested_at": "2026-08-14T04:15:54.830576+00:00",
   "tests": [
     {
       "claim_ids": [
         "CLAIM-002",
         "CLAIM-008"
       ],
-      "duration_ms": 1751,
+      "duration_ms": 1764,
       "edge_case": false,
       "evidence": [
         "T01/stdout.txt",
         "T01/stderr.txt"
       ],
       "exit_code": 0,
-      "peak_ram_bytes": 10580132,
+      "peak_ram_bytes": 10116661,
       "purpose": "Verify the installed uglifyjs binary accepts an input file plus a compress option and prints compressed code to STDOUT, without relying on mangler-specific variable naming.",
       "status": "PASS",
       "test_id": "T01"
@@ -238,14 +240,14 @@
       "claim_ids": [
         "CLAIM-003"
       ],
-      "duration_ms": 1773,
+      "duration_ms": 1765,
       "edge_case": false,
       "evidence": [
         "T02/stdout.txt",
         "T02/stderr.txt"
       ],
       "exit_code": 0,
-      "peak_ram_bytes": 10506732,
+      "peak_ram_bytes": 10999562,
       "purpose": "Verify uglifyjs reads JavaScript from STDIN and compresses it when no input file is given.",
       "status": "PASS",
       "test_id": "T02"
@@ -254,14 +256,14 @@
       "claim_ids": [
         "CLAIM-005"
       ],
-      "duration_ms": 1773,
+      "duration_ms": 1761,
       "edge_case": false,
       "evidence": [
         "T03/stdout.txt",
         "T03/stderr.txt"
       ],
       "exit_code": 0,
-      "peak_ram_bytes": 10317988,
+      "peak_ram_bytes": 10517217,
       "purpose": "Verify that with -o/--output specified, compressed output is written to the named file with the expected content.",
       "status": "PASS",
       "test_id": "T03"
@@ -270,14 +272,14 @@
       "claim_ids": [
         "CLAIM-006"
       ],
-      "duration_ms": 1468,
+      "duration_ms": 1454,
       "edge_case": false,
       "evidence": [
         "T04/stdout.txt",
         "T04/stderr.txt"
       ],
       "exit_code": 0,
-      "peak_ram_bytes": 10601103,
+      "peak_ram_bytes": 10358882,
       "purpose": "Verify that passing --source-map with --output output.js causes UglifyJS to generate a source map file named output.js.map alongside the compressed output file, and that the map contains the standard source-map fields.",
       "status": "PASS",
       "test_id": "T04"
@@ -286,14 +288,14 @@
       "claim_ids": [
         "CLAIM-004"
       ],
-      "duration_ms": 1285,
+      "duration_ms": 1288,
       "edge_case": false,
       "evidence": [
         "T05/stdout.txt",
         "T05/stderr.txt"
       ],
       "exit_code": 0,
-      "peak_ram_bytes": 10695475,
+      "peak_ram_bytes": 10313794,
       "purpose": "Verify multiple input files are parsed in sequence within the same global scope so a reference in file2.js to a function declared in file1.js resolves correctly. With -c and --toplevel enabled, correct cross-file linkage lets the compressor constant-fold add(1+2,3+4) into its computed result, which is only possible if add's definition from file1.js was correctly resolved while processing the call in file2.js.",
       "status": "PASS",
       "test_id": "T05"
@@ -302,14 +304,14 @@
       "claim_ids": [
         "CLAIM-002"
       ],
-      "duration_ms": 1777,
+      "duration_ms": 1776,
       "edge_case": true,
       "evidence": [
         "T06/stdout.txt",
         "T06/stderr.txt"
       ],
       "exit_code": 1,
-      "peak_ram_bytes": 10178527,
+      "peak_ram_bytes": 10371465,
       "purpose": "Verify uglifyjs fails with a nonzero exit code when given syntactically invalid JavaScript, as a minimal edge-case check; exact exit code and stderr wording are not documented so are not asserted.",
       "status": "PASS",
       "test_id": "T06"

@@ -65,9 +65,9 @@
     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
   {
-    "bytes": 26,
+    "bytes": 23,
     "path": "evidence/final/install/stdout.txt",
-    "sha256": "1a41e705daa2a8bc72d2008f774a0198e6b446f98a17ebbbedb3606abc8d4f71"
+    "sha256": "a941066d38162d18c88ea4b096d8cf11d19b0d46b973f6d916e2f9b8794e1f36"
   },
   {
     "bytes": 0,
@@ -155,9 +155,9 @@
     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
   {
-    "bytes": 26,
+    "bytes": 23,
     "path": "evidence/replay/install/stdout.txt",
-    "sha256": "7d196662effabd828b28619c9f3471d6187597a97ede1cb25cc4d83e1b39a863"
+    "sha256": "a941066d38162d18c88ea4b096d8cf11d19b0d46b973f6d916e2f9b8794e1f36"
   },
   {
     "bytes": 0,

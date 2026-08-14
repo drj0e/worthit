@@ -1,11 +1,11 @@
 {
-  "bullshit_denominator": 17.0,
+  "bullshit_denominator": 15.5,
   "bullshit_numerator": 0.0,
   "bullshit_ratio": 0,
-  "confidence": "HIGH",
+  "confidence": "MEDIUM",
   "dimensions": {
-    "claim_verification": 89,
-    "documentation": 80,
+    "claim_verification": 86,
+    "documentation": 90,
     "novelty": 50,
     "performance_efficiency": 85,
     "reliability": 95,
@@ -16,13 +16,13 @@
   "overall": 84,
   "reasons": {
     "claim_verification": "Importance-weighted claim results; unverified claim portions reduce coverage rather than becoming failures.",
-    "documentation": "README-derived workflows worked; diagnostic execution was needed to correct undocumented exit/format details.",
+    "documentation": "README-derived workflows worked without contract repair.",
     "novelty": "Neutral score: WorthIt did not run a comparative novelty study.",
-    "performance_efficiency": "Slowest test was 1781 ms and measured peak RAM was 38660997 bytes; no comparative baseline was used.",
-    "reliability": "Two clean runs compared across 7 tests; reproduced=True.",
-    "safety_privacy": "Static screening found no high-risk behavior and candidate execution had no network; static review is not a safety guarantee.",
-    "setup_experience": "Offline source installation took 10063 ms with 0 manual interventions and 1 automated setup adjustment.",
-    "utility": "6/6 core workflow tests (T01, T02, T03, T04, T05, T07) passed."
+    "performance_efficiency": "Slowest test was 1777 ms and measured peak RAM was 38325453 bytes; no comparative baseline was used.",
+    "reliability": "Two clean runs compared across 8 tests; reproduced=True.",
+    "safety_privacy": "Static screening recorded no findings; candidate execution had no network. Static review is not a safety guarantee.",
+    "setup_experience": "pip source install from an offline wheelhouse took 8050 ms with 0 manual interventions and 1 automated setup adjustment.",
+    "utility": "7/7 core workflow tests (T01, T02, T03, T04, T06, T07, T08) passed."
   },
   "setup_friction": "MODERATE",
   "verdict": "WORTH IT",

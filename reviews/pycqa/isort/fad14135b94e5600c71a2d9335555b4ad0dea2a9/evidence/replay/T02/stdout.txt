@@ -1,1 +1,2 @@
-Fixing /work/cases/T02/sub/mod.py
+Fixing /work/cases/T02/a.py
+Fixing /work/cases/T02/b.py

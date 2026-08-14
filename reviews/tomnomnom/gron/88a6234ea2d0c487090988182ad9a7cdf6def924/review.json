@@ -1,0 +1,339 @@
+{
+  "category": "CLI utility",
+  "claim_matrix": [
+    {
+      "claim": "gron has no runtime dependencies and provides downloadable pre-built binaries for Linux, Mac, Windows, and FreeBSD.",
+      "claim_id": "CLAIM-001",
+      "evidence": [],
+      "explanation": "No accepted test exercised this claim.",
+      "importance": "HIGH",
+      "source": "README.mkd",
+      "status": "UNVERIFIED",
+      "test_ids": []
+    },
+    {
+      "claim": "gron can be installed via `go install github.com/tomnomnom/gron@latest`.",
+      "claim_id": "CLAIM-002",
+      "evidence": [
+        "final.json#install"
+      ],
+      "explanation": "The exact commit completed offline Go source build against a staged checksum-verified module proxy, but the documented registry command was not run verbatim.",
+      "importance": "HIGH",
+      "source": "README.mkd",
+      "status": "PARTIAL",
+      "test_ids": []
+    },
+    {
+      "claim": "Running gron on a JSON input transforms it into discrete assignment statements representing the absolute path to each value.",
+      "claim_id": "CLAIM-003",
+      "evidence": [
+        "evidence/final/T01/stdout.txt",
+        "evidence/final/T01/stderr.txt"
+      ],
+      "explanation": "All mapped tests passed in both clean replays.",
+      "importance": "HIGH",
+      "source": "README.mkd",
+      "status": "PASS",
+      "test_ids": [
+        "T01"
+      ]
+    },
+    {
+      "claim": "gron supports converting its own assignment-statement output back into the original JSON structure using the `--ungron`/`-u` flag.",
+      "claim_id": "CLAIM-004",
+      "evidence": [
+        "evidence/final/T03/stdout.txt",
+        "evidence/final/T03/stderr.txt",
+        "evidence/final/T05/stdout.txt",
+        "evidence/final/T05/stderr.txt"
+      ],
+      "explanation": "All mapped tests passed in both clean replays.",
+      "importance": "HIGH",
+      "source": "README.mkd",
+      "status": "PASS",
+      "test_ids": [
+        "T03",
+        "T05"
+      ]
+    },
+    {
+      "claim": "gron supports a `--json` flag that outputs data as a JSON stream instead of the default assignment-statement format.",
+      "claim_id": "CLAIM-005",
+      "evidence": [
+        "evidence/final/T04/stdout.txt",
+        "evidence/final/T04/stderr.txt"
+      ],
+      "explanation": "All mapped tests passed in both clean replays.",
+      "importance": "MEDIUM",
+      "source": "README.mkd",
+      "status": "PASS",
+      "test_ids": [
+        "T04"
+      ]
+    },
+    {
+      "claim": "gron accepts a JSON source as a command-line argument that can be a local file path, a URL, or stdin (via `-`).",
+      "claim_id": "CLAIM-006",
+      "evidence": [
+        "evidence/final/T01/stdout.txt",
+        "evidence/final/T01/stderr.txt",
+        "evidence/final/T02/stdout.txt",
+        "evidence/final/T02/stderr.txt"
+      ],
+      "explanation": "Tests T01, T02 passed in both clean replays. Remaining gap: The URL-argument and stdin-URL-fetch portion of CLAIM-006 is not tested since it requires live network access; only the local-file and stdin-pipe input modes are exercised.",
+      "importance": "MEDIUM",
+      "source": "README.mkd",
+      "status": "PARTIAL",
+      "test_ids": [
+        "T01",
+        "T02"
+      ]
+    },
+    {
+      "claim": "gron returns specific documented exit codes (0-6) corresponding to success or particular failure modes (e.g., 1 for failed to open file, 4 for failed to fetch URL).",
+      "claim_id": "CLAIM-007",
+      "evidence": [
+        "evidence/final/T06/stdout.txt",
+        "evidence/final/T06/stderr.txt",
+        "evidence/final/T07/stdout.txt",
+        "evidence/final/T07/stderr.txt"
+      ],
+      "explanation": "Tests T06, T07 passed in both clean replays. Remaining gap: T07 accepts either exit code 2 or 3 for malformed JSON rather than asserting a single value, since the README's exit-code table does not specify whether JSON syntax errors are classified as a read failure or a statement-formation failure; both are treated as passing evidence that gron correctly rejects invalid input per CLAIM-007.",
+      "importance": "MEDIUM",
+      "source": "README.mkd",
+      "status": "PARTIAL",
+      "test_ids": [
+        "T06",
+        "T07"
+      ]
+    }
+  ],
+  "commit_sha": "88a6234ea2d0c487090988182ad9a7cdf6def924",
+  "description": "Make JSON greppable!",
+  "limitations": [
+    "CLAIM-001 (no-runtime-dependency pre-built binaries for Linux/Mac/Windows/FreeBSD) is not tested: the runner builds from source offline and does not download or execute GitHub release binaries.",
+    "T06's stderr assertion only checks that the missing filename appears in the diagnostic, since the exact wording of gron's 'failed to open file' message is not specified in the documentation.",
+    "GitHub's latest-release metadata was v0.7.1, while the tested commit-archive source build reported dev. WorthIt built this Go commit rather than testing a published release binary; the commit SHA identifies the artifact."
+  ],
+  "performance": {
+    "baseline": null,
+    "peak_ram_bytes": 132120576,
+    "slowest_test_ms": 1780,
+    "workspace_bytes": 118202641
+  },
+  "project": "gron",
+  "release_at_inspection": {
+    "name": "v0.7.1",
+    "prerelease": false,
+    "published_at": "2022-04-13T14:09:29Z",
+    "tag": "v0.7.1"
+  },
+  "repository": "tomnomnom/gron",
+  "repository_url": "https://github.com/tomnomnom/gron",
+  "reproduction": {
+    "candidate_network": "none",
+    "dockerfile_sha256": "bf0824d240d74ac39eac6b6e079dcac38ac6719637c97aa9aced9acbeee94e2f",
+    "image": "sha256:9a1af0ebf29877f2acf35b50b70ea6d1440c2bee071d521baef21157743be791",
+    "reproduced": true,
+    "risk_classification": "TRUSTED_ENOUGH_TO_TEST",
+    "runner_sha256": "afc050d76e16bd9332aebe8f8e47d838b4cdf6b8889903f39dff2578c9a9930f",
+    "runtime": "docker/runc with seccomp and AppArmor; runc shares the host kernel.",
+    "source_archive_sha256": "9199144da889c8f313b56dd2e6346e380a18945e0bf7648d62b1c4dc4c5660ca",
+    "tests_compared": 7,
+    "toolchain": "go version go1.24.13 linux/amd64"
+  },
+  "result_counts": {
+    "passed": 7,
+    "total": 7
+  },
+  "schema_version": 1,
+  "score": {
+    "bullshit_denominator": 11.5,
+    "bullshit_numerator": 0.0,
+    "bullshit_ratio": 0,
+    "confidence": "MEDIUM",
+    "dimensions": {
+      "claim_verification": 86,
+      "documentation": 90,
+      "novelty": 50,
+      "performance_efficiency": 85,
+      "reliability": 95,
+      "safety_privacy": 90,
+      "setup_experience": 90,
+      "utility": 85
+    },
+    "overall": 86,
+    "reasons": {
+      "claim_verification": "Importance-weighted claim results; unverified claim portions reduce coverage rather than becoming failures.",
+      "documentation": "README-derived workflows worked without contract repair.",
+      "novelty": "Neutral score: WorthIt did not run a comparative novelty study.",
+      "performance_efficiency": "Slowest test was 1780 ms and measured peak RAM was 132120576 bytes; no comparative baseline was used.",
+      "reliability": "Two clean runs compared across 7 tests; reproduced=True.",
+      "safety_privacy": "Static screening recorded no findings; candidate execution had no network. Static review is not a safety guarantee.",
+      "setup_experience": "offline Go source build against a staged checksum-verified module proxy took 56421 ms with 0 manual interventions and 0 automated setup adjustments.",
+      "utility": "4/4 core workflow tests (T01, T02, T03, T04) passed."
+    },
+    "setup_friction": "EASY",
+    "verdict": "WORTH IT",
+    "weights": {
+      "claim_verification": 30,
+      "documentation": 5,
+      "novelty": 5,
+      "performance_efficiency": 10,
+      "reliability": 10,
+      "safety_privacy": 5,
+      "setup_experience": 15,
+      "utility": 20
+    }
+  },
+  "setup": {
+    "automated_adjustments": [],
+    "candidate_network": "none",
+    "documented_vs_actual": "WorthIt compiled the exact staged commit with go build against a local checksum-verified module proxy; it did not download a release binary or run the README's go install command verbatim.",
+    "friction": "EASY",
+    "install_controls": [
+      "CGO disabled",
+      "local module proxy only",
+      "readonly module graph"
+    ],
+    "install_duration_ms": 56421,
+    "installation_method": "offline Go source build against a staged checksum-verified module proxy",
+    "manual_interventions": 0,
+    "replay_install_duration_ms": 56435,
+    "toolchain": "go version go1.24.13 linux/amd64",
+    "version_note": "GitHub's latest-release metadata was v0.7.1, while the tested commit-archive source build reported dev. WorthIt built this Go commit rather than testing a published release binary; the commit SHA identifies the artifact."
+  },
+  "summary": "The exact commit completed offline Go source build against a staged checksum-verified module proxy in 56.42 seconds with no manual intervention. 7 of 7 accepted tests passed with the same results in a second clean, offline container. Claim coverage gaps: 3 partial, 1 unverified. Evidence confidence is medium.",
+  "tested_at": "2026-08-14T04:19:29.712406+00:00",
+  "tests": [
+    {
+      "claim_ids": [
+        "CLAIM-003",
+        "CLAIM-006"
+      ],
+      "duration_ms": 1768,
+      "edge_case": false,
+      "evidence": [
+        "T01/stdout.txt",
+        "T01/stderr.txt"
+      ],
+      "exit_code": 0,
+      "peak_ram_bytes": 131806003,
+      "purpose": "Verify gron transforms a JSON file into sorted, discrete assignment statements representing the absolute path to each value.",
+      "status": "PASS",
+      "test_id": "T01"
+    },
+    {
+      "claim_ids": [
+        "CLAIM-006"
+      ],
+      "duration_ms": 1771,
+      "edge_case": false,
+      "evidence": [
+        "T02/stdout.txt",
+        "T02/stderr.txt"
+      ],
+      "exit_code": 0,
+      "peak_ram_bytes": 131596288,
+      "purpose": "Verify gron accepts JSON via stdin (no file/URL argument) as documented.",
+      "status": "PASS",
+      "test_id": "T02"
+    },
+    {
+      "claim_ids": [
+        "CLAIM-004"
+      ],
+      "duration_ms": 1769,
+      "edge_case": false,
+      "evidence": [
+        "T03/stdout.txt",
+        "T03/stderr.txt"
+      ],
+      "exit_code": 0,
+      "peak_ram_bytes": 131701146,
+      "purpose": "Verify gron --ungron reverses assignment statements back into the original JSON structure.",
+      "status": "PASS",
+      "test_id": "T03"
+    },
+    {
+      "claim_ids": [
+        "CLAIM-005"
+      ],
+      "duration_ms": 1762,
+      "edge_case": false,
+      "evidence": [
+        "T04/stdout.txt",
+        "T04/stderr.txt"
+      ],
+      "exit_code": 0,
+      "peak_ram_bytes": 131491430,
+      "purpose": "Verify gron --json emits data as a JSON-array-per-line stream instead of assignment statements.",
+      "status": "PASS",
+      "test_id": "T04"
+    },
+    {
+      "claim_ids": [
+        "CLAIM-004"
+      ],
+      "duration_ms": 1774,
+      "edge_case": true,
+      "evidence": [
+        "T05/stdout.txt",
+        "T05/stderr.txt"
+      ],
+      "exit_code": 0,
+      "peak_ram_bytes": 131701146,
+      "purpose": "Verify ungron pads missing array indices with null to preserve array keys, as documented.",
+      "status": "PASS",
+      "test_id": "T05"
+    },
+    {
+      "claim_ids": [
+        "CLAIM-007"
+      ],
+      "duration_ms": 1780,
+      "edge_case": true,
+      "evidence": [
+        "T06/stdout.txt",
+        "T06/stderr.txt"
+      ],
+      "exit_code": 1,
+      "peak_ram_bytes": 132120576,
+      "purpose": "Verify gron exits with documented code 1 and reports a diagnostic when the input file cannot be opened.",
+      "status": "PASS",
+      "test_id": "T06"
+    },
+    {
+      "claim_ids": [
+        "CLAIM-007"
+      ],
+      "duration_ms": 1778,
+      "edge_case": true,
+      "evidence": [
+        "T07/stdout.txt",
+        "T07/stderr.txt"
+      ],
+      "exit_code": 3,
+      "peak_ram_bytes": 131701146,
+      "purpose": "Verify gron exits with a documented failure code (2 'Failed to read input' or 3 'Failed to form statements') when given syntactically invalid JSON, rather than exiting 0.",
+      "status": "PASS",
+      "test_id": "T07"
+    }
+  ],
+  "version": "dev",
+  "what_broke": [
+    "No accepted final or replay test failed.",
+    "The accepted contract did not require diagnostic repair.",
+    "Not fully verified: CLAIM-002, gron can be installed via `go install github.com/tomnomnom/gron@latest`.",
+    "Not fully verified: CLAIM-006, gron accepts a JSON source as a command-line argument that can be a local file path, a URL, or stdin (via `-`).",
+    "Not fully verified: CLAIM-007, gron returns specific documented exit codes (0-6) corresponding to success or particular failure modes (e.g., 1 for failed to open file, 4 for failed to fetch URL).",
+    "Unverified: CLAIM-001, gron has no runtime dependencies and provides downloadable pre-built binaries for Linux, Mac, Windows, and FreeBSD."
+  ],
+  "who_should_skip_it": [
+    "This review is not enough if your decision requires full verification of: CLAIM-002: gron can be installed via `go install github.com/tomnomnom/gron@latest`; CLAIM-006: gron accepts a JSON source as a command-line argument that can be a local file path, a URL, or stdin (via `-`); CLAIM-007: gron returns specific documented exit codes (0-6) corresponding to success or particular failure modes (e.g., 1 for failed to open file, 4 for failed to fetch URL); CLAIM-001: gron has no runtime dependencies and provides downloadable pre-built binaries for Linux, Mac, Windows, and FreeBSD."
+  ],
+  "who_should_use_it": [
+    "Developers evaluating gron as make JSON greppable!.",
+    "Teams that need the tested CLI workflow to run locally without candidate-time network access."
+  ]
+}

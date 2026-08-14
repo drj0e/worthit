@@ -1,6 +1,6 @@
 # V1 runner decision and implementation plan
 
-Status: accepted and exercised across Python and Node, 2026-08-14.
+Status: accepted and clean-replayed across Python, Node, and Go, 2026-08-14.
 
 ## Promise and scope
 
@@ -21,10 +21,10 @@ forced through the wrong track. These boundaries came from the three-repository
 proof and are ceilings, not a claim that every repository in an ecosystem is
 supported.
 
-The first gate is one real repository from URL to local static review. The next
-gate is clean reproduction across Python, Node/TypeScript, and a Rust/Go utility.
-Broad daily execution stays disabled until all three pass twice from clean
-environments.
+The first gate was one real repository from URL to local static review. The
+second gate was clean reproduction across Python, Node/TypeScript, and a Go
+utility. All three now pass twice from clean environments with the runner and
+container-build hashes included in the execution contract.
 
 ## Trust boundaries
 
@@ -158,7 +158,7 @@ either cold run.
 7. Ask Claude to challenge the plan before execution and independently audit the
    final evidence/review. Resolve valid findings and commit the milestone.
 
-## Explicit deferrals
+## Remaining V1 work
 
 - daily discovery/selection and unattended top-five execution;
 - production Pages deployment and Daily Hunt reports;
@@ -167,7 +167,9 @@ either cold run.
 - repair by changing candidate business source;
 - cross-project performance claims without a comparable baseline.
 
-These return only after the three-repository clean-replay gate.
+The first two are the next milestone now that the three-repository clean-replay
+gate has passed. The broader execution tracks stay deferred until evidence shows
+they are needed and a stronger isolation backend is available.
 
 ## Three-repository failure comparison
 
@@ -197,7 +199,7 @@ Completed on 2026-08-14:
   teardown;
 - deterministic claim matrix, scoring, confidence, Bullshit Ratio, review,
   fact check, editorial critique, and escaped static publication;
-- first real isort evaluation with 7/7 accepted tests reproduced twice.
+- finalized isort evaluation with 8/8 accepted tests reproduced twice;
 - UglifyJS evaluation with 6/6 accepted tests reproduced twice, including file,
   STDIN, output-file, source-map, cross-file, and malformed-input workflows;
 - gron evaluation with 7/7 accepted tests reproduced twice, including file,
@@ -205,6 +207,8 @@ Completed on 2026-08-14:
 - all three evaluator images passed the live mount, secret, socket, network,
   timeout, and teardown isolation probe.
 
-Daily mode stays disabled until the finalized runner clean-reruns all three.
-Stronger-than-runc isolation remains required before lowering the current
-established-project trust threshold or enabling broader unattended execution.
+The finalized runner clean-reran all three repositories with identical
+per-repository execution contracts and dependency-bundle hashes. Daily mode may
+now select only repositories that pass the existing established-project trust
+threshold. Stronger-than-runc isolation remains required before lowering that
+threshold or broadening the supported execution tracks.

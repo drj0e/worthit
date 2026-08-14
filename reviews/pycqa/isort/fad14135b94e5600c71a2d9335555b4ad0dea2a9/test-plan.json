@@ -1,35 +1,28 @@
 {
-  "core_workflow": "Invoke the installed `isort` CLI against Python source files/directories to alphabetically sort and reorganize import statements, either applying changes in place, previewing them (--diff), verifying formatting without modification (-c), or atomically applying changes only if syntax remains valid (--atomic).",
-  "designer": "claude-warm-repair-reconciled",
+  "core_workflow": "Verify isort's documented CLI workflow (single/multiple file sorting, recursive directory sorting, --diff preview, -c check-only verification), the documented Python library API (isort.file), and that packaging metadata's Python version floor matches the README's stated requirement. Each CLI test invokes the installed `isort` console script directly on files created in an isolated case directory and asserts exact resulting file content plus exit code and stdout/stderr signals; the library and metadata tests invoke the Python interpreter directly on a small script within the same isolated directory (no shell).",
+  "designer": "claude-reconciled+schema-corrected",
   "entrypoint": "isort",
   "limitations": [
-    "CLAIM-007 (Python 3.10+ requirement) is covered only indirectly via installed package metadata (T07); the test runner executes in a single fixed Python environment, so actually attempting installation/execution under Python <3.10 to confirm rejection is not feasible here.",
-    "T06 was corrected from the original plan: warm evidence showed isort --atomic exits 0 (not 1) when the target file has a syntax error, while still leaving the file byte-for-byte unchanged and emitting a UserWarning on stderr ('unable to sort due to existing syntax errors'). The expected exit code was ungrounded speculation in the original plan and is now corrected to match repeatable observed behavior; the file-unchanged and stderr-warning assertions remain load-bearing and directly test the CLAIM-005 no-changes-on-syntax-error behavior, so the assertion was not weakened, only the incorrect exit-code expectation was fixed.",
-    "T04's expected exit code of 1 for isort -c on an unsorted file is confirmed by warm evidence (observed exit 1) and matches isort's documented check-mode convention.",
-    "Only the `isort` entrypoint was tested per plan scope; `isort-identify-imports` is left untested since no claim describes its distinct behavior.",
-    "Tests assume no ambient isort configuration (pyproject.toml/setup.cfg/.isort.cfg) exists in the fresh case directory, so default settings govern sorting behavior.",
-    "Tests rely on isort's default alphabetical stdlib sorting behavior (os before sys, abc before json) rather than asserting against every possible profile/config combination.",
-    "No test was added for non-atomic in-place behavior on a file with a syntax error, since no claim documents that specific behavior; adding it would be unclaimed speculation.",
-    "Warm evidence is diagnostic only; the repaired plan (particularly the corrected T06 exit code and stderr text) should be validated again on the fresh clean replay to confirm stability across environments/versions."
+    "CLAIM-002 is verified only via consistency with packaging metadata (T08 confirms Requires-Python is >=3.10.0, matching the README's stated floor); no test actually runs isort under an unsupported (<3.10) Python interpreter to confirm the floor is enforced at runtime, since only one interpreter is available in the harness.",
+    "CLAIM-001 (pip install) is only indirectly verified: every test's successful invocation of the installed `isort` script (and successful `import isort` in T07/T08) implies installation succeeded, but no test explicitly runs `pip install isort` itself since the harness performs installation before tests run.",
+    "Exact stdout wording for 'Fixing <file>' and diff header formatting is based on documented/typical isort CLI behavior; minor cosmetic wording differences across isort versions are tolerated via substring (contains) matching rather than exact text matching for stdout/stderr.",
+    "The original argparse unrecognized-flag test (unclaimed CLI error-handling behavior) was removed: it was not grounded in any documented claim and risked misattributing failures to CLAIM-003 if isort's argument-parsing internals changed while the documented sorting behavior remained intact.",
+    "The other declared console script, isort-identify-imports, is intentionally left untested per this plan's scope."
   ],
   "tests": [
     {
       "argv": [
         "{entrypoint}",
-        "file1.py",
-        "file2.py"
+        "mixed.py"
       ],
       "claim_ids": [
-        "CLAIM-002",
         "CLAIM-001",
-        "CLAIM-008"
+        "CLAIM-003"
       ],
       "edge_case": false,
       "evidence": [
-        "CLAIM-002: isort mypythonfile.py mypythonfile2.py sorts the imports in those specific files.",
-        "CLAIM-001: pip install isort installs the isort package.",
-        "CLAIM-008: isort console script maps to isort.main:main.",
-        "Warm evidence T01: PASS, exit 0, file1.py and file2.py sorted exactly as expected."
+        "isort mypythonfile.py mypythonfile2.py",
+        "isort can be installed by running pip install isort"
       ],
       "expected_exit_codes": [
         0
@@ -39,25 +32,64 @@
           "contains": [],
           "exact_text": "import os\nimport sys\n",
           "exists": true,
-          "path": "file1.py"
+          "path": "mixed.py"
+        }
+      ],
+      "purpose": "Verify isort sorts imports alphabetically in a single specified file, confirming the core documented CLI workflow and that the pip-installed entrypoint runs successfully.",
+      "required_resources": [],
+      "setup_files": {
+        "mixed.py": "import sys\nimport os\n"
+      },
+      "stderr_contains": [],
+      "stdin": "",
+      "stdout_contains": [
+        "Fixing"
+      ],
+      "test_id": "T01",
+      "timeout_sec": 15
+    },
+    {
+      "argv": [
+        "{entrypoint}",
+        "a.py",
+        "b.py"
+      ],
+      "claim_ids": [
+        "CLAIM-003"
+      ],
+      "edge_case": false,
+      "evidence": [
+        "Running isort mypythonfile.py mypythonfile2.py from the command line sorts the imports in the specified files."
+      ],
+      "expected_exit_codes": [
+        0
+      ],
+      "file_assertions": [
+        {
+          "contains": [],
+          "exact_text": "import os\nimport sys\n",
+          "exists": true,
+          "path": "a.py"
         },
         {
           "contains": [],
           "exact_text": "import abc\nimport json\n",
           "exists": true,
-          "path": "file2.py"
+          "path": "b.py"
         }
       ],
-      "purpose": "Verify isort sorts imports in two specific files passed as separate positional arguments, using distinct import sets per file so the test can detect if isort mixes up, skips, or cross-applies results between files.",
+      "purpose": "Verify isort sorts imports independently across multiple files passed as separate arguments in a single invocation.",
       "required_resources": [],
       "setup_files": {
-        "file1.py": "import sys\nimport os\n",
-        "file2.py": "import json\nimport abc\n"
+        "a.py": "import sys\nimport os\n",
+        "b.py": "import json\nimport abc\n"
       },
       "stderr_contains": [],
       "stdin": "",
-      "stdout_contains": [],
-      "test_id": "T01",
+      "stdout_contains": [
+        "Fixing"
+      ],
+      "test_id": "T02",
       "timeout_sec": 15
     },
     {
@@ -66,12 +98,11 @@
         "."
       ],
       "claim_ids": [
-        "CLAIM-003"
+        "CLAIM-004"
       ],
       "edge_case": false,
       "evidence": [
-        "CLAIM-003: Running isort . applies isort recursively to the current directory.",
-        "Warm evidence T02: PASS, exit 0, sub/mod.py sorted exactly as expected."
+        "To apply recursively:\n\nisort ."
       ],
       "expected_exit_codes": [
         0
@@ -81,33 +112,41 @@
           "contains": [],
           "exact_text": "import os\nimport sys\n",
           "exists": true,
-          "path": "sub/mod.py"
+          "path": "top.py"
+        },
+        {
+          "contains": [],
+          "exact_text": "import abc\nimport json\n",
+          "exists": true,
+          "path": "sub/nested.py"
         }
       ],
-      "purpose": "Verify `isort .` recursively finds and sorts imports in Python files inside subdirectories of the current directory.",
+      "purpose": "Verify isort . recursively sorts imports in all Python files under the current directory, including nested subdirectories.",
       "required_resources": [],
       "setup_files": {
-        "sub/mod.py": "import sys\nimport os\n"
+        "sub/nested.py": "import json\nimport abc\n",
+        "top.py": "import sys\nimport os\n"
       },
       "stderr_contains": [],
       "stdin": "",
-      "stdout_contains": [],
-      "test_id": "T02",
+      "stdout_contains": [
+        "Fixing"
+      ],
+      "test_id": "T03",
       "timeout_sec": 15
     },
     {
       "argv": [
         "{entrypoint}",
-        "diff_test.py",
+        "diff.py",
         "--diff"
       ],
       "claim_ids": [
-        "CLAIM-004"
+        "CLAIM-005"
       ],
       "edge_case": false,
       "evidence": [
-        "CLAIM-004: isort mypythonfile.py --diff shows proposed changes without applying them to the file.",
-        "Warm evidence T03: PASS, exit 0, unified diff with ---/+++/@@ printed to stdout, file left unmodified."
+        "To view proposed changes without applying them:\n\nisort mypythonfile.py --diff"
       ],
       "expected_exit_codes": [
         0
@@ -117,37 +156,35 @@
           "contains": [],
           "exact_text": "import sys\nimport os\n",
           "exists": true,
-          "path": "diff_test.py"
+          "path": "diff.py"
         }
       ],
-      "purpose": "Verify `isort file.py --diff` prints a unified diff of the proposed change to stdout while leaving the file untouched.",
+      "purpose": "Verify isort --diff prints the proposed reordering to stdout without modifying the target file on disk.",
       "required_resources": [],
       "setup_files": {
-        "diff_test.py": "import sys\nimport os\n"
+        "diff.py": "import sys\nimport os\n"
       },
       "stderr_contains": [],
       "stdin": "",
       "stdout_contains": [
-        "---",
-        "+++",
+        "diff.py",
         "@@"
       ],
-      "test_id": "T03",
+      "test_id": "T04",
       "timeout_sec": 15
     },
     {
       "argv": [
         "{entrypoint}",
-        "unsorted.py",
+        "bad.py",
         "-c"
       ],
       "claim_ids": [
         "CLAIM-006"
       ],
-      "edge_case": false,
+      "edge_case": true,
       "evidence": [
-        "CLAIM-006: Running isort with -c verifies formatting and outputs incorrectly sorted files to stderr rather than modifying them.",
-        "Warm evidence T04: PASS, exit 1, stderr 'ERROR: /work/cases/T04/unsorted.py Imports are incorrectly sorted and/or formatted.', file unmodified."
+        "isort can also be used to verify that code is correctly formatted by running it with -c. Any files that contain incorrectly sorted and/or formatted imports will be outputted to stderr."
       ],
       "expected_exit_codes": [
         1
@@ -157,26 +194,27 @@
           "contains": [],
           "exact_text": "import sys\nimport os\n",
           "exists": true,
-          "path": "unsorted.py"
+          "path": "bad.py"
         }
       ],
-      "purpose": "Verify `isort -c` on a file with incorrectly sorted imports reports the problem on stderr, exits nonzero, and leaves the file unmodified.",
+      "purpose": "Realistic failure case: verify isort -c (check-only) reports an incorrectly sorted file as an error to stderr with a nonzero exit code, and leaves the file unmodified.",
       "required_resources": [],
       "setup_files": {
-        "unsorted.py": "import sys\nimport os\n"
+        "bad.py": "import sys\nimport os\n"
       },
       "stderr_contains": [
-        "unsorted.py"
+        "ERROR",
+        "incorrectly sorted"
       ],
       "stdin": "",
       "stdout_contains": [],
-      "test_id": "T04",
+      "test_id": "T05",
       "timeout_sec": 15
     },
     {
       "argv": [
         "{entrypoint}",
-        "sorted.py",
+        "good.py",
         "-c"
       ],
       "claim_ids": [
@@ -184,8 +222,7 @@
       ],
       "edge_case": false,
       "evidence": [
-        "CLAIM-006: isort -c verifies that code is correctly formatted; files with correctly sorted imports should pass.",
-        "Warm evidence T05: PASS, exit 0, file unmodified."
+        "isort can also be used to verify that code is correctly formatted by running it with -c."
       ],
       "expected_exit_codes": [
         0
@@ -195,53 +232,15 @@
           "contains": [],
           "exact_text": "import os\nimport sys\n",
           "exists": true,
-          "path": "sorted.py"
+          "path": "good.py"
         }
       ],
-      "purpose": "Verify `isort -c` on an already correctly sorted file succeeds with exit code 0 and does not modify the file, complementing the failure case in T04.",
+      "purpose": "Verify isort -c succeeds with exit code 0 and no error output when the file's imports are already correctly sorted, and leaves the file unmodified.",
       "required_resources": [],
       "setup_files": {
-        "sorted.py": "import os\nimport sys\n"
+        "good.py": "import os\nimport sys\n"
       },
       "stderr_contains": [],
-      "stdin": "",
-      "stdout_contains": [],
-      "test_id": "T05",
-      "timeout_sec": 15
-    },
-    {
-      "argv": [
-        "{entrypoint}",
-        "atomic_bad.py",
-        "--atomic"
-      ],
-      "claim_ids": [
-        "CLAIM-005"
-      ],
-      "edge_case": true,
-      "evidence": [
-        "CLAIM-005: Running isort --atomic . runs isort against a project and only applies changes if they don't introduce syntax errors.",
-        "Warm evidence T06: original plan expected exit code 1 but observed exit code was 0 (that assumption was ungrounded); stderr repeatably shows 'unable to sort due to existing syntax errors' and the file is left byte-for-byte unchanged, which directly demonstrates the --atomic no-changes-on-syntax-error behavior claimed in CLAIM-005."
-      ],
-      "expected_exit_codes": [
-        0
-      ],
-      "file_assertions": [
-        {
-          "contains": [],
-          "exact_text": "import sys\nimport os\ndef broken(\n",
-          "exists": true,
-          "path": "atomic_bad.py"
-        }
-      ],
-      "purpose": "Invalid-input/failure case: run `isort --atomic` on a file containing a Python syntax error and confirm isort refuses to apply changes (leaves the file byte-for-byte unchanged) and warns that sorting was skipped due to the syntax error, since applying changes could not be verified to preserve valid syntax.",
-      "required_resources": [],
-      "setup_files": {
-        "atomic_bad.py": "import sys\nimport os\ndef broken(\n"
-      },
-      "stderr_contains": [
-        "unable to sort due to existing syntax errors"
-      ],
       "stdin": "",
       "stdout_contains": [],
       "test_id": "T06",
@@ -250,33 +249,71 @@
     {
       "argv": [
         "{python}",
-        "-c",
-        "import importlib.metadata,sys; sys.stdout.write(importlib.metadata.metadata('isort')['Requires-Python'])"
+        "lib_usage.py"
       ],
       "claim_ids": [
         "CLAIM-007"
       ],
       "edge_case": false,
       "evidence": [
-        "pyproject.toml: requires-python = \">=3.10.0\"",
-        "CLAIM-007: isort requires Python 3.10 or higher to run.",
-        "Warm evidence T07: PASS, exit 0, stdout contains '>=3.10.0'."
+        "import isort\n\nisort.file(\"pythonfile.py\")"
+      ],
+      "expected_exit_codes": [
+        0
+      ],
+      "file_assertions": [
+        {
+          "contains": [],
+          "exact_text": "import os\nimport sys\n",
+          "exists": true,
+          "path": "libtest.py"
+        }
+      ],
+      "purpose": "Verify the documented Python library API: importing isort and calling isort.file() sorts the imports of the target file on disk.",
+      "required_resources": [
+        "python3"
+      ],
+      "setup_files": {
+        "lib_usage.py": "import isort\nisort.file(\"libtest.py\")\n",
+        "libtest.py": "import sys\nimport os\n"
+      },
+      "stderr_contains": [],
+      "stdin": "",
+      "stdout_contains": [],
+      "test_id": "T07",
+      "timeout_sec": 15
+    },
+    {
+      "argv": [
+        "{python}",
+        "check_requires_python.py"
+      ],
+      "claim_ids": [
+        "CLAIM-002",
+        "CLAIM-008"
+      ],
+      "edge_case": false,
+      "evidence": [
+        "requires-python = \">=3.10.0\"",
+        "It requires Python 3.10+ to run"
       ],
       "expected_exit_codes": [
         0
       ],
       "file_assertions": [],
-      "purpose": "Give CLAIM-007 (Python 3.10+ requirement) indirect coverage by inspecting the installed isort package's published Requires-Python metadata, confirming the >=3.10.0 constraint declared in pyproject.toml is actually shipped in the installed distribution.",
+      "purpose": "Verify the installed package's declared minimum Python version (from packaging metadata) matches the README's stated 3.10+ requirement.",
       "required_resources": [
         "python3"
       ],
-      "setup_files": {},
+      "setup_files": {
+        "check_requires_python.py": "from importlib.metadata import metadata\nprint(metadata(\"isort\")[\"Requires-Python\"])\n"
+      },
       "stderr_contains": [],
       "stdin": "",
       "stdout_contains": [
         ">=3.10.0"
       ],
-      "test_id": "T07",
+      "test_id": "T08",
       "timeout_sec": 15
     }
   ]

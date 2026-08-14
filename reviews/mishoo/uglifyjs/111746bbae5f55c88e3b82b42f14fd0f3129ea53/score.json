@@ -18,10 +18,10 @@
     "claim_verification": "Importance-weighted claim results; unverified claim portions reduce coverage rather than becoming failures.",
     "documentation": "README-derived workflows worked; diagnostic execution was needed to correct undocumented exit/format details.",
     "novelty": "Neutral score: WorthIt did not run a comparative novelty study.",
-    "performance_efficiency": "Slowest test was 1777 ms and measured peak RAM was 10695475 bytes; no comparative baseline was used.",
+    "performance_efficiency": "Slowest test was 1776 ms and measured peak RAM was 10999562 bytes; no comparative baseline was used.",
     "reliability": "Two clean runs compared across 6 tests; reproduced=True.",
     "safety_privacy": "Static screening recorded 1 MEDIUM finding(s); candidate execution had no network. Static review is not a safety guarantee.",
-    "setup_experience": "npm global source install with lifecycle scripts disabled took 2012 ms with 0 manual interventions and 0 automated setup adjustments.",
+    "setup_experience": "npm global source install with lifecycle scripts disabled took 2011 ms with 0 manual interventions and 0 automated setup adjustments.",
     "utility": "5/5 core workflow tests (T01, T02, T03, T04, T05) passed."
   },
   "setup_friction": "EASY",

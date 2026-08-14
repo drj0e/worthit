@@ -1,2 +1,0 @@
-/work/venv/lib/python3.12/site-packages/isort/main.py:68: UserWarning: /work/cases/T06/atomic_bad.py unable to sort due to existing syntax errors
-  incorrectly_sorted = not api.sort_file(

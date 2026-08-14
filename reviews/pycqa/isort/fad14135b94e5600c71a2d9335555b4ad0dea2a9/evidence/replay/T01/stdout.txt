@@ -1,2 +1,1 @@
-Fixing /work/cases/T01/file1.py
-Fixing /work/cases/T01/file2.py
+Fixing /work/cases/T01/mixed.py

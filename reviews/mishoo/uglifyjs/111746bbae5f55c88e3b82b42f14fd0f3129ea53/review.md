@@ -66,12 +66,12 @@ Source: `package.json`. Tests: T01. All mapped tests passed in both clean replay
 
 ## What we ran
 
-- T01 (core): PASS, exit 0, 1751 ms, [stdout](evidence/final/T01/stdout.txt), [stderr](evidence/final/T01/stderr.txt). Verify the installed uglifyjs binary accepts an input file plus a compress option and prints compressed code to STDOUT, without relying on mangler-specific variable naming.
-- T02 (core): PASS, exit 0, 1773 ms, [stdout](evidence/final/T02/stdout.txt), [stderr](evidence/final/T02/stderr.txt). Verify uglifyjs reads JavaScript from STDIN and compresses it when no input file is given.
-- T03 (core): PASS, exit 0, 1773 ms, [stdout](evidence/final/T03/stdout.txt), [stderr](evidence/final/T03/stderr.txt). Verify that with -o/--output specified, compressed output is written to the named file with the expected content.
-- T04 (core): PASS, exit 0, 1468 ms, [stdout](evidence/final/T04/stdout.txt), [stderr](evidence/final/T04/stderr.txt). Verify that passing --source-map with --output output.js causes UglifyJS to generate a source map file named output.js.map alongside the compressed output file, and that the map contains the standard source-map fields.
-- T05 (core): PASS, exit 0, 1285 ms, [stdout](evidence/final/T05/stdout.txt), [stderr](evidence/final/T05/stderr.txt). Verify multiple input files are parsed in sequence within the same global scope so a reference in file2.js to a function declared in file1.js resolves correctly. With -c and --toplevel enabled, correct cross-file linkage lets the compressor constant-fold add(1+2,3+4) into its computed result, which is only possible if add's definition from file1.js was correctly resolved while processing the call in file2.js.
-- T06 (edge/failure): PASS, exit 1, 1777 ms, [stdout](evidence/final/T06/stdout.txt), [stderr](evidence/final/T06/stderr.txt). Verify uglifyjs fails with a nonzero exit code when given syntactically invalid JavaScript, as a minimal edge-case check; exact exit code and stderr wording are not documented so are not asserted.
+- T01 (core): PASS, exit 0, 1764 ms, [stdout](evidence/final/T01/stdout.txt), [stderr](evidence/final/T01/stderr.txt). Verify the installed uglifyjs binary accepts an input file plus a compress option and prints compressed code to STDOUT, without relying on mangler-specific variable naming.
+- T02 (core): PASS, exit 0, 1765 ms, [stdout](evidence/final/T02/stdout.txt), [stderr](evidence/final/T02/stderr.txt). Verify uglifyjs reads JavaScript from STDIN and compresses it when no input file is given.
+- T03 (core): PASS, exit 0, 1761 ms, [stdout](evidence/final/T03/stdout.txt), [stderr](evidence/final/T03/stderr.txt). Verify that with -o/--output specified, compressed output is written to the named file with the expected content.
+- T04 (core): PASS, exit 0, 1454 ms, [stdout](evidence/final/T04/stdout.txt), [stderr](evidence/final/T04/stderr.txt). Verify that passing --source-map with --output output.js causes UglifyJS to generate a source map file named output.js.map alongside the compressed output file, and that the map contains the standard source-map fields.
+- T05 (core): PASS, exit 0, 1288 ms, [stdout](evidence/final/T05/stdout.txt), [stderr](evidence/final/T05/stderr.txt). Verify multiple input files are parsed in sequence within the same global scope so a reference in file2.js to a function declared in file1.js resolves correctly. With -c and --toplevel enabled, correct cross-file linkage lets the compressor constant-fold add(1+2,3+4) into its computed result, which is only possible if add's definition from file1.js was correctly resolved while processing the call in file2.js.
+- T06 (edge/failure): PASS, exit 1, 1776 ms, [stdout](evidence/final/T06/stdout.txt), [stderr](evidence/final/T06/stderr.txt). Verify uglifyjs fails with a nonzero exit code when given syntactically invalid JavaScript, as a minimal edge-case check; exact exit code and stderr wording are not documented so are not asserted.
 
 ## Setup experience
 
@@ -83,7 +83,7 @@ The source install reported uglify-js 3.19.3, matching GitHub's latest-release m
 
 ## Performance
 
-The slowest accepted test took 1777 ms. Peak measured test RAM was 10.2 MiB. No comparative baseline was run, so this is a measurement, not a speed claim.
+The slowest accepted test took 1776 ms. Peak measured test RAM was 10.5 MiB. No comparative baseline was run, so this is a measurement, not a speed claim.
 
 ## What broke
 
@@ -100,9 +100,9 @@ The slowest accepted test took 1777 ms. Peak measured test RAM was 10.2 MiB. No 
 |---|---:|---|
 | Claim Verification | 91/100 | Importance-weighted claim results; unverified claim portions reduce coverage rather than becoming failures. |
 | Utility | 85/100 | 5/5 core workflow tests (T01, T02, T03, T04, T05) passed. |
-| Setup Experience | 90/100 | npm global source install with lifecycle scripts disabled took 2012 ms with 0 manual interventions and 0 automated setup adjustments. |
+| Setup Experience | 90/100 | npm global source install with lifecycle scripts disabled took 2011 ms with 0 manual interventions and 0 automated setup adjustments. |
 | Reliability | 95/100 | Two clean runs compared across 6 tests; reproduced=True. |
-| Performance Efficiency | 85/100 | Slowest test was 1777 ms and measured peak RAM was 10695475 bytes; no comparative baseline was used. |
+| Performance Efficiency | 85/100 | Slowest test was 1776 ms and measured peak RAM was 10999562 bytes; no comparative baseline was used. |
 | Documentation | 80/100 | README-derived workflows worked; diagnostic execution was needed to correct undocumented exit/format details. |
 | Safety Privacy | 90/100 | Static screening recorded 1 MEDIUM finding(s); candidate execution had no network. Static review is not a safety guarantee. |
 | Novelty | 50/100 | Neutral score: WorthIt did not run a comparative novelty study. |

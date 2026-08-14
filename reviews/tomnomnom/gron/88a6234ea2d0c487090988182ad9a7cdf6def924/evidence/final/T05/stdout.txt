@@ -1,0 +1,7 @@
+{
+  "likes": [
+    "code",
+    null,
+    "meat"
+  ]
+}

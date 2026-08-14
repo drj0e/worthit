@@ -1,0 +1,34 @@
+{
+  "backend": "docker",
+  "candidate_network": "none",
+  "cgroup_version": "2",
+  "docker_socket_exposed": false,
+  "dockerfile_sha256": "bf0824d240d74ac39eac6b6e079dcac38ac6719637c97aa9aced9acbeee94e2f",
+  "host_mounts": [],
+  "image": "worthit-go:0.2",
+  "image_digests": [
+    "worthit-go@sha256:9a1af0ebf29877f2acf35b50b70ea6d1440c2bee071d521baef21157743be791"
+  ],
+  "image_id": "sha256:9a1af0ebf29877f2acf35b50b70ea6d1440c2bee071d521baef21157743be791",
+  "inherited_environment": [],
+  "limits": {
+    "cpus": "2",
+    "install_timeout": 600,
+    "memory": "2g",
+    "output_bytes": 262144,
+    "pids": 256,
+    "test_timeout": 120,
+    "workspace": "1g"
+  },
+  "residual_risk": "gVisor is preferred; runc shares the host kernel and is restricted to TRUSTED_ENOUGH_TO_TEST.",
+  "rootless": false,
+  "runner_sha256": "afc050d76e16bd9332aebe8f8e47d838b4cdf6b8889903f39dff2578c9a9930f",
+  "runtime": "runc",
+  "security_options": [
+    "name=apparmor",
+    "name=seccomp,profile=builtin",
+    "name=cgroupns"
+  ],
+  "toolchain": "go version go1.24.13 linux/amd64",
+  "track": "go-cli"
+}

@@ -10,8 +10,9 @@ captures evidence, scores the result, and generates a static technical review.
 This repository currently implements deliberately narrow Python, Node, and Go
 CLI tracks. Python requires static PEP 517 metadata and wheel dependencies; Node
 requires a declared CLI with no runtime dependencies or lifecycle scripts; Go
-requires a root command with pinned modules. Daily discovery and unattended
-top-five execution remain disabled until the three-repository gate is complete.
+requires a root command with pinned modules. All three tracks have passed the
+clean-replay gate. Daily discovery is the next milestone; five is a maximum,
+never a quota.
 
 ## Run one evaluation
 
@@ -38,18 +39,26 @@ python -m worthit build-site
 ## First proof
 
 WorthIt evaluated PyCQA/isort at commit
-`fad14135b94e5600c71a2d9335555b4ad0dea2a9`. The accepted contract passed 7/7
-tests twice from fresh offline containers. The resulting review is
+`fad14135b94e5600c71a2d9335555b4ad0dea2a9`. Its finalized contract passed 8/8
+tests twice from fresh offline containers, including the documented Python API
+workflow added after independent plan critique. The resulting review is
 [`reviews/pycqa/isort/fad14135b94e5600c71a2d9335555b4ad0dea2a9/review.md`](reviews/pycqa/isort/fad14135b94e5600c71a2d9335555b4ad0dea2a9/review.md).
 
-The score is 84/100 with `HIGH` confidence. The registry-install, Python-version,
-and atomic guarantees remain partial. The review records the automated synthetic
-version needed because GitHub's commit archive omits VCS metadata.
+The score is 84/100 with `MEDIUM` confidence. The registry-install,
+Python-version, and multi-file guarantees remain partial. The review records the
+automated synthetic version needed because GitHub's commit archive omits VCS
+metadata.
 
 The second proof evaluated mishoo/UglifyJS at commit
 `111746bbae5f55c88e3b82b42f14fd0f3129ea53`. Its accepted Node contract passed
 6/6 tests in both clean offline containers. The evidence-backed review is
 [`reviews/mishoo/uglifyjs/111746bbae5f55c88e3b82b42f14fd0f3129ea53/review.md`](reviews/mishoo/uglifyjs/111746bbae5f55c88e3b82b42f14fd0f3129ea53/review.md).
+
+The third proof evaluated tomnomnom/gron at commit
+`88a6234ea2d0c487090988182ad9a7cdf6def924`. Its pinned Go module graph built
+offline and 7/7 JSON, stream, reverse-conversion, filtering, and invalid-input
+tests passed in both clean containers. The evidence-backed review is
+[`reviews/tomnomnom/gron/88a6234ea2d0c487090988182ad9a7cdf6def924/review.md`](reviews/tomnomnom/gron/88a6234ea2d0c487090988182ad9a7cdf6def924/review.md).
 
 ## Checks
 

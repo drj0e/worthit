@@ -1,0 +1,67 @@
+{
+  "claims": [
+    {
+      "claim_id": "CLAIM-001",
+      "importance": "HIGH",
+      "rationale": "Directly testable by downloading a release binary on each listed platform and confirming it runs without requiring additional runtime dependencies to be installed.",
+      "source": "README.mkd",
+      "source_excerpt": "gron has no runtime dependencies. You can just [download a binary for Linux, Mac, Windows or FreeBSD and run it]",
+      "testability": "HIGH",
+      "text": "gron has no runtime dependencies and provides downloadable pre-built binaries for Linux, Mac, Windows, and FreeBSD."
+    },
+    {
+      "claim_id": "CLAIM-002",
+      "importance": "HIGH",
+      "rationale": "This is a concrete, reproducible installation command that can be run in an environment with Go installed to verify it succeeds and produces a working gron binary.",
+      "source": "README.mkd",
+      "source_excerpt": "Or if you're a Go user you can use `go install`:\n\n```\n▶ go install github.com/tomnomnom/gron@latest\n```",
+      "testability": "HIGH",
+      "text": "gron can be installed via `go install github.com/tomnomnom/gron@latest`."
+    },
+    {
+      "claim_id": "CLAIM-003",
+      "importance": "HIGH",
+      "rationale": "Core functional claim testable by running gron against sample JSON (e.g. testdata/two.json) and checking the output matches the documented assignment format.",
+      "source": "README.mkd",
+      "source_excerpt": "gron transforms JSON into discrete assignments to make it easier to `grep` for what you want and see the absolute 'path' to it.",
+      "testability": "HIGH",
+      "text": "Running gron on a JSON input transforms it into discrete assignment statements representing the absolute path to each value."
+    },
+    {
+      "claim_id": "CLAIM-004",
+      "importance": "HIGH",
+      "rationale": "Testable by piping gron output into `gron --ungron` and confirming the result matches the original JSON, including the documented null-padding behavior for missing array elements.",
+      "source": "README.mkd",
+      "source_excerpt": "gron can work backwards too, enabling you to turn your filtered data back into JSON:",
+      "testability": "HIGH",
+      "text": "gron supports converting its own assignment-statement output back into the original JSON structure using the `--ungron`/`-u` flag."
+    },
+    {
+      "claim_id": "CLAIM-005",
+      "importance": "MEDIUM",
+      "rationale": "Directly testable by running `gron --json` on sample input and checking output matches the documented JSON-array-per-line format.",
+      "source": "README.mkd",
+      "source_excerpt": "It's also possible to obtain the `gron` output as JSON stream via\nthe `--json` switch:",
+      "testability": "HIGH",
+      "text": "gron supports a `--json` flag that outputs data as a JSON stream instead of the default assignment-statement format."
+    },
+    {
+      "claim_id": "CLAIM-006",
+      "importance": "MEDIUM",
+      "rationale": "Testable by invoking gron with a local file, a URL, and via piped stdin, and confirming all three input modes work as documented in the Usage section.",
+      "source": "README.mkd",
+      "source_excerpt": "Get JSON from a file:\n\n```\n▶ gron testdata/two.json",
+      "testability": "HIGH",
+      "text": "gron accepts a JSON source as a command-line argument that can be a local file path, a URL, or stdin (via `-`)."
+    },
+    {
+      "claim_id": "CLAIM-007",
+      "importance": "MEDIUM",
+      "rationale": "Testable by triggering each failure condition (e.g., nonexistent file, unreachable URL) and checking the process exit code matches the documented value.",
+      "source": "README.mkd",
+      "source_excerpt": "Exit Codes:\n  0\tOK\n  1\tFailed to open file\n  2\tFailed to read input\n  3\tFailed to form statements\n  4\tFailed to fetch URL\n  5\tFailed to parse statements\n  6\tFailed to encode JSON",
+      "testability": "HIGH",
+      "text": "gron returns specific documented exit codes (0-6) corresponding to success or particular failure modes (e.g., 1 for failed to open file, 4 for failed to fetch URL)."
+    }
+  ]
+}

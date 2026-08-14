@@ -3,74 +3,74 @@
     {
       "claim_id": "CLAIM-001",
       "importance": "HIGH",
-      "rationale": "Directly testable by running the documented install command and checking it succeeds and the isort CLI becomes available.",
+      "rationale": "This is the documented installation method and can be directly verified by running the command and checking that isort becomes available.",
       "source": "README.md",
       "source_excerpt": "pip install isort",
       "testability": "HIGH",
-      "text": "Running `pip install isort` installs the isort package."
+      "text": "isort can be installed by running `pip install isort`."
     },
     {
       "claim_id": "CLAIM-002",
       "importance": "HIGH",
-      "rationale": "Core CLI usage claim; verifiable by creating sample files with unsorted imports and checking isort modifies them as described.",
+      "rationale": "A specific, verifiable minimum Python version requirement stated in the README; can be checked against pyproject.toml's requires-python and by attempting to run isort on unsupported Python versions.",
       "source": "README.md",
-      "source_excerpt": "isort mypythonfile.py mypythonfile2.py",
-      "testability": "HIGH",
-      "text": "Running `isort mypythonfile.py mypythonfile2.py` sorts the imports in those specific files."
-    },
-    {
-      "claim_id": "CLAIM-003",
-      "importance": "HIGH",
-      "rationale": "Documented recursive usage pattern that can be verified against a directory tree of Python files.",
-      "source": "README.md",
-      "source_excerpt": "isort .",
-      "testability": "HIGH",
-      "text": "Running `isort .` applies isort recursively to the current directory."
-    },
-    {
-      "claim_id": "CLAIM-004",
-      "importance": "MEDIUM",
-      "rationale": "Verifiable by running the command and checking the file is unmodified while a diff is printed to output.",
-      "source": "README.md",
-      "source_excerpt": "isort mypythonfile.py --diff",
-      "testability": "HIGH",
-      "text": "Running `isort mypythonfile.py --diff` shows proposed changes without applying them to the file."
-    },
-    {
-      "claim_id": "CLAIM-005",
-      "importance": "MEDIUM",
-      "rationale": "Behavior is specific and testable (e.g., feeding a file with a syntax error and confirming no changes are applied), though triggering the failure condition requires crafted input.",
-      "source": "README.md",
-      "source_excerpt": "isort --atomic .",
-      "testability": "MEDIUM",
-      "text": "Running `isort --atomic .` runs isort against a project and only applies changes if they don't introduce syntax errors."
-    },
-    {
-      "claim_id": "CLAIM-006",
-      "importance": "HIGH",
-      "rationale": "Verifiable by running isort -c against a file with unsorted imports and confirming stderr output and no file modification.",
-      "source": "README.md",
-      "source_excerpt": "isort can also be used to verify that code is correctly formatted\nby running it with `-c`. Any files that contain incorrectly sorted\nand/or formatted imports will be outputted to `stderr`.",
-      "testability": "HIGH",
-      "text": "Running isort with `-c` (check-only) verifies formatting and outputs incorrectly sorted files to stderr rather than modifying them."
-    },
-    {
-      "claim_id": "CLAIM-007",
-      "importance": "HIGH",
-      "rationale": "Directly testable by attempting installation/execution under Python versions below and at/above 3.10 and observing whether it is accepted, consistent with the README's stated 'Python 3.10+' requirement.",
-      "source": "pyproject.toml",
-      "source_excerpt": "requires-python = \">=3.10.0\"",
+      "source_excerpt": "It requires Python 3.10+ to run but\nsupports formatting Python 2 code too.",
       "testability": "HIGH",
       "text": "isort requires Python 3.10 or higher to run."
     },
     {
+      "claim_id": "CLAIM-003",
+      "importance": "HIGH",
+      "rationale": "Core documented CLI usage; testable by running the command on sample files and checking that imports are reordered.",
+      "source": "README.md",
+      "source_excerpt": "isort mypythonfile.py mypythonfile2.py",
+      "testability": "HIGH",
+      "text": "Running `isort mypythonfile.py mypythonfile2.py` from the command line sorts the imports in the specified files."
+    },
+    {
+      "claim_id": "CLAIM-004",
+      "importance": "HIGH",
+      "rationale": "Documented recursive-processing behavior of the CLI, testable by running against a directory tree with multiple .py files.",
+      "source": "README.md",
+      "source_excerpt": "To apply recursively:\n\n```bash\nisort .\n```",
+      "testability": "HIGH",
+      "text": "Running `isort .` applies import sorting recursively to all Python files in the current directory."
+    },
+    {
+      "claim_id": "CLAIM-005",
+      "importance": "MEDIUM",
+      "rationale": "Testable by running the --diff flag and confirming the target file's content is unchanged while a diff is printed.",
+      "source": "README.md",
+      "source_excerpt": "To view proposed changes without applying them:\n\n```bash\nisort mypythonfile.py --diff\n```",
+      "testability": "HIGH",
+      "text": "Running `isort mypythonfile.py --diff` shows proposed import-sorting changes without modifying the file."
+    },
+    {
+      "claim_id": "CLAIM-006",
+      "importance": "MEDIUM",
+      "rationale": "Specific, observable CLI behavior for the check-only mode that can be tested against correctly and incorrectly sorted files.",
+      "source": "README.md",
+      "source_excerpt": "isort can also be used to verify that code is correctly formatted\nby running it with `-c`. Any files that contain incorrectly sorted\nand/or formatted imports will be outputted to `stderr`.",
+      "testability": "HIGH",
+      "text": "Running isort with the `-c` (check-only) option verifies whether code has correctly sorted imports, printing incorrectly sorted files to stderr instead of modifying them."
+    },
+    {
+      "claim_id": "CLAIM-007",
+      "importance": "MEDIUM",
+      "rationale": "Documented library API usage that can be verified by importing isort in Python and invoking the function on a test file.",
+      "source": "README.md",
+      "source_excerpt": "import isort\n\nisort.file(\"pythonfile.py\")",
+      "testability": "HIGH",
+      "text": "isort can be used as a Python library by calling `isort.file(\"pythonfile.py\")` to sort imports in a file."
+    },
+    {
       "claim_id": "CLAIM-008",
       "importance": "MEDIUM",
-      "rationale": "Verifiable by installing the package and confirming the `isort` executable is created on PATH and invokes isort.main.main.",
+      "rationale": "Machine-checkable packaging metadata that should match the README's stated Python version requirement; verifiable via pip/PyPI metadata inspection.",
       "source": "pyproject.toml",
-      "source_excerpt": "isort = \"isort.main:main\"",
+      "source_excerpt": "requires-python = \">=3.10.0\"",
       "testability": "HIGH",
-      "text": "Installing the isort package registers an `isort` command-line script entry point mapped to isort.main:main."
+      "text": "The isort package declares a minimum required Python version of 3.10.0 in its packaging metadata."
     }
   ]
 }

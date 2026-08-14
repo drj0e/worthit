@@ -1,0 +1,6 @@
+--- /work/cases/T04/diff.py:before	2026-08-14 04:14:07.666487
++++ /work/cases/T04/diff.py:after	2026-08-14 04:14:09.201919
+@@ -1,2 +1,2 @@
++import os
+ import sys
+-import os

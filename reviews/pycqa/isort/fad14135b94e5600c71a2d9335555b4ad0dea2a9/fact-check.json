@@ -1,14 +1,19 @@
 {
   "checks": {
     "commit": true,
+    "dockerfile": true,
     "install_duration": true,
     "pass_count": true,
+    "peak_ram": true,
     "prose_lint": true,
     "replay_duration": true,
     "reproduced": true,
+    "runner": true,
+    "runtime": true,
     "score": true,
     "test_count": true,
     "tested_at": true,
+    "toolchain": true,
     "version": true
   },
   "failures": [],

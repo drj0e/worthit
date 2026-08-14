@@ -1,0 +1,9 @@
+{
+  "ai_writing_tells": [],
+  "approved": true,
+  "exaggerations": [],
+  "factual_mismatches": [],
+  "summary": "All checked numbers (install duration 56421/56435ms, peak RAM 132120576 bytes on T06, exit codes, commit SHA, reproducibility tests_compared=7 with no mismatches, weighted score arithmetic to 86) match the underlying evidence exactly. Claim statuses (1 UNVERIFIED, 3 PARTIAL, 4 PASS) are correctly derived from claim_results, and the PARTIAL/UNVERIFIED explanations (go install not run verbatim, URL-fetch untested due to no network, ambiguous exit-code specification) are accurately and non-exaggeratedly described rather than glossed over. The version_note about v0.7.1 vs \"dev\" build is properly disclosed as a limitation rather than hidden. No unsupported claims, exaggerations, mismatches, or unfair conclusions found; the review is evidence-first and appropriately hedged.</summary>\n</invoke>\n",
+  "unfair_conclusions": [],
+  "unsupported_claims": []
+}

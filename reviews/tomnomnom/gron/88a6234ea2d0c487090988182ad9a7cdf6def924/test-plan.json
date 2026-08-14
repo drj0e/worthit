@@ -1,0 +1,229 @@
+{
+  "core_workflow": "gron reads JSON (from a file, URL, or stdin) and prints discrete, greppable assignment statements representing the absolute path to each value; `gron --ungron` (or `-u`) reverses this back into JSON, and `gron --json` emits the same data as a JSON-stream format instead of assignment statements.",
+  "designer": "claude-reconciled",
+  "entrypoint": "gron",
+  "limitations": [
+    "CLAIM-001 (no-runtime-dependency pre-built binaries for Linux/Mac/Windows/FreeBSD) is not tested: the runner builds from source offline and does not download or execute GitHub release binaries.",
+    "CLAIM-002 (`go install github.com/tomnomnom/gron@latest`) is not tested: this requires network access to the Go module proxy/GitHub, which is disallowed in this offline runner.",
+    "The URL-argument and stdin-URL-fetch portion of CLAIM-006 is not tested since it requires live network access; only the local-file and stdin-pipe input modes are exercised.",
+    "T07 accepts either exit code 2 or 3 for malformed JSON rather than asserting a single value, since the README's exit-code table does not specify whether JSON syntax errors are classified as a read failure or a statement-formation failure; both are treated as passing evidence that gron correctly rejects invalid input per CLAIM-007.",
+    "T06's stderr assertion only checks that the missing filename appears in the diagnostic, since the exact wording of gron's 'failed to open file' message is not specified in the documentation.",
+    "Exit code 5 ('Failed to parse statements') and exit code 6 ('Failed to encode JSON') from CLAIM-007 are not exercised; the documentation does not describe a reachable trigger for these paths (e.g., malformed ungron statement syntax or unencodable JSON) with enough specificity to construct a reliable no-shell test, so only exit codes 0, 1, 2/3 are covered."
+  ],
+  "tests": [
+    {
+      "argv": [
+        "{entrypoint}",
+        "input.json"
+      ],
+      "claim_ids": [
+        "CLAIM-003",
+        "CLAIM-006"
+      ],
+      "edge_case": false,
+      "evidence": [
+        "README.mkd usage example: 'gron testdata/two.json' output shown line-by-line",
+        "CLAIM-003 rationale"
+      ],
+      "expected_exit_codes": [
+        0
+      ],
+      "file_assertions": [],
+      "purpose": "Verify gron transforms a JSON file into sorted, discrete assignment statements representing the absolute path to each value.",
+      "required_resources": [],
+      "setup_files": {
+        "input.json": "{\"contact\":{\"email\":\"mail@tomnomnom.com\",\"twitter\":\"@TomNomNom\"},\"github\":\"https://github.com/tomnomnom/\",\"likes\":[\"code\",\"cheese\",\"meat\"],\"name\":\"Tom\"}"
+      },
+      "stderr_contains": [],
+      "stdin": "",
+      "stdout_contains": [
+        "json = {};",
+        "json.contact = {};",
+        "json.contact.email = \"mail@tomnomnom.com\";",
+        "json.contact.twitter = \"@TomNomNom\";",
+        "json.github = \"https://github.com/tomnomnom/\";",
+        "json.likes = [];",
+        "json.likes[0] = \"code\";",
+        "json.likes[1] = \"cheese\";",
+        "json.likes[2] = \"meat\";",
+        "json.name = \"Tom\";"
+      ],
+      "test_id": "T01",
+      "timeout_sec": 10
+    },
+    {
+      "argv": [
+        "{entrypoint}"
+      ],
+      "claim_ids": [
+        "CLAIM-006"
+      ],
+      "edge_case": false,
+      "evidence": [
+        "README.mkd: 'Or from stdin: curl -s ... | gron' example"
+      ],
+      "expected_exit_codes": [
+        0
+      ],
+      "file_assertions": [],
+      "purpose": "Verify gron accepts JSON via stdin (no file/URL argument) as documented.",
+      "required_resources": [],
+      "setup_files": {},
+      "stderr_contains": [],
+      "stdin": "{\"contact\":{\"email\":\"mail@tomnomnom.com\",\"twitter\":\"@TomNomNom\"},\"github\":\"https://github.com/tomnomnom/\",\"likes\":[\"code\",\"cheese\",\"meat\"],\"name\":\"Tom\"}",
+      "stdout_contains": [
+        "json = {};",
+        "json.contact.email = \"mail@tomnomnom.com\";",
+        "json.likes[2] = \"meat\";",
+        "json.name = \"Tom\";"
+      ],
+      "test_id": "T02",
+      "timeout_sec": 10
+    },
+    {
+      "argv": [
+        "{entrypoint}",
+        "--ungron"
+      ],
+      "claim_ids": [
+        "CLAIM-004"
+      ],
+      "edge_case": false,
+      "evidence": [
+        "README.mkd 'ungronning' section shows gron output piped into 'gron -u' reproducing the original JSON"
+      ],
+      "expected_exit_codes": [
+        0
+      ],
+      "file_assertions": [],
+      "purpose": "Verify gron --ungron reverses assignment statements back into the original JSON structure.",
+      "required_resources": [],
+      "setup_files": {},
+      "stderr_contains": [],
+      "stdin": "json = {};\njson.contact = {};\njson.contact.email = \"mail@tomnomnom.com\";\njson.contact.twitter = \"@TomNomNom\";\njson.github = \"https://github.com/tomnomnom/\";\njson.likes = [];\njson.likes[0] = \"code\";\njson.likes[1] = \"cheese\";\njson.likes[2] = \"meat\";\njson.name = \"Tom\";\n",
+      "stdout_contains": [
+        "\"contact\": {",
+        "\"email\": \"mail@tomnomnom.com\"",
+        "\"twitter\": \"@TomNomNom\"",
+        "\"github\": \"https://github.com/tomnomnom/\"",
+        "\"likes\": [",
+        "\"code\"",
+        "\"cheese\"",
+        "\"meat\"",
+        "\"name\": \"Tom\""
+      ],
+      "test_id": "T03",
+      "timeout_sec": 10
+    },
+    {
+      "argv": [
+        "{entrypoint}",
+        "--json"
+      ],
+      "claim_ids": [
+        "CLAIM-005"
+      ],
+      "edge_case": false,
+      "evidence": [
+        "README.mkd: 'It's also possible to obtain the gron output as JSON stream via the --json switch' with example '[[],{}]' / '[[\"Accept\"],\"*/*\"]'"
+      ],
+      "expected_exit_codes": [
+        0
+      ],
+      "file_assertions": [],
+      "purpose": "Verify gron --json emits data as a JSON-array-per-line stream instead of assignment statements.",
+      "required_resources": [],
+      "setup_files": {},
+      "stderr_contains": [],
+      "stdin": "{\"a\":\"b\"}",
+      "stdout_contains": [
+        "[[],{}]",
+        "[[\"a\"],\"b\"]"
+      ],
+      "test_id": "T04",
+      "timeout_sec": 10
+    },
+    {
+      "argv": [
+        "{entrypoint}",
+        "--ungron"
+      ],
+      "claim_ids": [
+        "CLAIM-004"
+      ],
+      "edge_case": true,
+      "evidence": [
+        "README.mkd: 'To preserve array keys, arrays are padded with null when values are missing' example with json.likes[0] and json.likes[2] only"
+      ],
+      "expected_exit_codes": [
+        0
+      ],
+      "file_assertions": [],
+      "purpose": "Verify ungron pads missing array indices with null to preserve array keys, as documented.",
+      "required_resources": [],
+      "setup_files": {},
+      "stderr_contains": [],
+      "stdin": "json.likes = [];\njson.likes[0] = \"code\";\njson.likes[2] = \"meat\";\n",
+      "stdout_contains": [
+        "\"likes\": [",
+        "\"code\"",
+        "null",
+        "\"meat\""
+      ],
+      "test_id": "T05",
+      "timeout_sec": 10
+    },
+    {
+      "argv": [
+        "{entrypoint}",
+        "does-not-exist.json"
+      ],
+      "claim_ids": [
+        "CLAIM-007"
+      ],
+      "edge_case": true,
+      "evidence": [
+        "README.mkd Exit Codes table: '1  Failed to open file'"
+      ],
+      "expected_exit_codes": [
+        1
+      ],
+      "file_assertions": [],
+      "purpose": "Verify gron exits with documented code 1 and reports a diagnostic when the input file cannot be opened.",
+      "required_resources": [],
+      "setup_files": {},
+      "stderr_contains": [
+        "does-not-exist.json"
+      ],
+      "stdin": "",
+      "stdout_contains": [],
+      "test_id": "T06",
+      "timeout_sec": 10
+    },
+    {
+      "argv": [
+        "{entrypoint}"
+      ],
+      "claim_ids": [
+        "CLAIM-007"
+      ],
+      "edge_case": true,
+      "evidence": [
+        "README.mkd Exit Codes table: '2  Failed to read input' and '3  Failed to form statements'"
+      ],
+      "expected_exit_codes": [
+        2,
+        3
+      ],
+      "file_assertions": [],
+      "purpose": "Verify gron exits with a documented failure code (2 'Failed to read input' or 3 'Failed to form statements') when given syntactically invalid JSON, rather than exiting 0.",
+      "required_resources": [],
+      "setup_files": {},
+      "stderr_contains": [],
+      "stdin": "{\"a\": invalid}",
+      "stdout_contains": [],
+      "test_id": "T07",
+      "timeout_sec": 10
+    }
+  ]
+}

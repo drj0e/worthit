@@ -1,0 +1,398 @@
+{
+  "candidate_network": "none",
+  "completed_at": "2026-08-14T04:19:29.712406+00:00",
+  "dependency_bundle_sha256": "dc49444a7433bad6fd4fada2ca15e38d6144baa5323ac0bead6d6e4f535b82ea",
+  "duration_ms": 75383,
+  "entrypoint": "gron",
+  "entrypoint_installed": true,
+  "execution_contract_sha256": "e815df14be1d0a740108a171cca70d536517e6d42ac9a07c2888f9a9663072cd",
+  "install": {
+    "argv": [
+      "go",
+      "build",
+      "-trimpath",
+      "-mod=readonly",
+      "-o",
+      "/work/bin/gron",
+      "."
+    ],
+    "cwd": "/work/repo",
+    "duration_ms": 56421,
+    "exit_code": 0,
+    "failure_reason": null,
+    "max_cpu_percent": 212.43,
+    "output_limited": false,
+    "peak_ram_bytes": 460324864,
+    "stage": "install",
+    "status": "PASS",
+    "stderr_file": "evidence/final/install/stderr.txt",
+    "stderr_sha256": "32b883decbb26931942613746a7fbb59a0c1657026a8dc4d4151e638abe7fb58",
+    "stdout_file": "evidence/final/install/stdout.txt",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "timed_out": false
+  },
+  "install_adjustments": [],
+  "install_controls": [
+    "CGO disabled",
+    "local module proxy only",
+    "readonly module graph"
+  ],
+  "installation_method": "offline Go source build against a staged checksum-verified module proxy",
+  "label": "final",
+  "manual_interventions": 0,
+  "provision": {
+    "argv": [
+      "mkdir",
+      "-p",
+      "/work/bin",
+      "/work/gocache",
+      "/work/modcache"
+    ],
+    "cwd": "/work",
+    "duration_ms": 1291,
+    "exit_code": 0,
+    "failure_reason": null,
+    "max_cpu_percent": 0.0,
+    "output_limited": false,
+    "peak_ram_bytes": 4776264,
+    "stage": "provision",
+    "status": "PASS",
+    "stderr_file": "evidence/final/provision/stderr.txt",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_file": "evidence/final/provision/stdout.txt",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "timed_out": false
+  },
+  "status": "COMPLETE",
+  "tests": [
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'json = {};'",
+          "observed": "json = {};\njson.contact = {};\njson.contact.email = \"mail@tomnomnom.com\";\njson.contact.twitter = \"@TomNomNom\";\njson.github = \"https://github.com/tomnomnom/\";\njson.likes = [];\njson.likes[0] = \"code\";\njson.likes[1] = \"cheese\";\njson.likes[2] = \"meat\";\njson.name = \"Tom\";\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'json.contact = {};'",
+          "observed": "json = {};\njson.contact = {};\njson.contact.email = \"mail@tomnomnom.com\";\njson.contact.twitter = \"@TomNomNom\";\njson.github = \"https://github.com/tomnomnom/\";\njson.likes = [];\njson.likes[0] = \"code\";\njson.likes[1] = \"cheese\";\njson.likes[2] = \"meat\";\njson.name = \"Tom\";\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'json.contact.email = \"mail@tomnomnom.com\";'",
+          "observed": "json = {};\njson.contact = {};\njson.contact.email = \"mail@tomnomnom.com\";\njson.contact.twitter = \"@TomNomNom\";\njson.github = \"https://github.com/tomnomnom/\";\njson.likes = [];\njson.likes[0] = \"code\";\njson.likes[1] = \"cheese\";\njson.likes[2] = \"meat\";\njson.name = \"Tom\";\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'json.contact.twitter = \"@TomNomNom\";'",
+          "observed": "json = {};\njson.contact = {};\njson.contact.email = \"mail@tomnomnom.com\";\njson.contact.twitter = \"@TomNomNom\";\njson.github = \"https://github.com/tomnomnom/\";\njson.likes = [];\njson.likes[0] = \"code\";\njson.likes[1] = \"cheese\";\njson.likes[2] = \"meat\";\njson.name = \"Tom\";\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'json.github = \"https://github.com/tomnomnom/\";'",
+          "observed": "json = {};\njson.contact = {};\njson.contact.email = \"mail@tomnomnom.com\";\njson.contact.twitter = \"@TomNomNom\";\njson.github = \"https://github.com/tomnomnom/\";\njson.likes = [];\njson.likes[0] = \"code\";\njson.likes[1] = \"cheese\";\njson.likes[2] = \"meat\";\njson.name = \"Tom\";\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'json.likes = [];'",
+          "observed": "json = {};\njson.contact = {};\njson.contact.email = \"mail@tomnomnom.com\";\njson.contact.twitter = \"@TomNomNom\";\njson.github = \"https://github.com/tomnomnom/\";\njson.likes = [];\njson.likes[0] = \"code\";\njson.likes[1] = \"cheese\";\njson.likes[2] = \"meat\";\njson.name = \"Tom\";\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'json.likes[0] = \"code\";'",
+          "observed": "json = {};\njson.contact = {};\njson.contact.email = \"mail@tomnomnom.com\";\njson.contact.twitter = \"@TomNomNom\";\njson.github = \"https://github.com/tomnomnom/\";\njson.likes = [];\njson.likes[0] = \"code\";\njson.likes[1] = \"cheese\";\njson.likes[2] = \"meat\";\njson.name = \"Tom\";\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'json.likes[1] = \"cheese\";'",
+          "observed": "json = {};\njson.contact = {};\njson.contact.email = \"mail@tomnomnom.com\";\njson.contact.twitter = \"@TomNomNom\";\njson.github = \"https://github.com/tomnomnom/\";\njson.likes = [];\njson.likes[0] = \"code\";\njson.likes[1] = \"cheese\";\njson.likes[2] = \"meat\";\njson.name = \"Tom\";\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'json.likes[2] = \"meat\";'",
+          "observed": "json = {};\njson.contact = {};\njson.contact.email = \"mail@tomnomnom.com\";\njson.contact.twitter = \"@TomNomNom\";\njson.github = \"https://github.com/tomnomnom/\";\njson.likes = [];\njson.likes[0] = \"code\";\njson.likes[1] = \"cheese\";\njson.likes[2] = \"meat\";\njson.name = \"Tom\";\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'json.name = \"Tom\";'",
+          "observed": "json = {};\njson.contact = {};\njson.contact.email = \"mail@tomnomnom.com\";\njson.contact.twitter = \"@TomNomNom\";\njson.github = \"https://github.com/tomnomnom/\";\njson.likes = [];\njson.likes[0] = \"code\";\njson.likes[1] = \"cheese\";\njson.likes[2] = \"meat\";\njson.name = \"Tom\";\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-003",
+        "CLAIM-006"
+      ],
+      "duration_ms": 1768,
+      "evidence": [
+        "evidence/final/T01/stdout.txt",
+        "evidence/final/T01/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 131806003,
+      "status": "PASS",
+      "test_id": "T01"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'json = {};'",
+          "observed": "json = {};\njson.contact = {};\njson.contact.email = \"mail@tomnomnom.com\";\njson.contact.twitter = \"@TomNomNom\";\njson.github = \"https://github.com/tomnomnom/\";\njson.likes = [];\njson.likes[0] = \"code\";\njson.likes[1] = \"cheese\";\njson.likes[2] = \"meat\";\njson.name = \"Tom\";\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'json.contact.email = \"mail@tomnomnom.com\";'",
+          "observed": "json = {};\njson.contact = {};\njson.contact.email = \"mail@tomnomnom.com\";\njson.contact.twitter = \"@TomNomNom\";\njson.github = \"https://github.com/tomnomnom/\";\njson.likes = [];\njson.likes[0] = \"code\";\njson.likes[1] = \"cheese\";\njson.likes[2] = \"meat\";\njson.name = \"Tom\";\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'json.likes[2] = \"meat\";'",
+          "observed": "json = {};\njson.contact = {};\njson.contact.email = \"mail@tomnomnom.com\";\njson.contact.twitter = \"@TomNomNom\";\njson.github = \"https://github.com/tomnomnom/\";\njson.likes = [];\njson.likes[0] = \"code\";\njson.likes[1] = \"cheese\";\njson.likes[2] = \"meat\";\njson.name = \"Tom\";\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'json.name = \"Tom\";'",
+          "observed": "json = {};\njson.contact = {};\njson.contact.email = \"mail@tomnomnom.com\";\njson.contact.twitter = \"@TomNomNom\";\njson.github = \"https://github.com/tomnomnom/\";\njson.likes = [];\njson.likes[0] = \"code\";\njson.likes[1] = \"cheese\";\njson.likes[2] = \"meat\";\njson.name = \"Tom\";\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-006"
+      ],
+      "duration_ms": 1771,
+      "evidence": [
+        "evidence/final/T02/stdout.txt",
+        "evidence/final/T02/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 131596288,
+      "status": "PASS",
+      "test_id": "T02"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains '\"contact\": {'",
+          "observed": "{\n  \"contact\": {\n    \"email\": \"mail@tomnomnom.com\",\n    \"twitter\": \"@TomNomNom\"\n  },\n  \"github\": \"https://github.com/tomnomnom/\",\n  \"likes\": [\n    \"code\",\n    \"cheese\",\n    \"meat\"\n  ],\n  \"name\": \"Tom\"\n}\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains '\"email\": \"mail@tomnomnom.com\"'",
+          "observed": "{\n  \"contact\": {\n    \"email\": \"mail@tomnomnom.com\",\n    \"twitter\": \"@TomNomNom\"\n  },\n  \"github\": \"https://github.com/tomnomnom/\",\n  \"likes\": [\n    \"code\",\n    \"cheese\",\n    \"meat\"\n  ],\n  \"name\": \"Tom\"\n}\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains '\"twitter\": \"@TomNomNom\"'",
+          "observed": "{\n  \"contact\": {\n    \"email\": \"mail@tomnomnom.com\",\n    \"twitter\": \"@TomNomNom\"\n  },\n  \"github\": \"https://github.com/tomnomnom/\",\n  \"likes\": [\n    \"code\",\n    \"cheese\",\n    \"meat\"\n  ],\n  \"name\": \"Tom\"\n}\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains '\"github\": \"https://github.com/tomnomnom/\"'",
+          "observed": "{\n  \"contact\": {\n    \"email\": \"mail@tomnomnom.com\",\n    \"twitter\": \"@TomNomNom\"\n  },\n  \"github\": \"https://github.com/tomnomnom/\",\n  \"likes\": [\n    \"code\",\n    \"cheese\",\n    \"meat\"\n  ],\n  \"name\": \"Tom\"\n}\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains '\"likes\": ['",
+          "observed": "{\n  \"contact\": {\n    \"email\": \"mail@tomnomnom.com\",\n    \"twitter\": \"@TomNomNom\"\n  },\n  \"github\": \"https://github.com/tomnomnom/\",\n  \"likes\": [\n    \"code\",\n    \"cheese\",\n    \"meat\"\n  ],\n  \"name\": \"Tom\"\n}\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains '\"code\"'",
+          "observed": "{\n  \"contact\": {\n    \"email\": \"mail@tomnomnom.com\",\n    \"twitter\": \"@TomNomNom\"\n  },\n  \"github\": \"https://github.com/tomnomnom/\",\n  \"likes\": [\n    \"code\",\n    \"cheese\",\n    \"meat\"\n  ],\n  \"name\": \"Tom\"\n}\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains '\"cheese\"'",
+          "observed": "{\n  \"contact\": {\n    \"email\": \"mail@tomnomnom.com\",\n    \"twitter\": \"@TomNomNom\"\n  },\n  \"github\": \"https://github.com/tomnomnom/\",\n  \"likes\": [\n    \"code\",\n    \"cheese\",\n    \"meat\"\n  ],\n  \"name\": \"Tom\"\n}\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains '\"meat\"'",
+          "observed": "{\n  \"contact\": {\n    \"email\": \"mail@tomnomnom.com\",\n    \"twitter\": \"@TomNomNom\"\n  },\n  \"github\": \"https://github.com/tomnomnom/\",\n  \"likes\": [\n    \"code\",\n    \"cheese\",\n    \"meat\"\n  ],\n  \"name\": \"Tom\"\n}\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains '\"name\": \"Tom\"'",
+          "observed": "{\n  \"contact\": {\n    \"email\": \"mail@tomnomnom.com\",\n    \"twitter\": \"@TomNomNom\"\n  },\n  \"github\": \"https://github.com/tomnomnom/\",\n  \"likes\": [\n    \"code\",\n    \"cheese\",\n    \"meat\"\n  ],\n  \"name\": \"Tom\"\n}\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-004"
+      ],
+      "duration_ms": 1769,
+      "evidence": [
+        "evidence/final/T03/stdout.txt",
+        "evidence/final/T03/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 131701146,
+      "status": "PASS",
+      "test_id": "T03"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains '[[],{}]'",
+          "observed": "[[],{}]\n[[\"a\"],\"b\"]\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains '[[\"a\"],\"b\"]'",
+          "observed": "[[],{}]\n[[\"a\"],\"b\"]\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-005"
+      ],
+      "duration_ms": 1762,
+      "evidence": [
+        "evidence/final/T04/stdout.txt",
+        "evidence/final/T04/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 131491430,
+      "status": "PASS",
+      "test_id": "T04"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains '\"likes\": ['",
+          "observed": "{\n  \"likes\": [\n    \"code\",\n    null,\n    \"meat\"\n  ]\n}\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains '\"code\"'",
+          "observed": "{\n  \"likes\": [\n    \"code\",\n    null,\n    \"meat\"\n  ]\n}\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'null'",
+          "observed": "{\n  \"likes\": [\n    \"code\",\n    null,\n    \"meat\"\n  ]\n}\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains '\"meat\"'",
+          "observed": "{\n  \"likes\": [\n    \"code\",\n    null,\n    \"meat\"\n  ]\n}\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-004"
+      ],
+      "duration_ms": 1774,
+      "evidence": [
+        "evidence/final/T05/stdout.txt",
+        "evidence/final/T05/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 131701146,
+      "status": "PASS",
+      "test_id": "T05"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [1]",
+          "observed": "1",
+          "passed": true
+        },
+        {
+          "assertion": "stderr contains 'does-not-exist.json'",
+          "observed": "open does-not-exist.json: no such file or directory\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-007"
+      ],
+      "duration_ms": 1780,
+      "evidence": [
+        "evidence/final/T06/stdout.txt",
+        "evidence/final/T06/stderr.txt"
+      ],
+      "exit_code": 1,
+      "failure_reason": null,
+      "peak_ram_bytes": 132120576,
+      "status": "PASS",
+      "test_id": "T06"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [2, 3]",
+          "observed": "3",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-007"
+      ],
+      "duration_ms": 1778,
+      "evidence": [
+        "evidence/final/T07/stdout.txt",
+        "evidence/final/T07/stderr.txt"
+      ],
+      "exit_code": 3,
+      "failure_reason": null,
+      "peak_ram_bytes": 131701146,
+      "status": "PASS",
+      "test_id": "T07"
+    }
+  ],
+  "toolchain": "go version go1.24.13 linux/amd64",
+  "track": "go-cli",
+  "venv": null,
+  "version_probe": {
+    "argv": [
+      "/work/bin/gron",
+      "--version"
+    ],
+    "cwd": "/work",
+    "duration_ms": 1742,
+    "exit_code": 0,
+    "failure_reason": null,
+    "max_cpu_percent": 0.0,
+    "output_limited": false,
+    "peak_ram_bytes": 131701146,
+    "stage": "verify-install",
+    "status": "PASS",
+    "stderr_file": "evidence/final/version/stderr.txt",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_file": "evidence/final/version/stdout.txt",
+    "stdout_sha256": "16d1d4efe9475339f293644d4a285e08aa10fb803f703fbbe782a979bb74b462",
+    "timed_out": false
+  },
+  "workspace_bytes": 118202641
+}

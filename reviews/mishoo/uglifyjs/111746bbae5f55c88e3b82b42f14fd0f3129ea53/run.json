@@ -1,11 +1,11 @@
 {
   "candidate_network": "none",
-  "completed_at": "2026-08-14T03:52:35.710877+00:00",
+  "completed_at": "2026-08-14T04:15:54.830576+00:00",
   "dependency_bundle_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "duration_ms": 19210,
+  "duration_ms": 19169,
   "entrypoint": "uglifyjs",
   "entrypoint_installed": true,
-  "execution_contract_sha256": "47d895752b19512fc8f8331ae0924aa9adf16870281dbd217058dc977a27954b",
+  "execution_contract_sha256": "4b7dbcea3832b3ed98403c9a36777bd4783c28fcb208b20f8f6300278fae9ae5",
   "install": {
     "argv": [
       "npm",
@@ -20,18 +20,18 @@
       "/work/repo"
     ],
     "cwd": "/work",
-    "duration_ms": 2012,
+    "duration_ms": 2011,
     "exit_code": 0,
     "failure_reason": null,
-    "max_cpu_percent": 77.17,
+    "max_cpu_percent": 87.55,
     "output_limited": false,
-    "peak_ram_bytes": 10737418,
+    "peak_ram_bytes": 10408165,
     "stage": "install",
     "status": "PASS",
     "stderr_file": "evidence/final/install/stderr.txt",
     "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "stdout_file": "evidence/final/install/stdout.txt",
-    "stdout_sha256": "1a41e705daa2a8bc72d2008f774a0198e6b446f98a17ebbbedb3606abc8d4f71",
+    "stdout_sha256": "a941066d38162d18c88ea4b096d8cf11d19b0d46b973f6d916e2f9b8794e1f36",
     "timed_out": false
   },
   "install_adjustments": [],
@@ -51,12 +51,12 @@
       "/work/npm-cache"
     ],
     "cwd": "/work",
-    "duration_ms": 1291,
+    "duration_ms": 1293,
     "exit_code": 0,
     "failure_reason": null,
     "max_cpu_percent": 0.0,
     "output_limited": false,
-    "peak_ram_bytes": 5955912,
+    "peak_ram_bytes": 5762974,
     "stage": "provision",
     "status": "PASS",
     "stderr_file": "evidence/final/provision/stderr.txt",
@@ -84,14 +84,14 @@
         "CLAIM-002",
         "CLAIM-008"
       ],
-      "duration_ms": 1751,
+      "duration_ms": 1764,
       "evidence": [
         "evidence/final/T01/stdout.txt",
         "evidence/final/T01/stderr.txt"
       ],
       "exit_code": 0,
       "failure_reason": null,
-      "peak_ram_bytes": 10580132,
+      "peak_ram_bytes": 10116661,
       "status": "PASS",
       "test_id": "T01"
     },
@@ -111,14 +111,14 @@
       "claim_ids": [
         "CLAIM-003"
       ],
-      "duration_ms": 1773,
+      "duration_ms": 1765,
       "evidence": [
         "evidence/final/T02/stdout.txt",
         "evidence/final/T02/stderr.txt"
       ],
       "exit_code": 0,
       "failure_reason": null,
-      "peak_ram_bytes": 10506732,
+      "peak_ram_bytes": 10999562,
       "status": "PASS",
       "test_id": "T02"
     },
@@ -143,14 +143,14 @@
       "claim_ids": [
         "CLAIM-005"
       ],
-      "duration_ms": 1773,
+      "duration_ms": 1761,
       "evidence": [
         "evidence/final/T03/stdout.txt",
         "evidence/final/T03/stderr.txt"
       ],
       "exit_code": 0,
       "failure_reason": null,
-      "peak_ram_bytes": 10317988,
+      "peak_ram_bytes": 10517217,
       "status": "PASS",
       "test_id": "T03"
     },
@@ -190,14 +190,14 @@
       "claim_ids": [
         "CLAIM-006"
       ],
-      "duration_ms": 1468,
+      "duration_ms": 1454,
       "evidence": [
         "evidence/final/T04/stdout.txt",
         "evidence/final/T04/stderr.txt"
       ],
       "exit_code": 0,
       "failure_reason": null,
-      "peak_ram_bytes": 10601103,
+      "peak_ram_bytes": 10358882,
       "status": "PASS",
       "test_id": "T04"
     },
@@ -217,14 +217,14 @@
       "claim_ids": [
         "CLAIM-004"
       ],
-      "duration_ms": 1285,
+      "duration_ms": 1288,
       "evidence": [
         "evidence/final/T05/stdout.txt",
         "evidence/final/T05/stderr.txt"
       ],
       "exit_code": 0,
       "failure_reason": null,
-      "peak_ram_bytes": 10695475,
+      "peak_ram_bytes": 10313794,
       "status": "PASS",
       "test_id": "T05"
     },
@@ -239,14 +239,14 @@
       "claim_ids": [
         "CLAIM-002"
       ],
-      "duration_ms": 1777,
+      "duration_ms": 1776,
       "evidence": [
         "evidence/final/T06/stdout.txt",
         "evidence/final/T06/stderr.txt"
       ],
       "exit_code": 1,
       "failure_reason": null,
-      "peak_ram_bytes": 10178527,
+      "peak_ram_bytes": 10371465,
       "status": "PASS",
       "test_id": "T06"
     }
@@ -260,12 +260,12 @@
       "--version"
     ],
     "cwd": "/work",
-    "duration_ms": 1705,
+    "duration_ms": 1692,
     "exit_code": 0,
     "failure_reason": null,
     "max_cpu_percent": 0.0,
     "output_limited": false,
-    "peak_ram_bytes": 10206839,
+    "peak_ram_bytes": 10358882,
     "stage": "verify-install",
     "status": "PASS",
     "stderr_file": "evidence/final/version/stderr.txt",

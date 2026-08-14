@@ -1,0 +1,290 @@
+{
+  "artifacts": [
+    {
+      "bytes": 15,
+      "path": "github.com/fatih/color/@v/list",
+      "sha256": "b0ee8a249e626ad4b5313c997e5123b1ad61524e998b2b1795149d2fbbc2341d"
+    },
+    {
+      "bytes": 189,
+      "path": "github.com/fatih/color/@v/v1.18.0.info",
+      "sha256": "f54c3f9b357e197f090462b1846becb37f9bb73b22a61d5eae06f4e8935b2212"
+    },
+    {
+      "bytes": 161,
+      "path": "github.com/fatih/color/@v/v1.18.0.mod",
+      "sha256": "8732da74f45ec4c0ea5a7a3072c4d458aafb6102af75155d459dcb70afce6ae6"
+    },
+    {
+      "bytes": 15099,
+      "path": "github.com/fatih/color/@v/v1.18.0.zip",
+      "sha256": "4dc6907b7f6807b37c21ad527d966437d398f03472115f471eaa8fe5875363d3"
+    },
+    {
+      "bytes": 47,
+      "path": "github.com/fatih/color/@v/v1.18.0.ziphash",
+      "sha256": "e03ffb23aee4dc051d85df8951168795efee8ed5d3550df2cb4f67193a248e34"
+    },
+    {
+      "bytes": 126,
+      "path": "github.com/fatih/color/@v/v1.9.0.mod",
+      "sha256": "c13ad20dd1ccdd163e424c1b5c6ca3681ed37c2a2800d2d25736b5f755b430ed"
+    },
+    {
+      "bytes": 15,
+      "path": "github.com/mattn/go-colorable/@v/list",
+      "sha256": "6d17f4e778a9970ba50f4787e1d913e216c1ea1a9ee88d6b93d9bbac23fedd58"
+    },
+    {
+      "bytes": 196,
+      "path": "github.com/mattn/go-colorable/@v/v0.1.14.info",
+      "sha256": "1f9b4d9140f74b73fff3bf72305d1ba8d5d2133a3644e7105dc6e56e4460a301"
+    },
+    {
+      "bytes": 121,
+      "path": "github.com/mattn/go-colorable/@v/v0.1.14.mod",
+      "sha256": "c199aee551968c8290b917524e0b232a862790a4831b0ed4cb43687e8c08aa18"
+    },
+    {
+      "bytes": 13436,
+      "path": "github.com/mattn/go-colorable/@v/v0.1.14.zip",
+      "sha256": "5e0e7925a070bb5bd11b4097e1a7b608167f0217ee83901b44c135f6e5e85c78"
+    },
+    {
+      "bytes": 47,
+      "path": "github.com/mattn/go-colorable/@v/v0.1.14.ziphash",
+      "sha256": "3fb2a60671a61e51600c3422683aa205b7e1cb4f7b8aff4bb3f799f458c00dde"
+    },
+    {
+      "bytes": 80,
+      "path": "github.com/mattn/go-colorable/@v/v0.1.4.mod",
+      "sha256": "a1161e694ac3bdfebf8550b34d8273fafddbe76fda0c62e85440f71799e56b9d"
+    },
+    {
+      "bytes": 23,
+      "path": "github.com/mattn/go-isatty/@v/list",
+      "sha256": "5d9cffe01e675f15917d4a2cf4ff3fc2bbf41275a4fec6e73104b0d372e908b4"
+    },
+    {
+      "bytes": 104,
+      "path": "github.com/mattn/go-isatty/@v/v0.0.11.mod",
+      "sha256": "fa4f67fef16cdebef54b24e43e01f8ad2a6ddc2db3c42e02caa432491bb39b20"
+    },
+    {
+      "bytes": 193,
+      "path": "github.com/mattn/go-isatty/@v/v0.0.20.info",
+      "sha256": "20f35d641a047c9e189499356a7ddfaea7b5909d1b32e7c7311002bb55487c32"
+    },
+    {
+      "bytes": 76,
+      "path": "github.com/mattn/go-isatty/@v/v0.0.20.mod",
+      "sha256": "1eeabef1b4d98db73c6c2073289163649bc9a044552aca86b9d592fe84eaa1c8"
+    },
+    {
+      "bytes": 8936,
+      "path": "github.com/mattn/go-isatty/@v/v0.0.20.zip",
+      "sha256": "f2d5f89ca451577e17464b9bb596dc0d0ecececb5eaa63622c41b57cd0b7b8cc"
+    },
+    {
+      "bytes": 47,
+      "path": "github.com/mattn/go-isatty/@v/v0.0.20.ziphash",
+      "sha256": "5dc17848bf37f947493142d99522ccd32fdcdc0c6a093343c83ca8c246b8d97d"
+    },
+    {
+      "bytes": 95,
+      "path": "github.com/mattn/go-isatty/@v/v0.0.8.mod",
+      "sha256": "4f775a89be9a80189a826ef22dc303e389557c558f14bfd40b75b5ef2845e56f"
+    },
+    {
+      "bytes": 7,
+      "path": "github.com/nwidger/jsoncolor/@v/list",
+      "sha256": "816ec3f319ea8d8de516a984458714f5d1bbb9ed8c365379c9e665ccc9649c6c"
+    },
+    {
+      "bytes": 193,
+      "path": "github.com/nwidger/jsoncolor/@v/v0.3.2.info",
+      "sha256": "b9a47b7648ffa3a80af12b671c9ed2c7e7ce632f133d9f8cd293ed406261c47f"
+    },
+    {
+      "bytes": 84,
+      "path": "github.com/nwidger/jsoncolor/@v/v0.3.2.mod",
+      "sha256": "27fba02bf6426eeb7bf5113d42aeebce91acb187a8e232393f49f1e11403a3ef"
+    },
+    {
+      "bytes": 7032,
+      "path": "github.com/nwidger/jsoncolor/@v/v0.3.2.zip",
+      "sha256": "0391d0f055471c4e6fb750c5191477252f829f0159853039422918646587060f"
+    },
+    {
+      "bytes": 47,
+      "path": "github.com/nwidger/jsoncolor/@v/v0.3.2.ziphash",
+      "sha256": "594b740bd3387fe0da18daaadaaea6a3b03c7c7da84a7cae77b423febadf3285"
+    },
+    {
+      "bytes": 7,
+      "path": "github.com/pkg/errors/@v/list",
+      "sha256": "ab1454fb8fb52a82a65d8c0586655370c8b58c0c9d4bb7de319fbff5848c567c"
+    },
+    {
+      "bytes": 50,
+      "path": "github.com/pkg/errors/@v/v0.9.1.info",
+      "sha256": "5d8c58c4cf06efa07ac322b254ced1c5a61a2515113f54f7b63c324a144c1280"
+    },
+    {
+      "bytes": 29,
+      "path": "github.com/pkg/errors/@v/v0.9.1.mod",
+      "sha256": "df28c6a823f181d76179697177c0c5943c6ffb38f3c10b2dc53be360ee7d4589"
+    },
+    {
+      "bytes": 17866,
+      "path": "github.com/pkg/errors/@v/v0.9.1.zip",
+      "sha256": "d4c36b8bcd0616290a3913215e0f53b931bd6e00670596f2960df1b44af2bd07"
+    },
+    {
+      "bytes": 47,
+      "path": "github.com/pkg/errors/@v/v0.9.1.ziphash",
+      "sha256": "5973733c5f60fcf1834a186342304757cceb956fe9ec06fb54a0d6d08bd2bcae"
+    },
+    {
+      "bytes": 85,
+      "path": "golang.org/x/sys/@v/list",
+      "sha256": "ce99a5bc7c5479aeb2a4ba5d6f8ea0570df72a10e1f489be66d87cc11f9a24b1"
+    },
+    {
+      "bytes": 24,
+      "path": "golang.org/x/sys/@v/v0.0.0-20190222072716-a9d3bda3a223.mod",
+      "sha256": "8969115e4a39108848324e79a1bd8a8445230e6e3aaccbe9f8057fb50fffc8c1"
+    },
+    {
+      "bytes": 33,
+      "path": "golang.org/x/sys/@v/v0.0.0-20191026070338-33540a1f6037.mod",
+      "sha256": "181979e8bd57d2d9e064182da86c9a6111aa69755e888f08431ece4742aec343"
+    },
+    {
+      "bytes": 190,
+      "path": "golang.org/x/sys/@v/v0.33.0.info",
+      "sha256": "95843d83fb9d7cdd40e75786f9ad6c60234f0d730eed1c60d1d4a1571fe72aec"
+    },
+    {
+      "bytes": 35,
+      "path": "golang.org/x/sys/@v/v0.33.0.mod",
+      "sha256": "f67e3e18f4c08e60a7e80726ab36b691fdcea5b81ae1c696ff64caf518bcfe3d"
+    },
+    {
+      "bytes": 1994091,
+      "path": "golang.org/x/sys/@v/v0.33.0.zip",
+      "sha256": "182df79c87135f6dbd0d45656b6527e9221e28899ee44cc6cc7e7a396aedaef9"
+    },
+    {
+      "bytes": 47,
+      "path": "golang.org/x/sys/@v/v0.33.0.ziphash",
+      "sha256": "e96403181b58af3e31b7991ca1b50e7b16203faa8d0e13f37eea51b90c8d2c2f"
+    },
+    {
+      "bytes": 33,
+      "path": "golang.org/x/sys/@v/v0.6.0.mod",
+      "sha256": "f033333096fe198f3151deed93f2deba74e50bbfe7739134045bc3b7ce4a5024"
+    }
+  ],
+  "bundle_sha256": "dc49444a7433bad6fd4fada2ca15e38d6144baa5323ac0bead6d6e4f535b82ea",
+  "candidate_code_executed": false,
+  "download_trace": {
+    "argv": [
+      "docker",
+      "exec",
+      "-i",
+      "--user",
+      "65534:65534",
+      "--workdir",
+      "/manifests",
+      "--env",
+      "HOME=/tmp",
+      "--env",
+      "GOENV=off",
+      "--env",
+      "GOTOOLCHAIN=local",
+      "--env",
+      "GOPROXY=https://proxy.golang.org",
+      "--env",
+      "GOSUMDB=sum.golang.org",
+      "--env",
+      "GOVCS=*:off",
+      "--env",
+      "GOMODCACHE=/go/pkg/mod",
+      "--env",
+      "GOCACHE=/go/cache",
+      "worthit-fetch-f71443d70909",
+      "go",
+      "mod",
+      "download",
+      "all"
+    ],
+    "cwd": "",
+    "duration_ms": 1290,
+    "exit_code": 0,
+    "failure_reason": null,
+    "max_cpu_percent": 100.65,
+    "output_limited": false,
+    "peak_ram_bytes": 16200499,
+    "stage": "dependency-fetch",
+    "status": "PASS",
+    "stderr_file": "<host-home>/work/worthit/.worthit/runs/tomnomnom--gron/88a6234ea2d0c487090988182ad9a7cdf6def924/evidence/dependency-fetch/download/stderr.txt",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_file": "<host-home>/work/worthit/.worthit/runs/tomnomnom--gron/88a6234ea2d0c487090988182ad9a7cdf6def924/evidence/dependency-fetch/download/stdout.txt",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "timed_out": false
+  },
+  "ecosystem": "go",
+  "manifests": {
+    "go.mod": "dd7b9f79044b0451721aa96773a610630bc5a937d0f2a8e6a4ba07c225f4eb45",
+    "go.sum": "dbf06286bcaa1eae1952714a3be9ddae653969928ccf5f0dc097d4f70b563cdf"
+  },
+  "network_phase": "proxy.golang.org and sum.golang.org via the Go tool; candidate source was not present",
+  "total_bytes": 2058906,
+  "verified": true,
+  "verify_trace": {
+    "argv": [
+      "docker",
+      "exec",
+      "-i",
+      "--user",
+      "65534:65534",
+      "--workdir",
+      "/manifests",
+      "--env",
+      "HOME=/tmp",
+      "--env",
+      "GOENV=off",
+      "--env",
+      "GOTOOLCHAIN=local",
+      "--env",
+      "GOPROXY=https://proxy.golang.org",
+      "--env",
+      "GOSUMDB=sum.golang.org",
+      "--env",
+      "GOVCS=*:off",
+      "--env",
+      "GOMODCACHE=/go/pkg/mod",
+      "--env",
+      "GOCACHE=/go/cache",
+      "worthit-fetch-f71443d70909",
+      "go",
+      "mod",
+      "verify"
+    ],
+    "cwd": "",
+    "duration_ms": 2011,
+    "exit_code": 0,
+    "failure_reason": null,
+    "max_cpu_percent": 0.0,
+    "output_limited": false,
+    "peak_ram_bytes": 16043213,
+    "stage": "dependency-verify",
+    "status": "PASS",
+    "stderr_file": "<host-home>/work/worthit/.worthit/runs/tomnomnom--gron/88a6234ea2d0c487090988182ad9a7cdf6def924/evidence/dependency-fetch/verify/stderr.txt",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_file": "<host-home>/work/worthit/.worthit/runs/tomnomnom--gron/88a6234ea2d0c487090988182ad9a7cdf6def924/evidence/dependency-fetch/verify/stdout.txt",
+    "stdout_sha256": "b4537ed75f533f993f371954de47e42a793b8e5b0587577de7e27fb3e50696bd",
+    "timed_out": false
+  }
+}

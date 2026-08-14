@@ -3,12 +3,13 @@
   "candidate_network": "none",
   "cgroup_version": "2",
   "docker_socket_exposed": false,
+  "dockerfile_sha256": "67ccb31bc2661165684d9b81afe00426cce14307a62c9c5d95adae173cfad7be",
   "host_mounts": [],
   "image": "worthit-node:0.2",
   "image_digests": [
-    "worthit-node@sha256:96adf3af31a3e3336000466cd2d5eff7d93b8137f2bb3b49a55d831521301c61"
+    "worthit-node@sha256:bd3baaea48d3b6a27b0d0793d7c261473bde12bba00eb6b65975681ecd1107dc"
   ],
-  "image_id": "sha256:96adf3af31a3e3336000466cd2d5eff7d93b8137f2bb3b49a55d831521301c61",
+  "image_id": "sha256:bd3baaea48d3b6a27b0d0793d7c261473bde12bba00eb6b65975681ecd1107dc",
   "inherited_environment": [],
   "limits": {
     "cpus": "2",
@@ -21,6 +22,7 @@
   },
   "residual_risk": "gVisor is preferred; runc shares the host kernel and is restricted to TRUSTED_ENOUGH_TO_TEST.",
   "rootless": false,
+  "runner_sha256": "afc050d76e16bd9332aebe8f8e47d838b4cdf6b8889903f39dff2578c9a9930f",
   "runtime": "runc",
   "security_options": [
     "name=apparmor",
