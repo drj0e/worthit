@@ -1322,6 +1322,7 @@ The 4 GB model download is optional.
             claims = json.loads((artifact / "claims.json").read_text())
             plan = json.loads((artifact / "test-plan.json").read_text())
             claims["claims"][claim_index]["text"] = attack
+            plan["core_workflow"] = attack
             plan["tests"][0]["purpose"] = attack
             atomic_json(artifact / "claims.json", claims)
             atomic_json(artifact / "test-plan.json", plan)
@@ -1376,8 +1377,14 @@ The 4 GB model download is optional.
             )
             home = (site / "index.html").read_text()
             self.assertIn("Make JSON greppable!", home)
+            self.assertIn("What we proved it can do", home)
+            self.assertIn("gron transforms a JSON file", home)
             self.assertIn("Worth installing for the tested workflow.", home)
-            self.assertLess(home.index("Make JSON greppable!"), home.index("7/7 workflows passed"))
+            repo_label = "Reviewed repo: <code>tomnomnom/gron</code>"
+            self.assertLess(home.index("Make JSON greppable!"), home.index(repo_label))
+            self.assertLess(home.index(repo_label), home.index("7/7 workflows passed"))
+            self.assertIn("uglifyjs reads JavaScript from STDIN", home)
+            self.assertIn("isort . recursively sorts imports", home)
             review = next((site / "reviews" / "tomnomnom" / "gron").rglob("index.html")).read_text()
             self.assertLess(review.index("Make JSON greppable!"), review.index("WorthIt verdict"))
             self.assertLess(

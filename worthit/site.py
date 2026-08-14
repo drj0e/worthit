@@ -20,7 +20,7 @@ from .models import Claim, TestPlan, jsonable
 from .review import PUBLIC_REVIEW_FILES, _slug, publication_bundle_sha256, render_markdown
 from .runner import redact
 
-CSS = """*{box-sizing:border-box}body{margin:0;background:#f4f1e8;color:#171915;font:16px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}a{color:#174f3a}header,main,footer{max-width:1100px;margin:auto;padding:1rem 1.25rem}header{display:flex;gap:1rem;align-items:center;border-bottom:2px solid #171915}header nav{margin-left:auto;display:flex;gap:.9rem;flex-wrap:wrap}.brand{font-weight:900;text-decoration:none}.hero{padding:4rem 0 2rem;border-bottom:1px solid #777}.hero h1{font:800 clamp(2.4rem,8vw,6.5rem)/.95 Georgia,serif;max-width:900px;margin:.25rem 0}.kicker{text-transform:uppercase;letter-spacing:.12em}.lede,.tool-description{font:700 1.15rem/1.4 Georgia,serif}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem}.card,.panel{background:#fff;border:1px solid #171915;padding:1rem;box-shadow:4px 4px 0 #171915}.card h3{margin-bottom:.35rem}.decision{border-top:1px solid #999;padding-top:.75rem}.score{font:800 2.5rem/1 Georgia,serif}.meta{color:#4e554d;font-size:.9rem}.badge{display:inline-block;border:1px solid;padding:.1rem .4rem;margin-right:.35rem}table{width:100%;border-collapse:collapse;background:#fff}th,td{text-align:left;vertical-align:top;border:1px solid #777;padding:.55rem;overflow-wrap:anywhere}h1,h2,h3{font-family:Georgia,serif}blockquote{margin-left:0;border-left:4px solid #174f3a;padding-left:1rem}code{overflow-wrap:anywhere}.pass{color:#12633f}.partial{color:#7a4f00}.fail{color:#9b1b1b}footer{margin-top:3rem;border-top:1px solid #777}.stack>*+*{margin-top:1.2rem}@media(max-width:700px){header{align-items:flex-start;flex-direction:column}header nav{margin:0}.hero{padding-top:2rem}table{display:block;overflow-x:auto;font-size:.85rem}th,td{min-width:6rem}}"""
+CSS = """*{box-sizing:border-box}body{margin:0;background:#f4f1e8;color:#171915;font:16px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}a{color:#174f3a}header,main,footer{max-width:1100px;margin:auto;padding:1rem 1.25rem}header{display:flex;gap:1rem;align-items:center;border-bottom:2px solid #171915}header nav{margin-left:auto;display:flex;gap:.9rem;flex-wrap:wrap}.brand{font-weight:900;text-decoration:none}.hero{padding:4rem 0 2rem;border-bottom:1px solid #777}.hero h1{font:800 clamp(2.4rem,8vw,6.5rem)/.95 Georgia,serif;max-width:900px;margin:.25rem 0}.kicker{text-transform:uppercase;letter-spacing:.12em}.lede,.tool-description{font:700 1.15rem/1.4 Georgia,serif}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem}.card,.panel{background:#fff;border:1px solid #171915;padding:1rem;box-shadow:4px 4px 0 #171915}.card h3{font-size:1.45rem;margin:.35rem 0}.glance{background:#f4f1e8;border-left:4px solid #174f3a;padding:.65rem .8rem}.glance p{margin:.2rem 0}.glance ul{margin:.4rem 0 0;padding-left:1.2rem}.glance li+li{margin-top:.35rem}.decision{border-top:1px solid #999;padding-top:.75rem}.score{font:800 2.5rem/1 Georgia,serif}.meta{color:#4e554d;font-size:.9rem}.badge{display:inline-block;border:1px solid;padding:.1rem .4rem;margin-right:.35rem}table{width:100%;border-collapse:collapse;background:#fff}th,td{text-align:left;vertical-align:top;border:1px solid #777;padding:.55rem;overflow-wrap:anywhere}h1,h2,h3{font-family:Georgia,serif}blockquote{margin-left:0;border-left:4px solid #174f3a;padding-left:1rem}code{overflow-wrap:anywhere}.pass{color:#12633f}.partial{color:#7a4f00}.fail{color:#9b1b1b}footer{margin-top:3rem;border-top:1px solid #777}.stack>*+*{margin-top:1.2rem}@media(max-width:700px){header{align-items:flex-start;flex-direction:column}header nav{margin:0}.hero{padding-top:2rem}table{display:block;overflow-x:auto;font-size:.85rem}th,td{min-width:6rem}}"""
 MAX_PUBLIC_JSON_BYTES = 2 * 1024 * 1024
 PUBLIC_SUFFIXES = {".css", ".html", ".json", ".md", ".txt", ".xml"}
 HOST_PATH = re.compile(r"(?:/home/|/Users/)[^/\s<]+/")
@@ -106,7 +106,7 @@ def build_site(
         "".join(_card(review, base_path) for review in reviews[:12])
         or '<p class="panel">No reviews have passed publication yet.</p>'
     )
-    home = f"""<section class="hero"><p class="kicker">Independent software testing lab</p><h1>AI tools tested so you don't have to.</h1><p>See what each tool does, whether its core workflow survived two clean runs, and who should actually install it. Claims are linked to the evidence.</p></section><section><h2>Latest verification reviews</h2><div class="grid">{cards}</div></section>"""
+    home = f"""<section class="hero"><p class="kicker">Independent software testing lab</p><h1>AI and developer tools, actually tested.</h1><p>Start with the job each tool does, then see WorthIt's verdict, the workflows that passed, and the claims that still have holes.</p></section><section><h2>Tools, explained and tested</h2><p>Each card starts with the tool's purpose and up to three capabilities WorthIt reproduced, followed by the verdict.</p><div class="grid">{cards}</div></section>"""
     _write_page(site_dir / "index.html", "WorthIt", home, nav, base_path)
     _write_page(
         site_dir / "latest" / "index.html",
@@ -435,7 +435,10 @@ def _correction_page(correction: dict[str, Any], base_path: str) -> str:
 
 def _card(review: dict[str, Any], base_path: str) -> str:
     path = html.escape(base_path + review["_site_path"], quote=True)
-    return f'<article class="card"><p class="kicker">{html.escape(review["category"])}</p><h3><a href="{path}">{html.escape(review["project"])}</a></h3><p class="tool-description">{html.escape(_tool_description(review))}</p><p class="decision"><strong>{html.escape(review["score"]["verdict"])}</strong> · {html.escape(_decision_summary(review))}</p><p><span class="score">{html.escape(str(review["score"]["overall"]))}</span>/100</p><p class="meta">{html.escape(review["score"]["confidence"])} confidence · tested {html.escape(review["tested_at"][:10])}</p></article>'
+    capabilities = "".join(
+        f"<li>{html.escape(capability)}</li>" for capability in _proven_capabilities(review)
+    )
+    return f'<article class="card"><p class="kicker">{html.escape(review["category"])} · {html.escape(review["score"]["verdict"])}</p><h3><a href="{path}">{html.escape(_tool_description(review))}</a></h3><p class="meta">Reviewed repo: <code>{html.escape(review["repository"])}</code></p><div class="glance"><p class="kicker">What we proved it can do</p><ul>{capabilities}</ul></div><p class="decision"><strong>WorthIt take:</strong> {html.escape(_decision_summary(review))}</p><p><span class="score">{html.escape(str(review["score"]["overall"]))}</span>/100 · {html.escape(review["score"]["confidence"])} confidence</p><p class="meta">Tested {html.escape(review["tested_at"][:10])} · <a href="{path}">See the evidence-backed review</a></p></article>'
 
 
 def _tool_description(review: dict[str, Any]) -> str:
@@ -444,6 +447,20 @@ def _tool_description(review: dict[str, Any]) -> str:
         description
         or f"A {str(review.get('category') or 'developer tool').lower()} from {review['repository']}."
     )
+
+
+def _proven_capabilities(review: dict[str, Any]) -> list[str]:
+    capabilities = []
+    for test in review.get("tests") or []:
+        if not isinstance(test, dict) or test.get("status") != "PASS" or test.get("edge_case"):
+            continue
+        purpose = " ".join(str(test.get("purpose") or "").split()).strip()
+        purpose = re.sub(r"^Verify(?: that)?\s+", "", purpose, flags=re.IGNORECASE)
+        if purpose:
+            capabilities.append(purpose)
+        if len(capabilities) == 3:
+            break
+    return capabilities or ["No core capability reached a reproducible PASS."]
 
 
 def _decision_summary(review: dict[str, Any]) -> str:
