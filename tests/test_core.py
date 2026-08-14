@@ -21,6 +21,7 @@ from worthit.runner import (
     RunnerConfig,
     Sandbox,
     _expand_argv,
+    _stage_inert_file,
     _validate_requirements,
     execution_contract_sha256,
     redact,
@@ -462,6 +463,9 @@ class DockerIsolationTests(unittest.TestCase):
                         sandbox = Sandbox(run_dir, config, "runc", "hostile-fixture", runner.image)
                         sandbox.start()
                         try:
+                            inert = run_dir / "inert.txt"
+                            inert.write_text("manifest data\n")
+                            _stage_inert_file(sandbox.name, inert, "/work/inert.txt", 1000)
                             inspected = json.loads(
                                 subprocess.run(
                                     ["docker", "inspect", sandbox.name],
@@ -473,6 +477,20 @@ class DockerIsolationTests(unittest.TestCase):
                             )[0]
                             self.assertEqual(inspected["Mounts"], [])
                             self.assertEqual(inspected["HostConfig"]["NetworkMode"], "none")
+                            staged = sandbox.exec(
+                                [
+                                    "/usr/local/bin/python",
+                                    "-I",
+                                    "-c",
+                                    "print(open('/work/inert.txt').read(), end='')",
+                                ],
+                                "/work",
+                                b"",
+                                5,
+                                run_dir / "evidence" / "staging",
+                                "staging",
+                            )
+                            self.assertEqual((run_dir / staged.stdout_file).read_text(), "manifest data\n")
                             trace = sandbox.exec(
                                 [
                                     "/usr/local/bin/python",

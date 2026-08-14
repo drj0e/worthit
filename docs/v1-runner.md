@@ -169,6 +169,22 @@ either cold run.
 
 These return only after the three-repository clean-replay gate.
 
+## Three-repository failure comparison
+
+Observed bring-up failures, not hypothetical ones:
+
+| Track | Repository | Failure | Generalized correction |
+|---|---|---|---|
+| Python | PyCQA/isort | GitHub's archive omitted VCS metadata required by the declared version backend; one generated edge assertion guessed the wrong exit code. | Detect declared VCS versioning, inject and disclose a deterministic sandbox-only version, mechanically constrain warm correction, and require two cold replays. |
+| Node | mishoo/UglifyJS | A CI-only `sudo` command triggered an execution-path risk block; generated source-map and cross-file assertions guessed intermediate output; editorial drafts hid a MEDIUM finding and leaked repair history. | Preserve the risk finding but grade non-executed CI context separately, require near-complete observed-line replacements plus independent criticism, surface every risk/coverage gap, and reject reviewer-history prose. |
+| Go | tomnomnom/gron | Docker `cp` could not write manifests through a read-only container root despite a tmpfs destination. Cold compilation also made setup materially slower than interpreted-package installs. | Transfer capped inert manifests over stdin to fixed tmpfs paths as UID 65534, keep source out of the network phase, hash the local module proxy, and report build time/toolchain independently. |
+
+Only these demonstrated differences were generalized. Node remains limited to
+dependency-free, lifecycle-free packages; Go remains limited to a root command
+with a pinned module graph. Execution-cache identity includes the accepted plan,
+install environment, dependency tree, immutable image ID, Dockerfile hash,
+runner-code hash, runtime, and limits.
+
 ## Iteration status and next gate
 
 Completed on 2026-08-14:
@@ -184,11 +200,11 @@ Completed on 2026-08-14:
 - first real isort evaluation with 7/7 accepted tests reproduced twice.
 - UglifyJS evaluation with 6/6 accepted tests reproduced twice, including file,
   STDIN, output-file, source-map, cross-file, and malformed-input workflows;
+- gron evaluation with 7/7 accepted tests reproduced twice, including file,
+  stdin, JSON-stream, reverse-conversion, filtering, and invalid-input paths;
 - all three evaluator images passed the live mount, secret, socket, network,
   timeout, and teardown isolation probe.
 
-Daily mode stays disabled. The remaining three-repository-gate work is a
-real Go review, comparison of the three actual bootstrap failure modes, and a
-clean rerun of all three. Stronger-than-runc isolation remains required before
-lowering the current established-project trust threshold or enabling broader
-unattended execution.
+Daily mode stays disabled until the finalized runner clean-reruns all three.
+Stronger-than-runc isolation remains required before lowering the current
+established-project trust threshold or enabling broader unattended execution.

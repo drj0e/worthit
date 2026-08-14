@@ -14,7 +14,7 @@ import time
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import BinaryIO, cast
 
 from .inspect import clean_text, source_tree_report
@@ -169,6 +169,7 @@ class DockerRunner:
         ):
             raise SandboxUnavailable("runc backend requires both seccomp and AppArmor")
         self._runtime = runtime
+        self._runner_sha256 = _sha256(Path(__file__).resolve())
         self._reap_stale()
         self._ensure_image()
         image = json.loads(
@@ -220,6 +221,8 @@ class DockerRunner:
             "image": self.image,
             "image_id": self._image_id,
             "image_digests": image.get("RepoDigests", []),
+            "dockerfile_sha256": self._dockerfile_sha256,
+            "runner_sha256": self._runner_sha256,
             "toolchain": self._toolchain_version,
             "limits": {
                 "memory": self.config.memory,
@@ -246,8 +249,10 @@ class DockerRunner:
             "limits": jsonable(self.config),
             "track": self.track,
             "dependency_bundle_sha256": getattr(self, "_dependency_sha256", ""),
+            "dockerfile_sha256": getattr(self, "_dockerfile_sha256", ""),
+            "runner_sha256": getattr(self, "_runner_sha256", ""),
         }
-        if not context["image_id"] or not context["runtime"] or not context["dependency_bundle_sha256"]:
+        if any(not context[name] for name in context if name != "limits"):
             raise SandboxUnavailable("runner preflight and dependency preparation must precede execution")
         return execution_contract_sha256(plan, install_environment, context)
 
@@ -481,15 +486,7 @@ class DockerRunner:
             if started.returncode:
                 raise SandboxUnavailable(f"could not start Go dependency fetcher: {started.stderr[-500:]}")
             for manifest in (go_mod, go_sum):
-                copied = subprocess.run(
-                    ["docker", "cp", str(manifest), f"{name}:/manifests/{manifest.name}"],
-                    text=True,
-                    capture_output=True,
-                    timeout=30,
-                    check=False,
-                )
-                if copied.returncode:
-                    raise SandboxUnavailable(f"could not stage {manifest.name}: {copied.stderr[-500:]}")
+                _stage_inert_file(name, manifest, f"/manifests/{manifest.name}", 5_000_000)
             environment = [
                 "--env",
                 "HOME=/tmp",
@@ -753,23 +750,34 @@ class DockerRunner:
             sandbox.close()
 
     def _ensure_image(self) -> None:
+        context = Path(__file__).resolve().parents[1] / "sandbox"
+        dockerfile = context / self.dockerfile
+        self._dockerfile_sha256 = _sha256(dockerfile)
         exists = subprocess.run(
-            ["docker", "image", "inspect", self.image],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            [
+                "docker",
+                "image",
+                "inspect",
+                self.image,
+                "--format",
+                '{{index .Config.Labels "worthit.dockerfile-sha256"}}',
+            ],
+            text=True,
+            capture_output=True,
             timeout=15,
             check=False,
         )
-        if exists.returncode == 0:
+        if exists.returncode == 0 and exists.stdout.strip() == self._dockerfile_sha256:
             return
-        context = Path(__file__).resolve().parents[1] / "sandbox"
         completed = subprocess.run(
             [
                 "docker",
                 "build",
                 "--pull",
+                "--label",
+                f"worthit.dockerfile-sha256={self._dockerfile_sha256}",
                 "-f",
-                str(context / self.dockerfile),
+                str(dockerfile),
                 "-t",
                 self.image,
                 str(context),
@@ -1472,6 +1480,47 @@ print(json.dumps(sorted(files)))
             raise SandboxUnavailable("Go module dependency bundle exceeded V1 size limits")
         artifacts.append({"path": relative, "bytes": size, "sha256": _sha256(target)})
     return artifacts
+
+
+def _stage_inert_file(container: str, source: Path, destination: str, limit: int) -> None:
+    target = PurePosixPath(destination)
+    if (
+        not source.is_file()
+        or source.is_symlink()
+        or source.stat().st_size > limit
+        or not target.is_absolute()
+        or any(part in {"", ".", ".."} for part in target.parts[1:])
+        or target.parts[:2] not in {("/", "manifests"), ("/", "work")}
+    ):
+        raise SandboxUnavailable("refusing unsafe inert-file staging")
+    program = """import pathlib,sys
+limit=int(sys.argv[2])
+data=sys.stdin.buffer.read(limit+1)
+if len(data)>limit: raise SystemExit(2)
+pathlib.Path(sys.argv[1]).write_bytes(data)
+"""
+    completed = subprocess.run(
+        [
+            "docker",
+            "exec",
+            "-i",
+            "--user",
+            "65534:65534",
+            container,
+            "/usr/local/bin/python",
+            "-I",
+            "-c",
+            program,
+            destination,
+            str(limit),
+        ],
+        input=source.read_bytes(),
+        capture_output=True,
+        timeout=30,
+        check=False,
+    )
+    if completed.returncode:
+        raise SandboxUnavailable(f"could not stage inert file {source.name}")
 
 
 def _expand_argv(argv: list[str], entrypoint_path: str, interpreter_path: str | None) -> list[str]:

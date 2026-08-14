@@ -227,6 +227,8 @@ def generate_review(
             "runtime": _runtime_description(environment),
             "image": environment.get("image_id"),
             "toolchain": environment.get("toolchain"),
+            "dockerfile_sha256": environment.get("dockerfile_sha256"),
+            "runner_sha256": environment.get("runner_sha256"),
             "candidate_network": "none",
             "reproduced": reproducibility.get("reproduced"),
             "tests_compared": reproducibility.get("tests_compared"),
@@ -380,6 +382,8 @@ def fact_check(
         "reproduced": review["reproduction"]["reproduced"] == reproducibility.get("reproduced"),
         "runtime": review["reproduction"]["runtime"] == _runtime_description(environment),
         "toolchain": review["reproduction"]["toolchain"] == environment.get("toolchain"),
+        "runner": review["reproduction"]["runner_sha256"] == environment.get("runner_sha256"),
+        "dockerfile": review["reproduction"]["dockerfile_sha256"] == environment.get("dockerfile_sha256"),
         "peak_ram": review["performance"]["peak_ram_bytes"] == max(ram_measurements, default=None),
         "prose_lint": BANNED_PROSE.search(markdown) is None,
     }
