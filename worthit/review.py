@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,8 @@ from .inspect import clean_text
 from .models import Claim, ClaimResult, Scorecard, TestPlan, atomic_json, jsonable
 from .planning import call_claude
 from .runner import redact
+
+EXECUTABLE_TAG = re.compile(r"<(?=/?(?:html|script|iframe|object|embed|svg)\b)", re.I)
 
 EDITORIAL_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -446,7 +449,10 @@ def publish_review_artifacts(
         raise ValueError("review did not pass fact-check and editorial gates")
     owner, name = str(review["repository"]).split("/", 1)
     destination = reviews_root / _slug(owner) / _slug(name) / str(review["commit_sha"])
+    if destination.exists() and (destination.is_symlink() or not destination.is_dir()):
+        raise ValueError("review destination is not a safe directory")
     existing_path = destination / "review.json"
+    sanitized_review = _sanitize_json(review)
     if existing_path.exists():
         existing = json.loads(existing_path.read_text(encoding="utf-8"))
         if (
@@ -454,9 +460,13 @@ def publish_review_artifacts(
             or existing.get("commit_sha") != review["commit_sha"]
         ):
             raise ValueError("refusing to replace a different published review")
+        if existing != sanitized_review:
+            raise ValueError(
+                "refusing to rewrite a published commit; preserve it and publish an explicit correction"
+            )
     else:
         destination.mkdir(parents=True, exist_ok=False)
-    atomic_json(destination / "review.json", _sanitize_json(review))
+    atomic_json(destination / "review.json", sanitized_review)
     (destination / "review.md").write_text(redact(markdown), encoding="utf-8")
     atomic_json(destination / "score.json", score)
     atomic_json(destination / "claims.json", {"claims": _sanitize_json(jsonable(claims))})
@@ -474,6 +484,11 @@ def publish_review_artifacts(
         source = run_dir / name
         if source.is_file():
             atomic_json(destination / name, _sanitize_json(json.loads(source.read_text(encoding="utf-8"))))
+    evidence_destination = destination / "evidence"
+    if evidence_destination.exists():
+        if evidence_destination.is_symlink() or not evidence_destination.is_dir():
+            raise ValueError("review evidence destination is not a safe directory")
+        shutil.rmtree(evidence_destination)
     manifest = _publish_evidence(run_dir, destination)
     atomic_json(destination / "evidence-manifest.json", manifest)
     return destination
@@ -492,6 +507,7 @@ def _publish_evidence(run_dir: Path, destination: Path) -> list[dict[str, Any]]:
             target = destination / "evidence" / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             text = redact(clean_text(source.read_text(encoding="utf-8", errors="replace"), 262_144))
+            text = EXECUTABLE_TAG.sub("&lt;", text)
             text = text.rstrip("\r\n") + "\n" if text else ""
             target.write_text(text, encoding="utf-8")
             published.append(

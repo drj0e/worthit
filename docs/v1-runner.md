@@ -1,6 +1,7 @@
 # V1 runner decision and implementation plan
 
-Status: accepted and clean-replayed across Python, Node, and Go, 2026-08-14.
+Status: accepted and clean-replayed across Python, Node, and Go; daily discovery
+and static publication implemented, 2026-08-14.
 
 ## Promise and scope
 
@@ -157,19 +158,56 @@ either cold run.
    and build each review locally.
 7. Ask Claude to challenge the plan before execution and independently audit the
    final evidence/review. Resolve valid findings and commit the milestone.
+8. Persist GitHub discovery signals, fail closed through metadata and deep gates,
+   select at most five distinct repositories per UTC day, and retain the rest in
+   the backlog. Bound failed evaluations to two attempts per commit.
+9. Rebuild Pages only from schema-validated reviews, approved editorial/fact
+   checks, manifest-matched text evidence, and escaped static templates. Verify
+   every internal link and reject secret-like data or executable markup.
+
+## Daily and deployment decision
+
+Daily work is three credential-separated jobs. Discovery has read-only GitHub
+access and never executes candidate code. Evaluation receives a Claude credential
+and read-only GitHub access, but no content-write or Pages permission. A final
+recording job receives only the curated `reviews/`, `hunts/`, and `data/`
+artifact, rebuilds and sanitizes the site, and alone receives repository write
+access. Pages deployment is a fourth job that receives only the sanitized static
+artifact and the short-lived Pages/OIDC permissions.
+
+This proves candidate containers cannot obtain publishing credentials through an
+environment variable, mount, Docker socket, or job token because those
+credentials do not exist in the evaluation job. The runc residual still matters:
+an unknown kernel/runtime escape could reach the ephemeral evaluation host and
+its model credential. The established-project trust threshold remains mandatory
+until a VM-grade backend replaces runc.
+
+Discovery responses are cached for six hours with a bounded stale fallback.
+Priority stores its weighted components and repository-specific reasons. Exact
+commit failures are not re-qualified until the commit or qualification rules
+change; evaluation retries stop at two. A detector-revision change rehashes the
+cached source, refreshes derived inspection data, and moves stale private run
+state aside before resuming. One operating date is carried across workflow jobs,
+so a midnight queue delay cannot create a second daily selection.
+
+Defaults ask the Claude CLI to cap model use at $5 per repository and reserve no
+more than $25 per UTC day. WorthIt rejects a response that reports an overage,
+but the external provider/CLI remains the authoritative real-time billing
+boundary.
 
 ## Remaining V1 work
 
-- daily discovery/selection and unattended top-five execution;
-- production Pages deployment and Daily Hunt reports;
+- configure one Claude Actions credential to activate unattended execution;
+- replace rootful runc with gVisor, Kata, or a microVM before lowering trust gates;
+- add an explicit correction-publication format; same-commit material rewrites
+  currently fail closed instead of replacing historical evidence;
 - paid APIs, GPUs, service containers, browsers, SaaS, and arbitrary Dockerfiles;
 - candidate-controlled direct URLs or source distributions as dependencies;
 - repair by changing candidate business source;
 - cross-project performance claims without a comparable baseline.
 
-The first two are the next milestone now that the three-repository clean-replay
-gate has passed. The broader execution tracks stay deferred until evidence shows
-they are needed and a stronger isolation backend is available.
+The broader execution tracks stay deferred until evidence shows they are needed
+and a stronger isolation backend is available.
 
 ## Three-repository failure comparison
 

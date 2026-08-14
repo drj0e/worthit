@@ -6,9 +6,16 @@ from pathlib import Path
 from typing import Any
 
 from .evaluate import evaluate_run
-from .inspect import assess_risk, inspect_repository, parse_repo_url, resolve_commit
+from .inspect import (
+    INSPECTION_REVISION,
+    assess_risk,
+    inspect_repository,
+    parse_repo_url,
+    refresh_repository_inspection,
+    resolve_commit,
+)
 from .models import Claim, TestPlan, TrustClass, atomic_json, jsonable, read_json
-from .planning import design_and_critique_plan, extract_claims, repair_and_critique_plan
+from .planning import design_and_critique_plan, extract_claims, model_cost, repair_and_critique_plan
 from .review import editorial_critique, generate_review, publish_review_artifacts
 from .runner import (
     DockerRunner,
@@ -56,6 +63,7 @@ def evaluate_repository(
         )
         if repository.get("commit_sha") != sha or repository.get("url") != ref.url:
             raise ValueError("cached repository identity does not match this run")
+        repository = refresh_repository_inspection(repository, run_dir)
         if not (repository.get("environment") or {}).get("supported"):
             raise ValueError("repository is outside the supported V1 CLI execution tracks")
         _stage(state, run_dir, current, "COMPLETE")
@@ -63,12 +71,10 @@ def evaluate_repository(
         current = "risk_assess"
         _stage(state, run_dir, current, "RUNNING")
         risk_path = run_dir / "risk.json"
-        if risk_path.exists():
-            risk = json.loads(risk_path.read_text())
-        else:
-            risk_report = assess_risk(run_dir / "source", repository)
-            risk = jsonable(risk_report)
-            atomic_json(risk_path, risk)
+        # Static screening is cheap and security rules evolve; never reuse a stale verdict.
+        risk_report = assess_risk(run_dir / "source", repository)
+        risk = jsonable(risk_report)
+        atomic_json(risk_path, risk)
         trust = TrustClass(risk["classification"])
         if trust is not TrustClass.TRUSTED:
             raise ValueError(f"V1 runner refuses risk classification {trust.value}")
@@ -173,6 +179,7 @@ def evaluate_repository(
             "score": score.overall,
             "confidence": score.confidence.value,
             "verdict": score.verdict,
+            "llm_cost_usd": model_cost(run_dir),
         }
         atomic_json(run_dir / "result.json", result)
         return result
@@ -211,8 +218,31 @@ def _load_state(run_dir: Path, url: str, sha: str) -> dict[str, Any]:
         state = read_json(path)
         if state.get("repository_url") != url or state.get("commit_sha") != sha:
             raise ValueError("run state identity mismatch")
-        return state
-    state = {"repository_url": url, "commit_sha": sha, "stages": {}}
+        if state.get("inspection_revision") == INSPECTION_REVISION:
+            return state
+        old_revision = state.get("inspection_revision")
+        old_revision = old_revision if isinstance(old_revision, int) and old_revision >= 0 else 0
+        archive = run_dir / f"stale-inspection-{old_revision}"
+        suffix = 1
+        while archive.exists() or archive.is_symlink():
+            archive = run_dir / f"stale-inspection-{old_revision}-{suffix}"
+            suffix += 1
+        archive.mkdir()
+        for child in list(run_dir.iterdir()):
+            if child.name in {
+                "source",
+                "source.tar.gz",
+                "repository.json",
+                archive.name,
+            } or child.name.startswith("stale-inspection-"):
+                continue
+            child.rename(archive / child.name)
+    state = {
+        "repository_url": url,
+        "commit_sha": sha,
+        "inspection_revision": INSPECTION_REVISION,
+        "stages": {},
+    }
     atomic_json(path, state)
     return state
 

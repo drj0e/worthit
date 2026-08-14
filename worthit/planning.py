@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -592,6 +593,14 @@ def call_claude(
         and fingerprint_path.read_text().strip() == fingerprint
     ):
         return _structured_response(json.loads(response_path.read_text(encoding="utf-8")))
+    try:
+        repository_budget = float(os.environ.get("WORTHIT_MAX_LLM_COST_PER_REPO", "5"))
+    except ValueError as error:
+        raise ValueError("WORTHIT_MAX_LLM_COST_PER_REPO must be a number") from error
+    remaining = repository_budget - model_cost(artifact_dir.parent)
+    if not math.isfinite(repository_budget) or repository_budget <= 0 or remaining <= 0:
+        raise RuntimeError("repository LLM cost limit reached")
+    call_budget = min(budget_usd, remaining)
     command = [
         executable,
         "-p",
@@ -606,7 +615,7 @@ def call_claude(
         "--json-schema",
         json.dumps(schema, separators=(",", ":")),
         "--max-budget-usd",
-        str(budget_usd),
+        str(call_budget),
         "--effort",
         "medium",
         "--model",
@@ -617,7 +626,19 @@ def call_claude(
         key: value
         for key, value in os.environ.items()
         if key
-        in {"HOME", "PATH", "USER", "LOGNAME", "LANG", "LC_ALL", "TMPDIR", "SSL_CERT_FILE", "SSL_CERT_DIR"}
+        in {
+            "HOME",
+            "PATH",
+            "USER",
+            "LOGNAME",
+            "LANG",
+            "LC_ALL",
+            "TMPDIR",
+            "SSL_CERT_FILE",
+            "SSL_CERT_DIR",
+            "ANTHROPIC_API_KEY",
+            "CLAUDE_CODE_OAUTH_TOKEN",
+        }
     }
     try:
         completed = subprocess.run(
@@ -639,7 +660,22 @@ def call_claude(
         raise RuntimeError("Claude returned invalid response JSON") from error
     atomic_json(response_path, envelope)
     fingerprint_path.write_text(fingerprint + "\n", encoding="utf-8")
+    if model_cost(artifact_dir.parent) > repository_budget + 0.001:
+        raise RuntimeError("repository LLM cost limit exceeded")
     return _structured_response(envelope)
+
+
+def model_cost(run_dir: Path) -> float:
+    total = 0.0
+    for path in run_dir.glob("*/response.json"):
+        try:
+            value = json.loads(path.read_text(encoding="utf-8")).get("total_cost_usd", 0)
+            cost = float(value)
+        except (AttributeError, OSError, TypeError, ValueError, json.JSONDecodeError):
+            continue
+        if math.isfinite(cost) and cost > 0:
+            total += cost
+    return round(total, 6)
 
 
 def _structured_response(envelope: dict[str, Any]) -> dict[str, Any]:

@@ -26,19 +26,30 @@ BIDI = dict.fromkeys(map(ord, "\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\
 MAX_ARCHIVE_BYTES = 100 * 1024 * 1024
 MAX_EXTRACT_BYTES = 250 * 1024 * 1024
 MAX_FILES = 30_000
+INSPECTION_REVISION = 1
 OPEN_SOURCE_SPDX = {
     "0BSD",
+    "AGPL-3.0",
+    "AGPL-3.0-only",
     "Apache-2.0",
     "BSD-2-Clause",
     "BSD-3-Clause",
+    "CC0-1.0",
+    "EPL-2.0",
+    "EUPL-1.2",
+    "GPL-2.0",
     "GPL-2.0-only",
+    "GPL-3.0",
     "GPL-3.0-only",
     "ISC",
+    "LGPL-2.1",
     "LGPL-2.1-only",
+    "LGPL-3.0",
     "LGPL-3.0-only",
     "MIT",
     "MPL-2.0",
     "Unlicense",
+    "Zlib",
 }
 
 IMPORTANT_NAMES = {
@@ -92,7 +103,10 @@ def parse_repo_url(url: str) -> RepoRef:
     match = GITHUB_REPO.fullmatch(url.strip())
     if not match:
         raise ValueError("expected a public https://github.com/owner/repository URL")
-    return RepoRef(*match.groups())
+    owner, name = match.groups()
+    if owner in {".", ".."} or name in {".", ".."}:
+        raise ValueError("repository owner and name cannot be path traversal segments")
+    return RepoRef(owner, name)
 
 
 def resolve_commit(url: str, commit: str | None = None) -> str:
@@ -246,10 +260,30 @@ def inspect_repository(url: str, run_dir: Path, commit: str | None = None) -> di
         "skipped_archive_entries": extracted["skipped"],
         "environment": environment,
         "important_evidence": important,
+        "inspection_revision": INSPECTION_REVISION,
         "inspected_at": datetime.now(UTC).isoformat(),
     }
     atomic_json(run_dir / "repository.json", metadata)
     return metadata
+
+
+def refresh_repository_inspection(repository: dict[str, Any], run_dir: Path) -> dict[str, Any]:
+    if repository.get("inspection_revision") == INSPECTION_REVISION:
+        return repository
+    source = run_dir / "source"
+    tree = source_tree_report(source)
+    if (
+        tree["sha256"] != repository.get("source_tree_sha256")
+        or tree["files"] != repository.get("source_files")
+        or tree["bytes"] != repository.get("source_bytes")
+    ):
+        raise ValueError("cached source changed before inspection refresh")
+    repository["environment"] = detect_environment(source)
+    repository["important_evidence"] = collect_important_evidence(source)
+    repository["inspection_revision"] = INSPECTION_REVISION
+    repository["inspected_at"] = datetime.now(UTC).isoformat()
+    atomic_json(run_dir / "repository.json", repository)
+    return repository
 
 
 def _expect_object(value: object, label: str) -> dict[str, Any]:
@@ -589,6 +623,12 @@ RISK_PATTERNS: list[tuple[str, str, re.Pattern[str]]] = [
     ),
 ]
 
+LICENSE_RESTRICTION = re.compile(
+    r"(?:commons clause|business source license|non[- ]commercial (?:use )?only|"
+    r"no commercial (?:use|purpose)|no derivatives)",
+    re.I,
+)
+
 EXECUTION_RELEVANT = {
     ".sh",
     ".bash",
@@ -609,6 +649,7 @@ EXECUTION_RELEVANT = {
 
 def assess_risk(source_dir: Path, repository: dict[str, Any]) -> RiskReport:
     findings: list[RiskFinding] = []
+    restrictive_license = False
     files_scanned = 0
     bytes_scanned = 0
     for path in source_dir.rglob("*"):
@@ -626,22 +667,41 @@ def assess_risk(source_dir: Path, repository: dict[str, Any]) -> RiskReport:
                 )
             )
             continue
-        if path.suffix.lower() not in EXECUTION_RELEVANT and path.name not in {
-            "Dockerfile",
-            "Makefile",
-            "configure",
-            "package.json",
-        }:
+        license_document = path.name.casefold().startswith(("license", "copying", "readme"))
+        if (
+            path.suffix.lower() not in EXECUTION_RELEVANT
+            and path.name
+            not in {
+                "Dockerfile",
+                "Makefile",
+                "configure",
+                "package.json",
+            }
+            and not license_document
+        ):
             continue
         try:
             raw = path.read_bytes()[:1_000_000]
         except OSError:
             continue
+        text = raw.decode("utf-8", errors="replace")
+        if license_document:
+            match = LICENSE_RESTRICTION.search(text)
+            if match:
+                restrictive_license = True
+                findings.append(
+                    RiskFinding(
+                        "MEDIUM",
+                        "restrictive_license_terms",
+                        rel,
+                        text.count("\n", 0, match.start()) + 1,
+                        clean_text(match.group(0), 300),
+                    )
+                )
         files_scanned += 1
         bytes_scanned += len(raw)
         if b"\x00" in raw:
             continue
-        text = raw.decode("utf-8", errors="replace")
         for severity, category, pattern in RISK_PATTERNS:
             for match in pattern.finditer(text):
                 line = text.count("\n", 0, match.start()) + 1
@@ -674,6 +734,9 @@ def assess_risk(source_dir: Path, repository: dict[str, Any]) -> RiskReport:
     elif not license_id or license_id in {"NOASSERTION", "OTHER"}:
         classification = TrustClass.INSUFFICIENT
         rationale = "No recognized open-source license was established."
+    elif restrictive_license:
+        classification = TrustClass.INSUFFICIENT
+        rationale = "Checked-in licensing text contains an apparent use restriction requiring review."
     elif repository.get("archived") or repository.get("fork"):
         classification = TrustClass.RESTRICTED
         rationale = "The repository is archived or a fork; provenance needs additional review."

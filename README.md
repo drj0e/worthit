@@ -7,12 +7,15 @@ tools. It extracts documented claims, designs and critiques tests, installs an
 exact commit in a disposable environment, runs core and failure workflows,
 captures evidence, scores the result, and generates a static technical review.
 
-This repository currently implements deliberately narrow Python, Node, and Go
-CLI tracks. Python requires static PEP 517 metadata and wheel dependencies; Node
-requires a declared CLI with no runtime dependencies or lifecycle scripts; Go
-requires a root command with pinned modules. All three tracks have passed the
-clean-replay gate. Daily discovery is the next milestone; five is a maximum,
-never a quota.
+This repository implements deliberately narrow Python, Node, and Go CLI tracks.
+Python requires static PEP 517 metadata and wheel dependencies; Node requires a
+declared CLI with no runtime dependencies or lifecycle scripts; Go requires a
+root command with pinned modules. All three tracks have passed the clean-replay
+gate. Daily discovery now ranks a persistent backlog and selects at most five
+repositories that pass every gate. It is allowed to select none.
+
+The generated publication is deployed at
+[drj0e.github.io/worthit](https://drj0e.github.io/worthit/).
 
 ## Run one evaluation
 
@@ -34,6 +37,20 @@ Rebuild the static publication without running candidate code:
 
 ```bash
 python -m worthit build-site
+python -m worthit verify-site
+```
+
+Run the inexpensive daily discovery and qualification pass:
+
+```bash
+python -m worthit daily
+```
+
+Execution remains an explicit risk acknowledgement and obeys per-repository and
+daily model-cost ceilings:
+
+```bash
+python -m worthit daily --execute --allow-runc
 ```
 
 ## First proof
@@ -73,6 +90,11 @@ mypy worthit
 The opt-in Docker test verifies the actual container has no host mounts,
 inherited canary secret, Docker socket, host home, or network, and confirms
 timeout teardown.
+
+GitHub Actions keeps candidate execution and Pages credentials in separate jobs.
+The scheduled discovery report runs without a model credential. Adding either
+the `CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY` repository secret activates
+the already-configured evaluation step.
 
 ## Design records
 

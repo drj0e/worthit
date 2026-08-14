@@ -5,16 +5,28 @@ import hashlib
 import io
 import json
 import os
+import shutil
 import subprocess
 import tarfile
 import tempfile
 import unittest
+from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
 
+from worthit.discovery import QUALIFICATION_REVISION, parse_trending, run_daily, score_candidate
 from worthit.evaluate import compare_replays, evaluate_claims
-from worthit.inspect import assess_risk, detect_environment, safe_extract_tar, source_tree_report
+from worthit.inspect import (
+    INSPECTION_REVISION,
+    assess_risk,
+    detect_environment,
+    refresh_repository_inspection,
+    safe_extract_tar,
+    source_tree_report,
+)
 from worthit.models import Claim, TestPlan, TrustClass, atomic_json
-from worthit.planning import _ensure_grounded_repair, _ensure_grounded_strings
+from worthit.pipeline import _load_state
+from worthit.planning import _ensure_grounded_repair, _ensure_grounded_strings, model_cost
 from worthit.review import _observed_version
 from worthit.runner import (
     DockerRunner,
@@ -93,7 +105,182 @@ def plan_raw() -> dict[str, object]:
     }
 
 
+def daily_candidate(repository: str, sources: list[str], description: str) -> dict[str, object]:
+    owner, name = repository.split("/")
+    now = datetime(2026, 8, 14, tzinfo=UTC)
+    return {
+        "repository": repository,
+        "owner": owner,
+        "name": name,
+        "url": f"https://github.com/{repository}",
+        "description": description,
+        "primary_language": "Python",
+        "topics": ["ai", "cli", "developer-tools"],
+        "license": "MIT",
+        "created_at": "2020-01-01T00:00:00Z",
+        "updated_at": "2026-08-14T00:00:00Z",
+        "pushed_at": "2026-08-13T00:00:00Z",
+        "commit_date": "2026-08-13T00:00:00Z",
+        "stars": 5_000,
+        "forks": 200,
+        "stars_today": 400,
+        "size_kb": 1_000,
+        "archived": False,
+        "disabled": False,
+        "fork": False,
+        "owner_type": "Organization",
+        "discovery_sources": sources,
+        "discovered_at": now.isoformat(),
+        "current_commit_sha": "a" * 40,
+        "current_release": None,
+        "readme_reference": f"https://github.com/{repository}/tree/{'a' * 40}#readme",
+        "candidate_status": "DISCOVERED",
+        "category": "coding agent",
+        "testability": "PENDING",
+        "risk_classification": "INSUFFICIENT_INFORMATION",
+        "priority": {},
+        "previous_worthit_run": None,
+    }
+
+
 class CoreBoundaryTests(unittest.TestCase):
+    def test_trending_parser_and_daily_selection_fail_closed(self) -> None:
+        trending = """
+        <article class="Box-row"><h2><a href="/good/tool">good / tool</a></h2>
+        <span class="d-inline-block float-sm-right">1,234 stars today</span></article>
+        """
+        self.assertEqual(parse_trending(trending), [("good/tool", 1234)])
+        now = datetime(2026, 8, 14, tzinfo=UTC)
+
+        single_signal = daily_candidate("single/tool", ["github-trending:overall"], "AI developer CLI")
+        score_candidate(single_signal, set(), now=now)
+        self.assertFalse(single_signal["metadata_qualified"])
+        ordinary_words = daily_candidate(
+            "plain/emailer",
+            ["github-trending:overall", "github-trending:python"],
+            "Daily email maintenance utility",
+        )
+        ordinary_words["topics"] = []
+        score_candidate(ordinary_words, set(), now=now)
+        self.assertEqual(ordinary_words["priority"]["components"]["relevance"], 20)
+        qualified = daily_candidate(
+            "good/tool",
+            ["github-trending:overall", "github-search:artificial-intelligence"],
+            "AI developer CLI for testing code",
+        )
+
+        class FakeProvider:
+            name = "fixture"
+            errors: list[str] = []
+
+            def discover(self, *, now: datetime, limit: int) -> list[dict[str, object]]:
+                return copy.deepcopy([qualified, single_signal][:limit])
+
+        def approve(
+            value: dict[str, object], *, work_root: Path, reviewed_commits: set[str], now: datetime
+        ) -> dict[str, object]:
+            value["qualification"] = {
+                "revision": QUALIFICATION_REVISION,
+                "inspection_revision": INSPECTION_REVISION,
+                "inspected_at": now.isoformat(),
+                "passed": True,
+                "environment_track": "python-cli",
+                "gates": {"testability": {"passed": True}},
+            }
+            value["candidate_status"] = "QUALIFIED"
+            return value
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with patch("worthit.discovery._deep_qualify", side_effect=approve) as deep_qualify:
+                report = run_daily(
+                    provider=FakeProvider(),
+                    backlog_path=root / "data" / "candidates.json",
+                    hunts_root=root / "hunts",
+                    work_root=root / "work",
+                    reviews_root=root / "reviews",
+                    site_dir=root / "site",
+                    discovery_limit=10,
+                    qualify_limit=5,
+                    daily_limit=5,
+                    now=now,
+                )
+                run_daily(
+                    provider=FakeProvider(),
+                    backlog_path=root / "data" / "candidates.json",
+                    hunts_root=root / "hunts",
+                    work_root=root / "work",
+                    reviews_root=root / "reviews",
+                    site_dir=root / "site",
+                    discovery_limit=10,
+                    qualify_limit=5,
+                    daily_limit=5,
+                    now=now,
+                )
+            self.assertEqual(report["counts"]["selected"], 1)
+            self.assertEqual(report["selected"][0]["repository"], "good/tool")
+            self.assertEqual(deep_qualify.call_count, 1)
+            self.assertTrue((root / "hunts" / "2026-08-14.json").is_file())
+            self.assertTrue((root / "site" / "daily" / "2026-08-14" / "index.html").is_file())
+
+    def test_daily_execution_is_acknowledged_and_retry_bounded(self) -> None:
+        now = datetime(2026, 8, 14, tzinfo=UTC)
+        candidate = daily_candidate(
+            "good/tool",
+            ["github-trending:overall", "github-search:artificial-intelligence"],
+            "AI developer CLI for testing code",
+        )
+
+        class FakeProvider:
+            name = "fixture"
+            errors: list[str] = []
+
+            def discover(self, *, now: datetime, limit: int) -> list[dict[str, object]]:
+                return copy.deepcopy([candidate])
+
+        def approve(
+            value: dict[str, object], *, work_root: Path, reviewed_commits: set[str], now: datetime
+        ) -> dict[str, object]:
+            value["qualification"] = {
+                "revision": QUALIFICATION_REVISION,
+                "inspection_revision": INSPECTION_REVISION,
+                "inspected_at": now.isoformat(),
+                "passed": True,
+                "gates": {"testability": {"passed": True}},
+            }
+            value["candidate_status"] = "QUALIFIED"
+            return value
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            arguments = {
+                "provider": FakeProvider(),
+                "backlog_path": root / "data" / "candidates.json",
+                "hunts_root": root / "hunts",
+                "work_root": root / "work",
+                "reviews_root": root / "reviews",
+                "site_dir": root / "site",
+                "discovery_limit": 1,
+                "qualify_limit": 1,
+                "daily_limit": 1,
+                "execute": True,
+                "now": now,
+            }
+            with self.assertRaisesRegex(ValueError, "requires --allow-runc"):
+                run_daily(**arguments)
+            arguments["allow_runc"] = True
+            with (
+                patch("worthit.discovery._deep_qualify", side_effect=approve),
+                patch("worthit.discovery.evaluate_repository", side_effect=RuntimeError("failed")) as run,
+            ):
+                run_daily(**arguments)
+                run_daily(**arguments)
+                run_daily(**arguments)
+            self.assertEqual(run.call_count, 2)
+            backlog = json.loads((root / "data" / "candidates.json").read_text())
+            self.assertEqual(backlog["candidates"][0]["evaluation_attempts"], 2)
+            self.assertTrue(backlog["candidates"][0]["retry_exhausted"])
+
     def test_detects_bounded_node_and_go_cli_tracks(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -117,6 +304,39 @@ class CoreBoundaryTests(unittest.TestCase):
                 json.dumps({"name": "tool", "bin": {"tool": "cli.js"}, "dependencies": {"x": "1"}})
             )
             self.assertFalse(detect_environment(root)["supported"])
+
+    def test_inspection_revision_refreshes_and_archives_stale_derived_state(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            run = Path(temporary) / "run"
+            source = run / "source"
+            source.mkdir(parents=True)
+            (source / "cli.js").write_text("#!/usr/bin/env node\n")
+            (source / "package.json").write_text(
+                json.dumps({"name": "tool", "version": "1.0.0", "bin": "cli.js"})
+            )
+            tree = source_tree_report(source)
+            repository = {
+                "source_tree_sha256": tree["sha256"],
+                "source_files": tree["files"],
+                "source_bytes": tree["bytes"],
+                "inspection_revision": 0,
+            }
+            refreshed = refresh_repository_inspection(repository, run)
+            self.assertEqual(refreshed["inspection_revision"], INSPECTION_REVISION)
+            self.assertEqual(refreshed["environment"]["track"], "node-cli")
+            atomic_json(
+                run / "state.json",
+                {
+                    "repository_url": "https://github.com/good/tool",
+                    "commit_sha": "a" * 40,
+                    "inspection_revision": 0,
+                    "stages": {},
+                },
+            )
+            (run / "claims.json").write_text("stale\n")
+            state = _load_state(run, "https://github.com/good/tool", "a" * 40)
+            self.assertEqual(state["inspection_revision"], INSPECTION_REVISION)
+            self.assertTrue((run / "stale-inspection-0" / "claims.json").is_file())
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "go.mod").write_text(
@@ -259,6 +479,22 @@ class CoreBoundaryTests(unittest.TestCase):
             self.assertEqual(report.classification, TrustClass.TRUSTED)
             self.assertEqual(report.findings[0].severity, "MEDIUM")
 
+    def test_checked_in_license_restriction_overrides_api_spdx_guess(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary)
+            (source / "LICENSE").write_text("MIT License plus the Commons Clause\n")
+            report = assess_risk(
+                source,
+                {
+                    "license": "MIT",
+                    "created_at": "2020-01-01T00:00:00Z",
+                    "stars": 5_000,
+                    "contributors_sample": 10,
+                },
+            )
+            self.assertEqual(report.classification, TrustClass.INSUFFICIENT)
+            self.assertIn("restrictive_license_terms", {finding.category for finding in report.findings})
+
     def test_runner_command_has_no_mount_socket_network_or_caps(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             sandbox = Sandbox(Path(temporary), RunnerConfig(allow_runc=True), "runc", "test")
@@ -296,6 +532,13 @@ class CoreBoundaryTests(unittest.TestCase):
             },
         )
         self.assertEqual(adjustments[0]["kind"], "vcs_version_fallback")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "one").mkdir()
+            (root / "two").mkdir()
+            atomic_json(root / "one" / "response.json", {"total_cost_usd": 0.125})
+            atomic_json(root / "two" / "response.json", {"total_cost_usd": 0.375})
+            self.assertEqual(model_cost(root), 0.5)
 
     def test_replay_comparison_detects_mismatch(self) -> None:
         run = {
@@ -407,6 +650,7 @@ class CoreBoundaryTests(unittest.TestCase):
     def test_static_site_escapes_stored_xss(self) -> None:
         template_path = next((ROOT / "reviews").rglob("review.json"))
         review = json.loads(template_path.read_text())
+        original_score = review["score"]["overall"]
         attack = '</title><script>alert("x")</script><img src=x onerror=alert(1)>'
         review["project"] = attack
         review["summary"] = attack
@@ -415,7 +659,7 @@ class CoreBoundaryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             artifact = root / "reviews" / "owner" / "repo" / review["commit_sha"]
-            artifact.mkdir(parents=True)
+            shutil.copytree(template_path.parent, artifact)
             atomic_json(artifact / "review.json", review)
             site = root / "site"
             self.assertEqual(build_site(root / "reviews", site), 1)
@@ -433,6 +677,12 @@ class CoreBoundaryTests(unittest.TestCase):
                 next((site / "reviews").rglob("index.html")).read_text(),
             )
             review["score"]["overall"] = attack
+            atomic_json(artifact / "review.json", review)
+            with self.assertRaises(ValueError):
+                build_site(root / "reviews", site)
+            review["score"]["overall"] = original_score
+            review["repository"] = "../evil"
+            review["repository_url"] = "https://github.com/../evil"
             atomic_json(artifact / "review.json", review)
             with self.assertRaises(ValueError):
                 build_site(root / "reviews", site)
