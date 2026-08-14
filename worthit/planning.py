@@ -143,12 +143,16 @@ CRITIQUE_SCHEMA: dict[str, Any] = {
 }
 
 
-def planning_documents(repository: dict[str, Any], total_limit: int = 30_000) -> dict[str, str]:
+def planning_documents(repository: dict[str, Any], total_limit: int = 60_000) -> dict[str, str]:
     documents: dict[str, str] = {}
     readme_path = str(repository.get("readme_path") or "README")
     readme = str(repository.get("readme") or "")
     if readme:
         documents[readme_path] = readme[:20_000]
+    release = repository.get("release")
+    if isinstance(release, dict) and release.get("body"):
+        source = f"GitHub release notes {str(release.get('tag') or '')}".strip()[:240]
+        documents[source] = str(release["body"])[:12_000]
     remaining = total_limit - sum(len(value) for value in documents.values())
     evidence = [item for item in repository.get("important_evidence", []) if isinstance(item, dict)]
     evidence.sort(key=lambda item: _document_priority(str(item.get("path") or "")))
@@ -171,14 +175,21 @@ def planning_documents(repository: dict[str, Any], total_limit: int = 30_000) ->
 def _document_priority(path: str) -> tuple[int, str]:
     lower = path.casefold()
     name = Path(lower).name
-    if "/" not in lower and name in {"pyproject.toml", "package.json", "cargo.toml", "go.mod"}:
-        return 0, lower
+    parts = Path(lower).parts
     if any(word in lower for word in ("quick", "usage", "install", "getting-started")):
+        return 0, lower
+    if name.startswith(("changelog", "changes", "history", "news", "release-note", "release_note")):
         return 1, lower
-    if name in {"dockerfile", "makefile", "tox.ini"}:
+    if parts and parts[0] in {"doc", "docs"}:
         return 2, lower
-    if lower.startswith(".github/workflows/"):
+    if parts and parts[0] in {"example", "examples", "sample", "samples"}:
         return 3, lower
+    if "/" not in lower and name in {"pyproject.toml", "package.json", "cargo.toml", "go.mod"}:
+        return 4, lower
+    if name in {"dockerfile", "makefile", "tox.ini"}:
+        return 5, lower
+    if lower.startswith(".github/workflows/"):
+        return 6, lower
     return 9, lower
 
 

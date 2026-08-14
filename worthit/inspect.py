@@ -26,7 +26,7 @@ BIDI = dict.fromkeys(map(ord, "\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\
 MAX_ARCHIVE_BYTES = 100 * 1024 * 1024
 MAX_EXTRACT_BYTES = 250 * 1024 * 1024
 MAX_FILES = 30_000
-INSPECTION_REVISION = 1
+INSPECTION_REVISION = 2
 OPEN_SOURCE_SPDX = {
     "0BSD",
     "AGPL-3.0",
@@ -83,6 +83,31 @@ IMPORTANT_NAMES = {
     "INSTALL.md",
     "BUILDING.md",
 }
+
+RESEARCH_TEXT_SUFFIXES = {
+    ".adoc",
+    ".bash",
+    ".cjs",
+    ".go",
+    ".js",
+    ".json",
+    ".markdown",
+    ".md",
+    ".mjs",
+    ".py",
+    ".rst",
+    ".rs",
+    ".sh",
+    ".toml",
+    ".ts",
+    ".tsx",
+    ".txt",
+    ".yaml",
+    ".yml",
+}
+RESEARCH_DIRECTORIES = {"doc", "docs", "example", "examples", "sample", "samples"}
+CHANGELOG_NAME = re.compile(r"^(?:change(?:log|s)|history|news|release[-_. ]?notes?)(?:\..+)?$", re.I)
+RESEARCH_CATEGORY_LIMITS = (30, 5, 30, 10, 5)
 
 
 @dataclass(frozen=True)
@@ -263,6 +288,7 @@ def inspect_repository(url: str, run_dir: Path, commit: str | None = None) -> di
         "inspection_revision": INSPECTION_REVISION,
         "inspected_at": datetime.now(UTC).isoformat(),
     }
+    metadata["v1_requirements"] = assess_v1_requirements(metadata)
     atomic_json(run_dir / "repository.json", metadata)
     return metadata
 
@@ -280,6 +306,7 @@ def refresh_repository_inspection(repository: dict[str, Any], run_dir: Path) -> 
         raise ValueError("cached source changed before inspection refresh")
     repository["environment"] = detect_environment(source)
     repository["important_evidence"] = collect_important_evidence(source)
+    repository["v1_requirements"] = assess_v1_requirements(repository)
     repository["inspection_revision"] = INSPECTION_REVISION
     repository["inspected_at"] = datetime.now(UTC).isoformat()
     atomic_json(run_dir / "repository.json", repository)
@@ -298,6 +325,8 @@ def _release_summary(value: object) -> dict[str, Any] | None:
     return {
         "tag": clean_text(str(value.get("tag_name") or ""), 240),
         "name": clean_text(str(value.get("name") or ""), 500),
+        "body": clean_text(str(value.get("body") or ""), 24_000),
+        "url": clean_text(str(value.get("html_url") or ""), 2_000),
         "published_at": value.get("published_at"),
         "prerelease": bool(value.get("prerelease")),
     }
@@ -576,21 +605,210 @@ def _detect_go_cli(source_dir: Path, go_mod: Path, result: dict[str, Any]) -> di
 
 
 def collect_important_evidence(source_dir: Path) -> list[dict[str, str]]:
-    paths = []
+    paths: list[tuple[int, int, str, Path]] = []
     for path in source_dir.rglob("*"):
         if not path.is_file():
             continue
         rel = path.relative_to(source_dir)
-        if path.name in IMPORTANT_NAMES or rel.parts[:2] == (".github", "workflows"):
-            paths.append(path)
+        relative = rel.as_posix()
+        if len(relative) > 240:
+            continue
+        top = rel.parts[0].casefold()
+        if len(rel.parts) == 1 and path.name in IMPORTANT_NAMES:
+            priority = 0
+        elif CHANGELOG_NAME.fullmatch(path.name) and (len(rel.parts) == 1 or top in RESEARCH_DIRECTORIES):
+            priority = 1
+        elif top in {"doc", "docs"} and path.suffix.casefold() in RESEARCH_TEXT_SUFFIXES:
+            priority = 2
+        elif (
+            top in {"example", "examples", "sample", "samples"}
+            and path.suffix.casefold() in RESEARCH_TEXT_SUFFIXES
+        ):
+            priority = 3
+        elif rel.parts[:2] == (".github", "workflows"):
+            priority = 4
+        else:
+            continue
+        focused = int(
+            not any(
+                word in relative.casefold()
+                for word in ("basic", "getting-started", "install", "quick", "usage")
+            )
+        )
+        paths.append((priority, focused, relative.casefold(), path))
     evidence = []
-    for path in sorted(paths)[:80]:
+    category_counts = [0] * len(RESEARCH_CATEGORY_LIMITS)
+    for priority, _, _, path in sorted(paths):
+        if category_counts[priority] >= RESEARCH_CATEGORY_LIMITS[priority]:
+            continue
         try:
-            text = clean_text(path.read_text(encoding="utf-8", errors="replace"), 24_000)
+            with path.open(encoding="utf-8", errors="replace") as handle:
+                text = clean_text(handle.read(24_000), 24_000)
         except OSError:
             continue
         evidence.append({"path": path.relative_to(source_dir).as_posix(), "excerpt": text})
+        category_counts[priority] += 1
     return evidence
+
+
+_REQUIRED_CREDENTIAL = re.compile(
+    r"(?:\b(?:requires?|needs?|must\s+(?:set|provide|have|use))\b.{0,100}\b(?:api[ _-]?key|"
+    r"paid\s+(?:[\w.-]+\s+){0,3}(?:api|account|service|subscription))\b|"
+    r"\b(?:api[ _-]?key|paid\s+(?:[\w.-]+\s+){0,3}(?:api|account|service|subscription))\b.{0,100}"
+    r"\b(?:is|are|remains?)?\s*(?:required|mandatory|needed)\b)",
+    re.I,
+)
+_API_KEY_VARIABLE = re.compile(r"\b[A-Z][A-Z0-9_]{1,50}_API_KEY\b")
+_REQUIRED_GPU = re.compile(
+    r"(?:\b(?:requires?|needs?|must\s+have)\b.{0,100}\b(?:cuda|gpu|nvidia)\b|"
+    r"\b(?:cuda|gpu|nvidia)\b.{0,100}\b(?:is|are)?\s*(?:required|mandatory|needed)\b)",
+    re.I,
+)
+_REQUIRED_SERVICE = re.compile(
+    r"(?:\b(?:requires?|needs?|must\s+(?:run|start|connect\s+to|use|have))\b.{0,120}"
+    r"\b(?:external\s+(?:service|server)|running\s+(?:[\w.-]+\s+){0,3}(?:service|server|database|daemon)|"
+    r"postgres(?:ql)?|mysql|redis|elasticsearch|qdrant|ollama|docker\s+daemon)\b|"
+    r"\b(?:external\s+(?:service|server)|running\s+(?:[\w.-]+\s+){0,3}(?:service|server|database|daemon)|"
+    r"postgres(?:ql)?|mysql|redis|elasticsearch|qdrant|ollama|docker\s+daemon)\b.{0,120}"
+    r"\b(?:(?:is|are|remains?)?\s*(?:required|mandatory|needed)|must\s+be\s+running)\b)",
+    re.I,
+)
+_REQUIRED_REMOTE = re.compile(
+    r"(?:\b(?:requires?|needs?)\b.{0,100}\b(?:internet|network)\s+(?:access|connection)\b|"
+    r"\b(?:internet|network)\s+(?:access|connection)\b.{0,100}\b(?:is|remains?)?\s*required\b|"
+    r"\b(?:github|gitlab|openai|anthropic|google|aws|azure|cloud)\s+account\b.{0,100}"
+    r"\b(?:is|remains?)?\s*(?:required|mandatory|needed)\b)",
+    re.I,
+)
+_OPTIONAL_API = re.compile(
+    r"(?:\b(?:no|without\s+an?)\s+api[ _-]?key\b|\bapi[ _-]?key\b.{0,60}\b(?:optional|not\s+required)\b|"
+    r"\b(?:optional|does\s+not\s+require)\b.{0,60}"
+    r"\b(?:api[ _-]?key|[A-Z][A-Z0-9_]{1,50}_API_KEY)\b)",
+    re.I,
+)
+_OPTIONAL_GPU = re.compile(
+    r"(?:\b(?:gpu|cuda|nvidia)\b.{0,60}\b(?:optional|not\s+required)\b|\bno\s+(?:gpu|cuda|nvidia)\b|"
+    r"\b(?:optional|without\s+an?|does\s+not\s+require)\b.{0,60}\b(?:gpu|cuda|nvidia)\b)",
+    re.I,
+)
+_OPTIONAL_SERVICE = re.compile(
+    r"(?:\bno\s+external\s+(?:service|server)\b|\bexternal\s+(?:service|server)\b.{0,60}"
+    r"\b(?:optional|not\s+required)\b|\bdoes\s+not\s+require\b.{0,60}"
+    r"\b(?:external\s+(?:service|server)|internet|network|[\w.-]+\s+account)\b)",
+    re.I,
+)
+_OPTIONAL_MODEL = re.compile(
+    r"(?:\b(?:model|weights?)\b.{0,60}\boptional\b|"
+    r"\b(?:optional|does\s+not\s+require)\b.{0,60}\b(?:model|weights?|download)\b)",
+    re.I,
+)
+_MODEL_SIZE = re.compile(r"\b(\d+(?:\.\d+)?)\s*(MB|MIB|GB|GIB|TB|TIB)\b", re.I)
+_MODEL_PARAMETERS = re.compile(r"\b(\d+(?:\.\d+)?)\s*B(?:[- ]parameter)?\b", re.I)
+_CORE_MODEL_DOWNLOAD = re.compile(
+    r"(?:\b(?:before|on)\s+(?:the\s+)?first\s+run\b|\b(?:requires?|must|automatically|will)\b|"
+    r"^\s*(?:[-*]\s*|\d+[.)]\s*)?download\b)",
+    re.I,
+)
+
+
+def assess_v1_requirements(repository: dict[str, Any]) -> dict[str, Any]:
+    """Conservatively defer candidates whose documented core requirements exceed V1."""
+    documents: dict[str, str] = {}
+    readme = str(repository.get("readme") or "")
+    if readme:
+        documents[str(repository.get("readme_path") or "README")] = readme
+    release = repository.get("release")
+    if isinstance(release, dict) and release.get("body"):
+        documents[f"GitHub release notes {str(release.get('tag') or '')}".strip()] = str(release["body"])
+    for item in repository.get("important_evidence", []):
+        if isinstance(item, dict) and item.get("path") and item.get("excerpt"):
+            path = str(item["path"])
+            parts = Path(path.casefold()).parts
+            name = Path(path).name.casefold()
+            if (
+                (parts and parts[0] in RESEARCH_DIRECTORIES)
+                or CHANGELOG_NAME.fullmatch(name)
+                or name.startswith(("readme", "install", "building", "contributing"))
+            ):
+                documents.setdefault(path, str(item["excerpt"]))
+
+    indicators: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+
+    def record(category: str, source: str, line: str, certainty: str = "REQUIRED") -> None:
+        key = (category, source)
+        if key in seen or len(indicators) >= 20:
+            return
+        seen.add(key)
+        indicators.append(
+            {
+                "category": category,
+                "source": source,
+                "certainty": certainty,
+                "evidence": clean_text(" ".join(line.split()), 300),
+            }
+        )
+
+    for source, text in documents.items():
+        for raw_line in text.splitlines():
+            line = clean_text(raw_line, 1_000)
+            if not line.strip():
+                continue
+            if _REQUIRED_CREDENTIAL.search(line) and not _OPTIONAL_API.search(line):
+                record("external_api_credential", source, line)
+            elif _API_KEY_VARIABLE.search(line) and not _OPTIONAL_API.search(line):
+                record("external_api_credential", source, line, "INSUFFICIENT_INFORMATION")
+            if _REQUIRED_GPU.search(line) and not _OPTIONAL_GPU.search(line):
+                record("gpu", source, line)
+            if (
+                _REQUIRED_SERVICE.search(line) or _REQUIRED_REMOTE.search(line)
+            ) and not _OPTIONAL_SERVICE.search(line):
+                record("core_external_service", source, line)
+            if (
+                "download" in line.casefold()
+                and re.search(r"\b(?:model|weights?)\b", line, re.I)
+                and not _OPTIONAL_MODEL.search(line)
+                and _CORE_MODEL_DOWNLOAD.search(line)
+            ):
+                sizes = _MODEL_SIZE.findall(line)
+                parameters = [float(size) for size in _MODEL_PARAMETERS.findall(line)]
+                if any(
+                    unit.casefold().startswith("t")
+                    or unit.casefold().startswith("g")
+                    and float(size) >= 1
+                    or unit.casefold().startswith("m")
+                    and float(size) >= 1_024
+                    for size, unit in sizes
+                ) or any(size >= 3 for size in parameters):
+                    record("large_model_download", source, line)
+                elif not sizes and not parameters:
+                    record("model_download_size", source, line, "INSUFFICIENT_INFORMATION")
+
+    if not documents:
+        classification = "INSUFFICIENT_INFORMATION"
+        reasons = ["No bounded official documentation was available to establish V1 requirements."]
+    elif indicators:
+        uncertain = all(item["certainty"] == "INSUFFICIENT_INFORMATION" for item in indicators)
+        classification = "INSUFFICIENT_INFORMATION" if uncertain else "DEFER_V1"
+        reasons = [f"{item['category']} in {item['source']}: {item['evidence']}" for item in indicators]
+    else:
+        classification = "V1_ELIGIBLE"
+        reasons = [
+            "No explicit paid-API, core external-service, GPU, or >=1 GiB model-download "
+            f"requirement was found in {len(documents)} bounded official document(s)."
+        ]
+    return {
+        "revision": 1,
+        "classification": classification,
+        "passed": classification == "V1_ELIGIBLE",
+        "reasons": reasons,
+        "indicators": indicators,
+        "documents_scanned": len(documents),
+        "characters_scanned": sum(len(text) for text in documents.values()),
+        "limitations": [
+            "Deterministic documentation screening can miss implicit, generated, or undocumented requirements."
+        ],
+    }
 
 
 RISK_PATTERNS: list[tuple[str, str, re.Pattern[str]]] = [

@@ -139,8 +139,9 @@ static repository evidence
 The V1 contract is deliberately narrower than a generated shell script. Commands
 are argument arrays with an explicit working directory, timeout, network policy,
 resource budget, expected observable result, and evidence list. No command is
-run by a host shell. Python CLI repositories are the first supported execution
-track; Node and compiled single-binary tracks wait for the three-repository gate.
+run by a host shell. The first Python track was extended only after real failures
+demonstrated the minimum needed Node and Go single-binary paths; all three now
+pass the clean-replay gate.
 
 Repository archives are downloaded and inspected as data on the orchestrator.
 Candidate code first runs only after the risk decision, inside a disposable

@@ -4,6 +4,7 @@
 - Commit tested: `88a6234ea2d0c487090988182ad9a7cdf6def924`
 - Tool version output: [`dev`](evidence/final/version/stdout.txt)
 - Date tested: 2026-08-14
+- WorthIt version: `0.1.0`
 - Category: CLI utility
 - WorthIt Score: 86/100
 - Confidence: MEDIUM
@@ -115,7 +116,7 @@ The slowest accepted test took 1780 ms. Peak measured test RAM was 126.0 MiB. No
 
 Source archive SHA-256: `9199144da889c8f313b56dd2e6346e380a18945e0bf7648d62b1c4dc4c5660ca`. The exact commit was run twice with candidate network disabled. The backend was docker/runc with seccomp and AppArmor; runc shares the host kernel. This is not a guarantee that the repository is safe.
 
-Structured provenance: [risk assessment](risk.json), [sandbox environment](environment.json), [dependency fetch](dependency-fetch.json), and [reproducibility comparison](reproducibility.json).
+Structured provenance: [final run](run.json), [replay run](replay.json), [risk assessment](risk.json), [sandbox environment](environment.json), [dependency fetch](dependency-fetch.json), and [reproducibility comparison](reproducibility.json).
 
 ## Limitations
 

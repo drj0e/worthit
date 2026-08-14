@@ -27,6 +27,10 @@ WEIGHTS = {
 IMPORTANCE_WEIGHT = {Importance.HIGH: 3, Importance.MEDIUM: 2, Importance.LOW: 1}
 
 
+class ReproducibilityHold(ValueError):
+    outcome_status = "HOLD_INSUFFICIENT_EVIDENCE"
+
+
 def evaluate_run(
     repository: dict[str, Any],
     claims: list[Claim],
@@ -39,6 +43,12 @@ def evaluate_run(
     repaired: bool,
 ) -> tuple[list[ClaimResult], Scorecard, dict[str, Any]]:
     reproducibility = compare_replays(final_run, replay_run)
+    atomic_json(run_dir / "reproducibility.json", reproducibility)
+    if not reproducibility["reproduced"]:
+        raise ReproducibilityHold(
+            "clean replay did not reproduce the accepted execution contract: "
+            + "; ".join(reproducibility["mismatches"])
+        )
     claim_results = evaluate_claims(claims, plan, final_run)
     score = score_run(claims, claim_results, plan, final_run, risk, reproducibility, repaired=repaired)
     result = {
@@ -49,7 +59,6 @@ def evaluate_run(
         "reproducibility": reproducibility,
     }
     atomic_json(run_dir / "claims-evaluated.json", {"claims": claim_results})
-    atomic_json(run_dir / "reproducibility.json", reproducibility)
     atomic_json(run_dir / "score.json", score)
     atomic_json(run_dir / "evaluation.json", result)
     return claim_results, score, reproducibility

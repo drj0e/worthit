@@ -1,0 +1,278 @@
+{
+  "candidate_network": "none",
+  "completed_at": "2026-08-14T04:16:14.404990+00:00",
+  "dependency_bundle_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "duration_ms": 19200,
+  "entrypoint": "uglifyjs",
+  "entrypoint_installed": true,
+  "execution_contract_sha256": "4b7dbcea3832b3ed98403c9a36777bd4783c28fcb208b20f8f6300278fae9ae5",
+  "install": {
+    "argv": [
+      "npm",
+      "install",
+      "--global",
+      "--prefix",
+      "/work/install",
+      "--ignore-scripts",
+      "--offline",
+      "--no-audit",
+      "--no-fund",
+      "/work/repo"
+    ],
+    "cwd": "/work",
+    "duration_ms": 2009,
+    "exit_code": 0,
+    "failure_reason": null,
+    "max_cpu_percent": 76.55,
+    "output_limited": false,
+    "peak_ram_bytes": 10789847,
+    "stage": "install",
+    "status": "PASS",
+    "stderr_file": "evidence/replay/install/stderr.txt",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_file": "evidence/replay/install/stdout.txt",
+    "stdout_sha256": "a941066d38162d18c88ea4b096d8cf11d19b0d46b973f6d916e2f9b8794e1f36",
+    "timed_out": false
+  },
+  "install_adjustments": [],
+  "install_controls": [
+    "offline",
+    "lifecycle scripts disabled",
+    "audit and funding requests disabled"
+  ],
+  "installation_method": "npm global source install with lifecycle scripts disabled",
+  "label": "replay",
+  "manual_interventions": 0,
+  "provision": {
+    "argv": [
+      "mkdir",
+      "-p",
+      "/work/install",
+      "/work/npm-cache"
+    ],
+    "cwd": "/work",
+    "duration_ms": 1288,
+    "exit_code": 0,
+    "failure_reason": null,
+    "max_cpu_percent": 0.0,
+    "output_limited": false,
+    "peak_ram_bytes": 5734662,
+    "stage": "provision",
+    "status": "PASS",
+    "stderr_file": "evidence/replay/provision/stderr.txt",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_file": "evidence/replay/provision/stdout.txt",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "timed_out": false
+  },
+  "status": "COMPLETE",
+  "tests": [
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'function add(first,second){return first+second}'",
+          "observed": "function add(first,second){return first+second}\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-002",
+        "CLAIM-008"
+      ],
+      "duration_ms": 1759,
+      "evidence": [
+        "evidence/replay/T01/stdout.txt",
+        "evidence/replay/T01/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 10506732,
+      "status": "PASS",
+      "test_id": "T01"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'function add(first,second){return first+second}'",
+          "observed": "function add(first,second){return first+second}\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-003"
+      ],
+      "duration_ms": 1774,
+      "evidence": [
+        "evidence/replay/T02/stdout.txt",
+        "evidence/replay/T02/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 10622075,
+      "status": "PASS",
+      "test_id": "T02"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "output.js exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "output.js contains 'function add(first,second){return first+second}'",
+          "observed": "function add(first,second){return first+second}",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-005"
+      ],
+      "duration_ms": 1772,
+      "evidence": [
+        "evidence/replay/T03/stdout.txt",
+        "evidence/replay/T03/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 10068427,
+      "status": "PASS",
+      "test_id": "T03"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "output.js exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "output.js contains 'function add(first,second){return first+second}'",
+          "observed": "function add(first,second){return first+second}",
+          "passed": true
+        },
+        {
+          "assertion": "output.js.map exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "output.js.map contains '\"version\"'",
+          "observed": "{\"version\":3,\"sources\":[\"input.js\"],\"names\":[\"add\",\"first\",\"second\"],\"mappings\":\"AAAA,SAASA,IAAIC,MAAOC,QAAU,OAAOD,MAAQC,MAAQ\"}",
+          "passed": true
+        },
+        {
+          "assertion": "output.js.map contains '\"mappings\"'",
+          "observed": "{\"version\":3,\"sources\":[\"input.js\"],\"names\":[\"add\",\"first\",\"second\"],\"mappings\":\"AAAA,SAASA,IAAIC,MAAOC,QAAU,OAAOD,MAAQC,MAAQ\"}",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-006"
+      ],
+      "duration_ms": 1436,
+      "evidence": [
+        "evidence/replay/T04/stdout.txt",
+        "evidence/replay/T04/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 10333716,
+      "status": "PASS",
+      "test_id": "T04"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'console.log(10)'",
+          "observed": "console.log(10);\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-004"
+      ],
+      "duration_ms": 1285,
+      "evidence": [
+        "evidence/replay/T05/stdout.txt",
+        "evidence/replay/T05/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 10747904,
+      "status": "PASS",
+      "test_id": "T05"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [1, 2]",
+          "observed": "1",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-002"
+      ],
+      "duration_ms": 1760,
+      "evidence": [
+        "evidence/replay/T06/stdout.txt",
+        "evidence/replay/T06/stderr.txt"
+      ],
+      "exit_code": 1,
+      "failure_reason": null,
+      "peak_ram_bytes": 10622075,
+      "status": "PASS",
+      "test_id": "T06"
+    }
+  ],
+  "toolchain": "v22.23.2",
+  "track": "node-cli",
+  "venv": null,
+  "version_probe": {
+    "argv": [
+      "/work/install/bin/uglifyjs",
+      "--version"
+    ],
+    "cwd": "/work",
+    "duration_ms": 1746,
+    "exit_code": 0,
+    "failure_reason": null,
+    "max_cpu_percent": 0.0,
+    "output_limited": false,
+    "peak_ram_bytes": 10060038,
+    "stage": "verify-install",
+    "status": "PASS",
+    "stderr_file": "evidence/replay/version/stderr.txt",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_file": "evidence/replay/version/stdout.txt",
+    "stdout_sha256": "5705841bdf12057caff24a6cc59641227d16e9320f54e2fea624750d86e62075",
+    "timed_out": false
+  },
+  "workspace_bytes": 4100067
+}

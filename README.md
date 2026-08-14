@@ -103,4 +103,5 @@ the already-configured evaluation step.
 
 Generated run state and private diagnostic evidence live under `.worthit/` and
 are ignored by Git. Only curated, redacted text evidence and validated JSON under
-`reviews/` can enter the static publication.
+`reviews/`, plus hash-bound append-only corrections under `corrections/`, can
+enter the static publication.

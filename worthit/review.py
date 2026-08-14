@@ -4,10 +4,12 @@ import hashlib
 import json
 import re
 import shutil
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from . import __version__
 from .inspect import clean_text
 from .models import Claim, ClaimResult, Scorecard, TestPlan, atomic_json, jsonable
 from .planning import call_claude
@@ -54,6 +56,39 @@ BANNED_PROSE = re.compile(
     r"\b(?:delve|game[- ]changer|revolutionary|seamless|it's worth noting|in today's rapidly evolving|whether you're)\b|—",
     re.IGNORECASE,
 )
+SCORE_DIMENSIONS = (
+    "claim_verification",
+    "utility",
+    "setup_experience",
+    "reliability",
+    "performance_efficiency",
+    "documentation",
+    "safety_privacy",
+    "novelty",
+)
+PUBLIC_REVIEW_FILES = (
+    "review.json",
+    "review.md",
+    "score.json",
+    "claims.json",
+    "test-plan.json",
+    "run.json",
+    "replay.json",
+    "evidence-manifest.json",
+    "risk.json",
+    "environment.json",
+    "dependency-fetch.json",
+    "checkout.json",
+    "reproducibility.json",
+    "fact-check.json",
+    "editorial-critique.json",
+)
+
+
+class PublicationHold(ValueError):
+    def __init__(self, status: str, message: str) -> None:
+        self.outcome_status = status
+        super().__init__(message)
 
 
 def generate_review(
@@ -132,6 +167,7 @@ def generate_review(
     }.get(track, installation_method)
     review = {
         "schema_version": 1,
+        "worthit_version": __version__,
         "project": repository["name"],
         "repository": repository["repository"],
         "repository_url": repository["url"],
@@ -258,6 +294,7 @@ def render_markdown(review: dict[str, Any]) -> str:
         f"- Commit tested: `{review['commit_sha']}`",
         f"- Tool version output: [`{review['version'] or 'UNVERIFIED'}`](evidence/final/version/stdout.txt)",
         f"- Date tested: {review['tested_at'][:10]}",
+        f"- WorthIt version: `{review['worthit_version']}`",
         f"- Category: {review['category']}",
         f"- WorthIt Score: {score['overall']}/100",
         f"- Confidence: {score['confidence']}",
@@ -327,7 +364,8 @@ def render_markdown(review: dict[str, Any]) -> str:
             "|---|---:|---|",
             *[
                 f"| {name.replace('_', ' ').title()} | {value}/100 | {score['reasons'][name]} |"
-                for name, value in score["dimensions"].items()
+                for name in SCORE_DIMENSIONS
+                if (value := score["dimensions"].get(name)) is not None
             ],
             "",
             "## Who should use it",
@@ -343,7 +381,8 @@ def render_markdown(review: dict[str, Any]) -> str:
             f"Source archive SHA-256: `{review['reproduction']['source_archive_sha256']}`. The exact commit was run twice with candidate network disabled. "
             f"The backend was {review['reproduction']['runtime']} This is not a guarantee that the repository is safe.",
             "",
-            "Structured provenance: [risk assessment](risk.json), [sandbox environment](environment.json), "
+            "Structured provenance: [final run](run.json), [replay run](replay.json), "
+            "[risk assessment](risk.json), [sandbox environment](environment.json), "
             "[dependency fetch](dependency-fetch.json), and [reproducibility comparison](reproducibility.json).",
             "",
             "## Limitations",
@@ -372,6 +411,7 @@ def fact_check(
     ]
     checks = {
         "commit": review["commit_sha"] == repository["commit_sha"],
+        "worthit_version": review["worthit_version"] == __version__,
         "tested_at": review["tested_at"] == (execution.get("completed_at") or repository.get("inspected_at")),
         "score": review["score"]["overall"] == score.overall,
         "test_count": len(review["tests"]) == len(tests),
@@ -443,17 +483,32 @@ def publish_review_artifacts(
     if (
         not fact_check_result.get("passed")
         or score.confidence.value == "INSUFFICIENT_EVIDENCE"
-        or not editorial.get("approved")
-        or any(editorial.get(name) for name in categories)
+        or (review.get("reproduction") or {}).get("reproduced") is not True
     ):
-        raise ValueError("review did not pass fact-check and editorial gates")
+        raise PublicationHold("HOLD_INSUFFICIENT_EVIDENCE", "review evidence was insufficient")
+    if not editorial.get("approved") or any(editorial.get(name) for name in categories):
+        raise PublicationHold("HOLD_EDITORIAL_REVIEW", "review did not pass the editorial gate")
     owner, name = str(review["repository"]).split("/", 1)
-    destination = reviews_root / _slug(owner) / _slug(name) / str(review["commit_sha"])
+    reviews_root.mkdir(parents=True, exist_ok=True)
+    if reviews_root.is_symlink() or not reviews_root.is_dir():
+        raise ValueError("reviews root is not a safe directory")
+    commit_sha = str(review["commit_sha"])
+    if re.fullmatch(r"[0-9a-f]{40}", commit_sha) is None:
+        raise ValueError("review commit must be a full lowercase Git SHA")
+    parent = reviews_root
+    for part in (_slug(owner), _slug(name)):
+        parent /= part
+        if parent.is_symlink() or (parent.exists() and not parent.is_dir()):
+            raise ValueError("review destination escaped the reviews root")
+        parent.mkdir(exist_ok=True)
+    destination = parent / commit_sha
     if destination.exists() and (destination.is_symlink() or not destination.is_dir()):
         raise ValueError("review destination is not a safe directory")
     existing_path = destination / "review.json"
     sanitized_review = _sanitize_json(review)
-    if existing_path.exists():
+    if destination.exists():
+        if not existing_path.is_file() or existing_path.is_symlink():
+            raise ValueError("existing review bundle is incomplete; refusing to rewrite it")
         existing = json.loads(existing_path.read_text(encoding="utf-8"))
         if (
             existing.get("repository") != review["repository"]
@@ -464,34 +519,53 @@ def publish_review_artifacts(
             raise ValueError(
                 "refusing to rewrite a published commit; preserve it and publish an explicit correction"
             )
-    else:
-        destination.mkdir(parents=True, exist_ok=False)
-    atomic_json(destination / "review.json", sanitized_review)
-    (destination / "review.md").write_text(redact(markdown), encoding="utf-8")
-    atomic_json(destination / "score.json", score)
-    atomic_json(destination / "claims.json", {"claims": _sanitize_json(jsonable(claims))})
-    atomic_json(destination / "test-plan.json", _sanitize_json(jsonable(plan)))
-    atomic_json(destination / "run.json", _sanitize_json(execution))
-    for name in (
-        "risk.json",
-        "environment.json",
-        "dependency-fetch.json",
-        "checkout.json",
-        "reproducibility.json",
-        "fact-check.json",
-        "editorial-critique.json",
-    ):
-        source = run_dir / name
-        if source.is_file():
-            atomic_json(destination / name, _sanitize_json(json.loads(source.read_text(encoding="utf-8"))))
-    evidence_destination = destination / "evidence"
-    if evidence_destination.exists():
-        if evidence_destination.is_symlink() or not evidence_destination.is_dir():
-            raise ValueError("review evidence destination is not a safe directory")
-        shutil.rmtree(evidence_destination)
-    manifest = _publish_evidence(run_dir, destination)
-    atomic_json(destination / "evidence-manifest.json", manifest)
+        if not _existing_bundle_complete(destination):
+            raise ValueError("existing review bundle is incomplete; refusing to rewrite it")
+        return destination
+    staging = Path(tempfile.mkdtemp(prefix=f".{review['commit_sha']}.", dir=destination.parent))
+    try:
+        atomic_json(staging / "review.json", sanitized_review)
+        (staging / "review.md").write_text(redact(markdown), encoding="utf-8")
+        atomic_json(staging / "score.json", score)
+        atomic_json(staging / "claims.json", {"claims": _sanitize_json(jsonable(claims))})
+        atomic_json(staging / "test-plan.json", _sanitize_json(jsonable(plan)))
+        atomic_json(staging / "run.json", _sanitize_json(execution))
+        for name in (
+            "risk.json",
+            "environment.json",
+            "dependency-fetch.json",
+            "checkout.json",
+            "reproducibility.json",
+            "replay.json",
+            "editorial-critique.json",
+        ):
+            source = run_dir / name
+            if source.is_file():
+                atomic_json(staging / name, _sanitize_json(json.loads(source.read_text(encoding="utf-8"))))
+        manifest = _publish_evidence(run_dir, staging)
+        atomic_json(staging / "evidence-manifest.json", manifest)
+        public_fact_check = _sanitize_json(fact_check_result)
+        if not isinstance(public_fact_check, dict):
+            raise TypeError("fact-check result must be an object")
+        public_fact_check["bundle_sha256"] = publication_bundle_sha256(staging)
+        atomic_json(staging / "fact-check.json", public_fact_check)
+        if not _existing_bundle_complete(staging):
+            raise ValueError("generated review bundle is incomplete")
+        staging.rename(destination)
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
     return destination
+
+
+def _existing_bundle_complete(root: Path) -> bool:
+    try:
+        review = json.loads((root / "review.json").read_text(encoding="utf-8"))
+        from .site import _valid_review, _valid_review_bundle
+
+        return isinstance(review, dict) and _valid_review(review) and _valid_review_bundle(root, review)
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return False
 
 
 def _publish_evidence(run_dir: Path, destination: Path) -> list[dict[str, Any]]:
@@ -538,6 +612,21 @@ def _sha256(path: Path) -> str:
     with path.open("rb") as handle:
         while chunk := handle.read(1024 * 1024):
             digest.update(chunk)
+    return digest.hexdigest()
+
+
+def publication_bundle_sha256(root: Path) -> str:
+    """Bind a fact-check decision to every other public artifact in its review bundle."""
+    digest = hashlib.sha256()
+    for path in sorted(root.rglob("*"), key=lambda item: item.relative_to(root).as_posix()):
+        if path.is_symlink():
+            raise ValueError(f"review bundle contains a symlink: {path}")
+        if not path.is_file() or path.name == "fact-check.json":
+            continue
+        relative = path.relative_to(root).as_posix()
+        digest.update(relative.encode("utf-8") + b"\0")
+        digest.update(str(path.stat().st_size).encode("ascii") + b"\0")
+        digest.update(_sha256(path).encode("ascii") + b"\n")
     return digest.hexdigest()
 
 

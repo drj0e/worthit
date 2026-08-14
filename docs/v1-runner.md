@@ -31,6 +31,9 @@ container-build hashes included in the execution contract.
 
 1. **Collector/inspector:** may hold a read-only GitHub token. It downloads
    metadata and a commit archive but never imports or executes candidate code.
+   Bounded README, docs, examples, changelog, release notes, manifests, and CI
+   evidence feed both planning and a persisted, fail-closed V1 requirements
+   gate for paid credentials, remote services, GPU, and large model downloads.
 2. **Planner:** receives bounded, sanitized text. Its model process has no tools.
    Output is treated as untrusted JSON and validated against the execution DSL.
 3. **Dependency fetcher:** receives validated PyPI requirement strings or only
@@ -108,7 +111,9 @@ One immutable JSON run owns:
 State and stage outputs use atomic JSON writes. Completed stages are reused only
 when their input digest still matches. Evidence files are content-hashed. A cold
 replay creates a new disposable container and must pass the accepted contract;
-warm repair evidence alone cannot support publication.
+warm repair evidence alone cannot support publication. A replay mismatch is
+persisted and stops evaluation before claim results, scoring, or review prose can
+be published.
 
 Warm plan repair is mechanically bounded. It cannot change commands, inputs,
 setup files, timeouts, claim mappings, or edge labels. Exit-code corrections
@@ -190,17 +195,47 @@ cached source, refreshes derived inspection data, and moves stale private run
 state aside before resuming. One operating date is carried across workflow jobs,
 so a midnight queue delay cannot create a second daily selection.
 
+GitHub-hosted runs retain only a sanitized, private resume cache: stage status,
+structured model output, and its full-prompt fingerprint. Parsed claims and
+plans are deliberately rebuilt and revalidated, so mutable release notes cannot
+reuse stale decisions for the same commit. The cache excludes source, dependency
+bundles, raw evidence, reviews, site output, credentials, and Claude session
+state. Entries are bounded to 14 days, 20 commits, 50 MiB, 750 files, and 5 MiB
+per file; every restored path and schema is validated before it reaches
+`.worthit/runs`.
+
 Defaults ask the Claude CLI to cap model use at $5 per repository and reserve no
 more than $25 per UTC day. WorthIt rejects a response that reports an overage,
 but the external provider/CLI remains the authoritative real-time billing
 boundary.
 
+## Corrections
+
+Published review bundles remain immutable. A correction is a separate JSON
+artifact at
+`corrections/<owner>/<repository>/<original-commit>/<correction-id>.json`. It
+records the original review SHA-256, publication and WorthIt versions, a concise
+summary, each incorrect and corrected statement, direct evidence paths, whether
+a rerun occurred, and the replacement review commit when applicable. Fact and
+editorial approval are mandatory.
+
+The site rejects corrections with an identity/path mismatch, stale original
+hash, traversal or missing evidence, unbounded fields, absent approvals, or a
+claimed rerun without an existing replacement review. Accepted corrections get
+their own static page and a prominent notice on the preserved original review.
+This V1 format intentionally supports reruns only when a replacement review has
+also been published.
+
+Review publication additionally binds fact approval to a digest of the complete
+public bundle and cross-checks review prose, claim matrix, tests, score,
+environment, commit, and reproduction sidecars. Every review records the
+WorthIt version. Leaderboards are derived from those validated artifacts rather
+than a second content store, and Daily Hunt preserves typed failure/hold states.
+
 ## Remaining V1 work
 
 - configure one Claude Actions credential to activate unattended execution;
 - replace rootful runc with gVisor, Kata, or a microVM before lowering trust gates;
-- add an explicit correction-publication format; same-commit material rewrites
-  currently fail closed instead of replacing historical evidence;
 - paid APIs, GPUs, service containers, browsers, SaaS, and arbitrary Dockerfiles;
 - candidate-controlled direct URLs or source distributions as dependencies;
 - repair by changing candidate business source;

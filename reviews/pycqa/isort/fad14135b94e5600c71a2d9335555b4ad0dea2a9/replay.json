@@ -1,0 +1,428 @@
+{
+  "candidate_network": "none",
+  "completed_at": "2026-08-14T04:14:17.873353+00:00",
+  "dependency_bundle_sha256": "09fab4f58251253e997226f6906c76e091792091168745e9891b2c71e914cfe1",
+  "duration_ms": 36889,
+  "entrypoint": "isort",
+  "entrypoint_installed": true,
+  "execution_contract_sha256": "9f299a0c040cb899c02f9ea49e9e48f18f5b14098e1435f3a8121d468576c662",
+  "install": {
+    "argv": [
+      "/work/venv/bin/python",
+      "-m",
+      "pip",
+      "install",
+      "--disable-pip-version-check",
+      "--no-index",
+      "--find-links",
+      "/work/deps",
+      "/work/repo"
+    ],
+    "cwd": "/work",
+    "duration_ms": 8052,
+    "exit_code": 0,
+    "failure_reason": null,
+    "max_cpu_percent": 102.36,
+    "output_limited": false,
+    "peak_ram_bytes": 93637837,
+    "stage": "install",
+    "status": "PASS",
+    "stderr_file": "evidence/replay/install/stderr.txt",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_file": "evidence/replay/install/stdout.txt",
+    "stdout_sha256": "757617786c0217180a0c89737016aafa270a68ce2692fd46b30a2ba058c2e616",
+    "timed_out": false
+  },
+  "install_adjustments": [
+    {
+      "environment_variable": "SETUPTOOLS_SCM_PRETEND_VERSION,SETUPTOOLS_SCM_PRETEND_VERSION_FOR_ISORT",
+      "kind": "vcs_version_fallback",
+      "reason": "GitHub commit archives omit .git metadata required by the declared VCS version backend.",
+      "value": "0+worthit.fad14135b94e"
+    }
+  ],
+  "install_controls": [
+    "no package-index access"
+  ],
+  "installation_method": "pip source install from an offline wheelhouse",
+  "label": "replay",
+  "manual_interventions": 0,
+  "provision": {
+    "argv": [
+      "/usr/local/bin/python",
+      "-m",
+      "venv",
+      "/work/venv"
+    ],
+    "cwd": "/work",
+    "duration_ms": 7328,
+    "exit_code": 0,
+    "failure_reason": null,
+    "max_cpu_percent": 103.24,
+    "output_limited": false,
+    "peak_ram_bytes": 81767956,
+    "stage": "provision",
+    "status": "PASS",
+    "stderr_file": "evidence/replay/provision/stderr.txt",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_file": "evidence/replay/provision/stdout.txt",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "timed_out": false
+  },
+  "status": "COMPLETE",
+  "tests": [
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'Fixing'",
+          "observed": "Fixing /work/cases/T01/mixed.py\n",
+          "passed": true
+        },
+        {
+          "assertion": "mixed.py exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "mixed.py exactly matches expected text",
+          "observed": "import os\nimport sys\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-001",
+        "CLAIM-003"
+      ],
+      "duration_ms": 1770,
+      "evidence": [
+        "evidence/replay/T01/stdout.txt",
+        "evidence/replay/T01/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 20237517,
+      "status": "PASS",
+      "test_id": "T01"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'Fixing'",
+          "observed": "Fixing /work/cases/T02/a.py\nFixing /work/cases/T02/b.py\n",
+          "passed": true
+        },
+        {
+          "assertion": "a.py exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "a.py exactly matches expected text",
+          "observed": "import os\nimport sys\n",
+          "passed": true
+        },
+        {
+          "assertion": "b.py exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "b.py exactly matches expected text",
+          "observed": "import abc\nimport json\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-003"
+      ],
+      "duration_ms": 1310,
+      "evidence": [
+        "evidence/replay/T02/stdout.txt",
+        "evidence/replay/T02/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 20824719,
+      "status": "PASS",
+      "test_id": "T02"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'Fixing'",
+          "observed": "Fixing /work/cases/T03/top.py\nFixing /work/cases/T03/sub/nested.py\n",
+          "passed": true
+        },
+        {
+          "assertion": "top.py exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "top.py exactly matches expected text",
+          "observed": "import os\nimport sys\n",
+          "passed": true
+        },
+        {
+          "assertion": "sub/nested.py exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "sub/nested.py exactly matches expected text",
+          "observed": "import abc\nimport json\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-004"
+      ],
+      "duration_ms": 1287,
+      "evidence": [
+        "evidence/replay/T03/stdout.txt",
+        "evidence/replay/T03/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 21086863,
+      "status": "PASS",
+      "test_id": "T03"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains 'diff.py'",
+          "observed": "--- /work/cases/T04/diff.py:before\t2026-08-14 04:14:07.666487\n+++ /work/cases/T04/diff.py:after\t2026-08-14 04:14:09.201919\n@@ -1,2 +1,2 @@\n+import os\n import sys\n-import os\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains '@@'",
+          "observed": "--- /work/cases/T04/diff.py:before\t2026-08-14 04:14:07.666487\n+++ /work/cases/T04/diff.py:after\t2026-08-14 04:14:09.201919\n@@ -1,2 +1,2 @@\n+import os\n import sys\n-import os\n",
+          "passed": true
+        },
+        {
+          "assertion": "diff.py exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "diff.py exactly matches expected text",
+          "observed": "import sys\nimport os\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-005"
+      ],
+      "duration_ms": 1360,
+      "evidence": [
+        "evidence/replay/T04/stdout.txt",
+        "evidence/replay/T04/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 38283510,
+      "status": "PASS",
+      "test_id": "T04"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [1]",
+          "observed": "1",
+          "passed": true
+        },
+        {
+          "assertion": "stderr contains 'ERROR'",
+          "observed": "ERROR: /work/cases/T05/bad.py Imports are incorrectly sorted and/or formatted.\n",
+          "passed": true
+        },
+        {
+          "assertion": "stderr contains 'incorrectly sorted'",
+          "observed": "ERROR: /work/cases/T05/bad.py Imports are incorrectly sorted and/or formatted.\n",
+          "passed": true
+        },
+        {
+          "assertion": "bad.py exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "bad.py exactly matches expected text",
+          "observed": "import sys\nimport os\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-006"
+      ],
+      "duration_ms": 1312,
+      "evidence": [
+        "evidence/replay/T05/stdout.txt",
+        "evidence/replay/T05/stderr.txt"
+      ],
+      "exit_code": 1,
+      "failure_reason": null,
+      "peak_ram_bytes": 38902170,
+      "status": "PASS",
+      "test_id": "T05"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "good.py exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "good.py exactly matches expected text",
+          "observed": "import os\nimport sys\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-006"
+      ],
+      "duration_ms": 1285,
+      "evidence": [
+        "evidence/replay/T06/stdout.txt",
+        "evidence/replay/T06/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 20604518,
+      "status": "PASS",
+      "test_id": "T06"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "libtest.py exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "libtest.py exactly matches expected text",
+          "observed": "import os\nimport sys\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-007"
+      ],
+      "duration_ms": 1303,
+      "evidence": [
+        "evidence/replay/T07/stdout.txt",
+        "evidence/replay/T07/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 20751319,
+      "status": "PASS",
+      "test_id": "T07"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains '>=3.10.0'",
+          "observed": ">=3.10.0\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-002",
+        "CLAIM-008"
+      ],
+      "duration_ms": 1279,
+      "evidence": [
+        "evidence/replay/T08/stdout.txt",
+        "evidence/replay/T08/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 20656947,
+      "status": "PASS",
+      "test_id": "T08"
+    }
+  ],
+  "toolchain": "Python 3.12.14",
+  "track": "python-cli",
+  "venv": {
+    "argv": [
+      "/usr/local/bin/python",
+      "-m",
+      "venv",
+      "/work/venv"
+    ],
+    "cwd": "/work",
+    "duration_ms": 7328,
+    "exit_code": 0,
+    "failure_reason": null,
+    "max_cpu_percent": 103.24,
+    "output_limited": false,
+    "peak_ram_bytes": 81767956,
+    "stage": "provision",
+    "status": "PASS",
+    "stderr_file": "evidence/replay/provision/stderr.txt",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_file": "evidence/replay/provision/stdout.txt",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "timed_out": false
+  },
+  "version_probe": {
+    "argv": [
+      "/work/venv/bin/isort",
+      "--version"
+    ],
+    "cwd": "/work",
+    "duration_ms": 1690,
+    "exit_code": 0,
+    "failure_reason": null,
+    "max_cpu_percent": 45.1,
+    "output_limited": false,
+    "peak_ram_bytes": 20489175,
+    "stage": "verify-install",
+    "status": "PASS",
+    "stderr_file": "evidence/replay/version/stderr.txt",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_file": "evidence/replay/version/stdout.txt",
+    "stdout_sha256": "2ddf0daa6c2f326799c23c66094890aecbfee47c8f6169e6edae3d115ec280a5",
+    "timed_out": false
+  },
+  "workspace_bytes": 15003052
+}

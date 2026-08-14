@@ -4,6 +4,7 @@ import json
 import math
 import os
 import re
+import subprocess
 import urllib.parse
 import urllib.request
 from contextlib import suppress
@@ -21,6 +22,7 @@ from .inspect import (
     OPEN_SOURCE_SPDX,
     GitHubClient,
     assess_risk,
+    assess_v1_requirements,
     clean_text,
     inspect_repository,
     parse_repo_url,
@@ -98,7 +100,7 @@ PRIORITY_WEIGHTS = {
     "novelty": 5,
     "coverage_gap": 5,
 }
-QUALIFICATION_REVISION = 3
+QUALIFICATION_REVISION = 4
 DISCOVERY_QUERY_REVISION = 2
 
 
@@ -668,6 +670,9 @@ def _deep_qualify(
     environment = repository.get("environment")
     if not isinstance(environment, dict):
         environment = {}
+    requirements = assess_v1_requirements(repository)
+    repository["v1_requirements"] = requirements
+    atomic_json(repository_path, repository)
     readme = str(repository.get("readme") or "")
     release = repository.get("release")
     archive_bytes = int(repository.get("archive_bytes") or 0)
@@ -689,6 +694,7 @@ def _deep_qualify(
             "current_release": release if isinstance(release, dict) else None,
             "readme_reference": f"{ref.url}/blob/{sha}/{repository.get('readme_path') or 'README'}",
             "testability": "SUPPORTED" if environment.get("supported") else "UNSUPPORTED",
+            "requirements_classification": requirements["classification"],
             "risk_classification": risk["classification"],
             "category": _category(repository),
         }
@@ -708,6 +714,12 @@ def _deep_qualify(
         "risk": {
             "passed": risk["classification"] == TrustClass.TRUSTED.value,
             "reason": str(risk["rationale"]),
+        },
+        "v1_requirements": {
+            "passed": bool(requirements["passed"]),
+            "classification": requirements["classification"],
+            "reason": "; ".join(str(reason) for reason in requirements["reasons"]),
+            "indicators": requirements["indicators"],
         },
         "resource_feasibility": {
             "passed": (
@@ -937,17 +949,18 @@ def run_daily(
                         "llm_cost_usd": result["llm_cost_usd"],
                     }
                 )
-            except (OSError, RuntimeError, ValueError) as error:
-                candidate["candidate_status"] = "FAILED"
+            except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired) as error:
                 ref = parse_repo_url(str(candidate["url"]))
                 run_dir = (
                     work_root / "runs" / f"{ref.owner}--{ref.name}" / str(candidate["current_commit_sha"])
                 )
+                status = _evaluation_failure_status(error, run_dir)
+                candidate["candidate_status"] = status
                 outcomes.append(
                     {
                         "repository": candidate["repository"],
                         "commit_sha": candidate["current_commit_sha"],
-                        "status": "FAILED",
+                        "status": status,
                         "attempt": candidate["evaluation_attempts"],
                         "reason": redact(clean_text(str(error), 1_000)),
                         "llm_cost_usd": model_cost(run_dir),
@@ -1086,7 +1099,18 @@ def _daily_report(
                 for candidate in candidates
             ),
             "selected": len(selected),
-            "tested": sum(outcome["status"] in {"PUBLISHED", "FAILED"} for outcome in all_outcomes),
+            "tested": sum(
+                outcome["status"]
+                in {
+                    "PUBLISHED",
+                    "INSTALL_FAILED",
+                    "TIMEOUT",
+                    "HOLD_INSUFFICIENT_EVIDENCE",
+                    "HOLD_EDITORIAL_REVIEW",
+                    "FAILED",
+                }
+                for outcome in all_outcomes
+            ),
             "completed": len(completed),
             "blocked_or_failed": len(all_outcomes) - len(completed),
         },
@@ -1110,6 +1134,51 @@ def _candidate_summary(candidate: dict[str, Any]) -> dict[str, Any]:
         "priority": candidate.get("priority", {}),
         "status": candidate.get("candidate_status", "DISCOVERED"),
     }
+
+
+def _evaluation_failure_status(error: BaseException, run_dir: Path) -> str:
+    if isinstance(error, TimeoutError | subprocess.TimeoutExpired):
+        return "TIMEOUT"
+    explicit = getattr(error, "outcome_status", None)
+    if explicit in {"HOLD_INSUFFICIENT_EVIDENCE", "HOLD_EDITORIAL_REVIEW"}:
+        return str(explicit)
+    state = _safe_json(run_dir / "state.json") or {}
+    failed = max(
+        (
+            (str(value.get("updated_at") or ""), name)
+            for name, value in (state.get("stages") or {}).items()
+            if isinstance(value, dict) and value.get("status") == "FAILED"
+        ),
+        default=("", ""),
+    )[1]
+    if failed == "risk_assess":
+        return "HOLD_SECURITY_REVIEW"
+    if failed == "review":
+        fact = _safe_json(run_dir / "fact-check.json")
+        return (
+            "HOLD_INSUFFICIENT_EVIDENCE" if fact and fact.get("passed") is False else "HOLD_EDITORIAL_REVIEW"
+        )
+    if failed in {"diagnostic_run", "clean_replay"}:
+        names = ("warm.json",) if failed == "diagnostic_run" else ("final.json", "replay.json")
+        for name in names:
+            execution = _safe_json(run_dir / name)
+            if not execution:
+                continue
+            raw_tests = execution.get("tests")
+            tests = raw_tests if isinstance(raw_tests, list) else []
+            traces = [execution.get("provision"), execution.get("install"), *tests]
+            if any(
+                isinstance(trace, dict)
+                and (trace.get("timed_out") is True or trace.get("failure_reason") == "TIMEOUT")
+                for trace in traces
+            ):
+                return "TIMEOUT"
+            if execution.get("status") == "INSTALL_FAILED":
+                return "INSTALL_FAILED"
+        return "BLOCKED"
+    if failed in {"prepare", "evaluate"}:
+        return "BLOCKED"
+    return "FAILED"
 
 
 def _selection_date(candidate: dict[str, Any]) -> str:

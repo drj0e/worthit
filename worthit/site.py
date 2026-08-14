@@ -8,10 +8,16 @@ import re
 import shutil
 import urllib.parse
 import xml.etree.ElementTree as ET
+from collections.abc import Callable
+from datetime import datetime
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
+from . import __version__
+from .evaluate import compare_replays, evaluate_claims, score_run
+from .models import Claim, TestPlan, jsonable
+from .review import PUBLIC_REVIEW_FILES, publication_bundle_sha256, render_markdown
 from .runner import redact
 
 CSS = """*{box-sizing:border-box}body{margin:0;background:#f4f1e8;color:#171915;font:16px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}a{color:#174f3a}header,main,footer{max-width:1100px;margin:auto;padding:1rem 1.25rem}header{display:flex;gap:1rem;align-items:center;border-bottom:2px solid #171915}header nav{margin-left:auto;display:flex;gap:.9rem;flex-wrap:wrap}.brand{font-weight:900;text-decoration:none}.hero{padding:4rem 0 2rem;border-bottom:1px solid #777}.hero h1{font:800 clamp(2.4rem,8vw,6.5rem)/.95 Georgia,serif;max-width:900px;margin:.25rem 0}.kicker{text-transform:uppercase;letter-spacing:.12em}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem}.card,.panel{background:#fff;border:1px solid #171915;padding:1rem;box-shadow:4px 4px 0 #171915}.score{font:800 2.5rem/1 Georgia,serif}.meta{color:#4e554d;font-size:.9rem}.badge{display:inline-block;border:1px solid;padding:.1rem .4rem;margin-right:.35rem}table{width:100%;border-collapse:collapse;background:#fff}th,td{text-align:left;vertical-align:top;border:1px solid #777;padding:.55rem;overflow-wrap:anywhere}h1,h2,h3{font-family:Georgia,serif}blockquote{margin-left:0;border-left:4px solid #174f3a;padding-left:1rem}code{overflow-wrap:anywhere}.pass{color:#12633f}.partial{color:#7a4f00}.fail{color:#9b1b1b}footer{margin-top:3rem;border-top:1px solid #777}.stack>*+*{margin-top:1.2rem}@media(max-width:700px){header{align-items:flex-start;flex-direction:column}header nav{margin:0}.hero{padding-top:2rem}table{display:block;overflow-x:auto;font-size:.85rem}th,td{min-width:6rem}}"""
@@ -19,22 +25,7 @@ MAX_PUBLIC_JSON_BYTES = 2 * 1024 * 1024
 PUBLIC_SUFFIXES = {".css", ".html", ".json", ".md", ".txt", ".xml"}
 HOST_PATH = re.compile(r"(?:/home/|/Users/)[^/\s<]+/")
 EXECUTABLE_TEXT = re.compile(r"<\s*/?\s*(?:html|script|iframe|object|embed|svg)\b", re.I)
-REVIEW_FILES = (
-    "review.json",
-    "review.md",
-    "score.json",
-    "claims.json",
-    "test-plan.json",
-    "run.json",
-    "evidence-manifest.json",
-    "risk.json",
-    "environment.json",
-    "dependency-fetch.json",
-    "checkout.json",
-    "reproducibility.json",
-    "fact-check.json",
-    "editorial-critique.json",
-)
+REVIEW_FILES = PUBLIC_REVIEW_FILES
 
 
 def build_site(
@@ -42,19 +33,25 @@ def build_site(
     site_dir: Path,
     *,
     hunts_root: Path | None = None,
+    corrections_root: Path | None = None,
     base_path: str = "/",
     site_url: str = "http://localhost:8000",
 ) -> int:
     base_path = _base_path(base_path)
     site_url = site_url.rstrip("/")
     hunts_root = hunts_root or reviews_root.parent / "hunts"
+    corrections_root = corrections_root or reviews_root.parent / "corrections"
     reviews = []
     review_bundles: list[Path] = []
     for path in reviews_root.rglob("review.json") if reviews_root.exists() else []:
         if not path.resolve().is_relative_to(reviews_root.resolve()):
             raise ValueError(f"review artifact escaped the review root: {path}")
         value = _public_json(path)
-        if not isinstance(value, dict) or not _valid_review(value) or not _valid_review_bundle(path.parent):
+        if (
+            not isinstance(value, dict)
+            or not _valid_review(value)
+            or not _valid_review_bundle(path.parent, value)
+        ):
             raise ValueError(f"invalid review artifact: {path}")
         value["_artifact_dir"] = str(path.parent.resolve())
         value["_site_path"] = (
@@ -69,6 +66,12 @@ def build_site(
             ):
                 raise ValueError(f"unrecognized review artifact: {path}")
     reviews.sort(key=lambda item: item["tested_at"], reverse=True)
+    corrections = _load_corrections(corrections_root, reviews)
+    reviews_by_version = {(review["repository"], review["commit_sha"]): review for review in reviews}
+    for correction in corrections:
+        reviews_by_version[(correction["repository"], correction["original_commit_sha"])].setdefault(
+            "_corrections", []
+        ).append(correction)
     hunts = []
     if hunts_root.exists() and any(
         path.is_symlink() or (path.is_file() and (path.parent != hunts_root or path.suffix != ".json"))
@@ -110,13 +113,73 @@ def build_site(
         base_path,
     )
 
-    rows = "".join(
-        f'<tr><td><a href="{html.escape(base_path + review["_site_path"], quote=True)}">{html.escape(review["repository"])}</a></td><td>{html.escape(str(review["score"]["overall"]))}</td><td>{html.escape(review["score"]["confidence"])}</td><td>{html.escape(review["score"]["verdict"])}</td><td><code>{html.escape(review["commit_sha"][:12])}</code></td><td>{html.escape(review["tested_at"][:10])}</td></tr>'
-        for review in sorted(
-            reviews, key=lambda item: (item["score"]["overall"], item["tested_at"]), reverse=True
-        )
+    confidence_rank = {"HIGH": 3, "MEDIUM": 2, "LOW": 1, "INSUFFICIENT_EVIDENCE": 0}
+    friction_rank = {"TRIVIAL": 0, "EASY": 1, "MODERATE": 2, "PAINFUL": 3, "BROKEN": 4}
+    overall = sorted(reviews, key=lambda item: (item["score"]["overall"], item["tested_at"]), reverse=True)
+    confident = sorted(
+        reviews,
+        key=lambda item: (
+            confidence_rank.get(item["score"]["confidence"], -1),
+            item["score"]["overall"],
+            item["tested_at"],
+        ),
+        reverse=True,
     )
-    leaderboard = f"<h1>Leaderboards</h1><p>Scores stay attached to the exact tested commit and date.</p><table><thead><tr><th>Project</th><th>Score</th><th>Confidence</th><th>Verdict</th><th>Commit</th><th>Tested</th></tr></thead><tbody>{rows}</tbody></table>"
+    easiest = sorted(
+        reviews,
+        key=lambda item: (
+            friction_rank.get(item["setup"]["friction"], 99),
+            item["setup"]["install_duration_ms"],
+            -item["score"]["overall"],
+        ),
+    )
+    overhyped = sorted(
+        (review for review in reviews if review["score"]["bullshit_ratio"] is not None),
+        key=lambda item: (item["score"]["bullshit_ratio"], item["tested_at"]),
+        reverse=True,
+    )
+    categories = "".join(
+        _leaderboard_table(
+            category,
+            [review for review in overall if review["category"] == category],
+            "Score",
+            lambda review: str(review["score"]["overall"]),
+            base_path,
+        )
+        for category in sorted({review["category"] for review in reviews})
+    )
+    leaderboard = (
+        "<h1>Leaderboards</h1><p>Every row identifies the exact tested commit and date. "
+        "Only comparable evidence should be read as a performance comparison.</p>"
+        + _leaderboard_table(
+            "Overall", overall, "Score", lambda review: str(review["score"]["overall"]), base_path
+        )
+        + _leaderboard_table(
+            "Highest confidence",
+            confident,
+            "Confidence",
+            lambda review: review["score"]["confidence"],
+            base_path,
+        )
+        + _leaderboard_table(
+            "Easiest setup",
+            easiest,
+            "Setup",
+            lambda review: (
+                f"{review['setup']['friction']} ({review['setup']['install_duration_ms'] / 1000:.2f}s)"
+            ),
+            base_path,
+        )
+        + _leaderboard_table(
+            "Most overhyped",
+            overhyped,
+            "Bullshit Ratio",
+            lambda review: f"{review['score']['bullshit_ratio']}%",
+            base_path,
+        )
+        + "<h2>By category</h2>"
+        + (categories or '<p class="panel">No categories have published reviews.</p>')
+    )
     _write_page(site_dir / "leaderboards" / "index.html", "Leaderboards", leaderboard, nav, base_path)
 
     hunt_cards = (
@@ -170,6 +233,18 @@ def build_site(
             base_path,
         )
 
+    for correction in corrections:
+        destination = site_dir / Path(correction["_site_path"])
+        destination.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(Path(correction["_artifact_path"]), destination / "correction.json")
+        _write_page(
+            destination / "index.html",
+            f"Correction: {correction['repository']}",
+            _correction_page(correction, base_path),
+            nav,
+            base_path,
+        )
+
     static_pages = {
         "methodology": (
             "Methodology",
@@ -206,7 +281,9 @@ def build_site(
         )
 
     _write_feed(site_dir / "feed.xml", reviews, site_url, base_path)
-    _write_sitemap(site_dir / "sitemap.xml", reviews, hunts, list(histories), site_url, base_path)
+    _write_sitemap(
+        site_dir / "sitemap.xml", reviews, hunts, list(histories), corrections, site_url, base_path
+    )
     (site_dir / "robots.txt").write_text(
         "User-agent: *\nAllow: /\nSitemap: " + site_url + base_path + "sitemap.xml\n", encoding="utf-8"
     )
@@ -317,12 +394,62 @@ def _review_page(review: dict[str, Any], base_path: str) -> str:
         return "<ul>" + "".join(f"<li>{e(str(item))}</li>" for item in values) + "</ul>"
 
     history = e(base_path + _history_path(review["repository"]), quote=True)
-    return f"""<p class="kicker">Execution-backed review</p><h1>{e(review["project"])}</h1><p class="meta"><a href="{e(review["repository_url"], quote=True)}">{e(review["repository"])}</a> · <a href="{history}">version history</a> · commit <code>{e(review["commit_sha"])}</code> · tool version <a href="evidence/final/version/stdout.txt"><code>{e(str(review.get("version") or "UNVERIFIED"))}</code></a> · tested {e(review["tested_at"][:10])}</p><div class="panel"><span class="score">{e(str(score["overall"]))}/100</span><p><span class="badge">{e(score["verdict"])}</span><span class="badge">{e(score["confidence"])} confidence</span><span class="badge">Bullshit Ratio {e(bullshit_ratio)}</span></p><p>{e(review["summary"])}</p></div><h2>Claim matrix</h2><div class="stack">{claims}</div><h2>What we ran</h2><table><thead><tr><th>Test</th><th>Result</th><th>Exit</th><th>Runtime</th><th>Evidence</th><th>Purpose</th></tr></thead><tbody>{tests}</tbody></table><h2>Setup and measurements</h2><div class="panel"><p>Setup: {e(review["setup"]["friction"])}. Install {review["setup"]["install_duration_ms"] / 1000:.2f}s; replay {review["setup"]["replay_install_duration_ms"] / 1000:.2f}s; interventions {e(str(review["setup"]["manual_interventions"]))}; candidate network {e(str(review["setup"]["candidate_network"]))}.</p><p>Slowest test {e(str(review["performance"]["slowest_test_ms"]))} ms; peak measured test RAM {e(peak_ram_text)}. No comparative baseline.</p><p>{e(review["setup"]["documented_vs_actual"])}</p><p>{e(review["setup"]["version_note"])}</p></div><h2>What broke</h2>{bullets(review["what_broke"])}<h2>Scorecard</h2><table><thead><tr><th>Dimension</th><th>Score</th><th>Reason</th></tr></thead><tbody>{dimensions}</tbody></table><h2>Who should use it</h2>{bullets(review["who_should_use_it"])}<h2>Who should skip it</h2>{bullets(review["who_should_skip_it"])}<h2>Limitations</h2>{bullets(review["limitations"])}<h2>Reproduction</h2><div class="panel"><p>Source SHA-256 <code>{e(str(review["reproduction"]["source_archive_sha256"]))}</code>. Candidate network: none. Clean replay matched: {e(str(review["reproduction"]["reproduced"]))}. Backend: {e(review["reproduction"]["runtime"])}</p><p><a href="risk.json">Risk assessment</a> · <a href="environment.json">Sandbox environment</a> · <a href="dependency-fetch.json">Dependency provenance</a> · <a href="checkout.json">Source acquisition</a> · <a href="reproducibility.json">Reproducibility</a></p></div>"""
+    corrections = "".join(
+        f'<li><a href="{e(base_path + item["_site_path"], quote=True)}">{e(item["published_at"][:10])}: {e(item["summary"])}</a></li>'
+        for item in review.get("_corrections", [])
+    )
+    correction_notice = (
+        f'<section class="panel"><h2>Correction notice</h2><p>This historical evaluation is preserved unchanged. Read the published correction:</p><ul>{corrections}</ul></section>'
+        if corrections
+        else ""
+    )
+    return f"""<p class="kicker">Execution-backed review</p><h1>{e(review["project"])}</h1><p class="meta"><a href="{e(review["repository_url"], quote=True)}">{e(review["repository"])}</a> · <a href="{history}">version history</a> · commit <code>{e(review["commit_sha"])}</code> · tool version <a href="evidence/final/version/stdout.txt"><code>{e(str(review.get("version") or "UNVERIFIED"))}</code></a> · WorthIt <code>{e(review["worthit_version"])}</code> · tested {e(review["tested_at"][:10])}</p>{correction_notice}<div class="panel"><span class="score">{e(str(score["overall"]))}/100</span><p><span class="badge">{e(score["verdict"])}</span><span class="badge">{e(score["confidence"])} confidence</span><span class="badge">Bullshit Ratio {e(bullshit_ratio)}</span></p><p>{e(review["summary"])}</p></div><h2>Claim matrix</h2><div class="stack">{claims}</div><h2>What we ran</h2><table><thead><tr><th>Test</th><th>Result</th><th>Exit</th><th>Runtime</th><th>Evidence</th><th>Purpose</th></tr></thead><tbody>{tests}</tbody></table><h2>Setup and measurements</h2><div class="panel"><p>Setup: {e(review["setup"]["friction"])}. Install {review["setup"]["install_duration_ms"] / 1000:.2f}s; replay {review["setup"]["replay_install_duration_ms"] / 1000:.2f}s; interventions {e(str(review["setup"]["manual_interventions"]))}; candidate network {e(str(review["setup"]["candidate_network"]))}. <a href="evidence/final/install/stdout.txt">Install stdout</a> · <a href="evidence/final/install/stderr.txt">install stderr</a> · <a href="evidence/replay/install/stdout.txt">replay stdout</a>.</p><p>Slowest test {e(str(review["performance"]["slowest_test_ms"]))} ms; peak measured test RAM {e(peak_ram_text)}. No comparative baseline.</p><p>{e(review["setup"]["documented_vs_actual"])}</p><p>{e(review["setup"]["version_note"])}</p></div><h2>What broke</h2>{bullets(review["what_broke"])}<h2>Scorecard</h2><table><thead><tr><th>Dimension</th><th>Score</th><th>Reason</th></tr></thead><tbody>{dimensions}</tbody></table><h2>Who should use it</h2>{bullets(review["who_should_use_it"])}<h2>Who should skip it</h2>{bullets(review["who_should_skip_it"])}<h2>Limitations</h2>{bullets(review["limitations"])}<h2>Reproduction</h2><div class="panel"><p>Source SHA-256 <code>{e(str(review["reproduction"]["source_archive_sha256"]))}</code>. Candidate network: none. Clean replay matched: {e(str(review["reproduction"]["reproduced"]))}. Backend: {e(review["reproduction"]["runtime"])}</p><p><a href="risk.json">Risk assessment</a> · <a href="environment.json">Sandbox environment</a> · <a href="dependency-fetch.json">Dependency provenance</a> · <a href="checkout.json">Source acquisition</a> · <a href="reproducibility.json">Reproducibility</a> · <a href="fact-check.json">Fact check</a> · <a href="editorial-critique.json">Editorial critique</a></p></div>"""
+
+
+def _correction_page(correction: dict[str, Any], base_path: str) -> str:
+    e = html.escape
+    original = e(base_path + correction["_original_site_path"], quote=True)
+    evidence_root = base_path + correction["_original_site_path"]
+    changes = "".join(
+        '<article class="panel">'
+        f"<h2>Correction {index}</h2><p><strong>Original statement:</strong> {e(change['incorrect'])}</p>"
+        f"<p><strong>Corrected statement:</strong> {e(change['corrected'])}</p><p>Evidence: "
+        + " · ".join(
+            f'<a href="{e(evidence_root + _quote_public_path(path), quote=True)}">{e(path)}</a>'
+            for path in change["evidence_paths"]
+        )
+        + "</p></article>"
+        for index, change in enumerate(correction["changes"], 1)
+    )
+    rerun = correction["rerun"]
+    replacement = (
+        f'<a href="{e(base_path + correction["_replacement_site_path"], quote=True)}"><code>{e(rerun["replacement_commit_sha"])}</code></a>'
+        if rerun["performed"]
+        else "not performed"
+    )
+    return f"""<p class="kicker">Immutable correction</p><h1>{e(correction["repository"])}</h1><div class="panel"><p>{e(correction["summary"])}</p><p class="meta">Published {e(correction["published_at"][:10])} with WorthIt {e(correction["worthit_version"])} · <a href="{original}">preserved original review</a> · <a href="correction.json">structured correction</a></p></div><div class="stack">{changes}</div><h2>Rerun</h2><div class="panel"><p>Replacement review: {replacement}.</p><p>{e(rerun["reason"])}</p></div>"""
 
 
 def _card(review: dict[str, Any], base_path: str) -> str:
     path = html.escape(base_path + review["_site_path"], quote=True)
     return f'<article class="card"><p class="kicker">{html.escape(review["category"])}</p><h3><a href="{path}">{html.escape(review["project"])}</a></h3><div class="score">{html.escape(str(review["score"]["overall"]))}</div><p>{html.escape(review["summary"])}</p><p class="meta">{html.escape(review["score"]["verdict"])} · {html.escape(review["score"]["confidence"])} confidence · {html.escape(review["tested_at"][:10])}</p></article>'
+
+
+def _leaderboard_table(
+    title: str,
+    reviews: list[dict[str, Any]],
+    metric_label: str,
+    metric: Callable[[dict[str, Any]], str],
+    base_path: str,
+) -> str:
+    rows = (
+        "".join(
+            f'<tr><td><a href="{html.escape(base_path + review["_site_path"], quote=True)}">{html.escape(review["repository"])}</a></td><td>{html.escape(metric(review))}</td><td>{html.escape(str(review["score"]["overall"]))}</td><td>{html.escape(review["score"]["confidence"])}</td><td><code>{html.escape(review["commit_sha"][:12])}</code></td><td>{html.escape(review["tested_at"][:10])}</td></tr>'
+            for review in reviews
+        )
+        or '<tr><td colspan="6">No eligible reviews.</td></tr>'
+    )
+    return f"<h2>{html.escape(title)}</h2><table><thead><tr><th>Project</th><th>{html.escape(metric_label)}</th><th>Score</th><th>Confidence</th><th>Commit</th><th>Tested</th></tr></thead><tbody>{rows}</tbody></table>"
 
 
 def _hunt_card(hunt: dict[str, Any], base_path: str) -> str:
@@ -363,7 +490,16 @@ def _hunt_page(hunt: dict[str, Any]) -> str:
         if errors
         else ""
     )
-    return f"""<p class="kicker">Daily Hunt</p><h1>{e(hunt["date"])}</h1><div class="panel"><p>{counts["discovered"]} discovered; {counts["metadata_qualified"]} passed metadata gates; {counts["deep_inspected"]} deep-inspected; {counts["qualified"]} qualified; {counts["selected"]} selected; {counts["completed"]} completed.</p><p>Execution enabled: {e(str(hunt["execution_enabled"]))}. <a href="report.json">Structured report</a>.</p></div><h2>Selected</h2>{candidates(hunt["selected"])}<h2>Execution outcomes</h2><table><thead><tr><th>Repository</th><th>Status</th><th>Score</th><th>Result</th></tr></thead><tbody>{outcome_rows}</tbody></table><h2>Interesting, not tested</h2>{candidates(hunt["interesting_not_tested"])}<h2>Why candidates were skipped</h2>{candidates(hunt["skipped"])}{error_block}"""
+    spotlights = "".join(
+        f'<article class="panel"><h3>{e(label)}</h3><p>{e(str(item["repository"]))}: {e(str(item["score"]))}/100, {e(str(item.get("verdict") or "no verdict"))}.</p></article>'
+        for label, item in (
+            ("Best tool", hunt.get("best_tool")),
+            ("Biggest disappointment", hunt.get("biggest_disappointment")),
+        )
+        if isinstance(item, dict)
+    )
+    spotlight_section = f'<h2>Findings</h2><div class="grid">{spotlights}</div>' if spotlights else ""
+    return f"""<p class="kicker">Daily Hunt</p><h1>{e(hunt["date"])}</h1><div class="panel"><p>{counts["discovered"]} discovered; {counts["metadata_qualified"]} passed metadata gates; {counts["deep_inspected"]} deep-inspected; {counts["qualified"]} qualified; {counts["selected"]} selected; {counts["completed"]} completed.</p><p>Execution enabled: {e(str(hunt["execution_enabled"]))}. <a href="report.json">Structured report</a>.</p></div>{spotlight_section}<h2>Selected</h2>{candidates(hunt["selected"])}<h2>Execution outcomes</h2><table><thead><tr><th>Repository</th><th>Status</th><th>Score</th><th>Result</th></tr></thead><tbody>{outcome_rows}</tbody></table><h2>Interesting, not tested</h2>{candidates(hunt["interesting_not_tested"])}<h2>Why candidates were skipped</h2>{candidates(hunt["skipped"])}{error_block}"""
 
 
 def _history_path(repository: str) -> str:
@@ -425,6 +561,7 @@ def _write_sitemap(
     reviews: list[dict[str, Any]],
     hunts: list[dict[str, Any]],
     histories: list[str],
+    corrections: list[dict[str, Any]],
     site_url: str,
     base_path: str,
 ) -> None:
@@ -444,6 +581,7 @@ def _write_sitemap(
         + [site_url + base_path + review["_site_path"] for review in reviews]
         + [site_url + base_path + hunt["_site_path"] for hunt in hunts]
         + [site_url + base_path + _history_path(repository) for repository in histories]
+        + [site_url + base_path + correction["_site_path"] for correction in corrections]
     )
     body = "".join(f"<url><loc>{html.escape(url)}</loc></url>" for url in urls)
     path.write_text(
@@ -466,6 +604,7 @@ def _prepare_site_dir(path: Path) -> None:
 
 def _valid_review(review: dict[str, Any]) -> bool:
     required = {
+        "worthit_version",
         "project",
         "repository",
         "repository_url",
@@ -475,14 +614,24 @@ def _valid_review(review: dict[str, Any]) -> bool:
         "claim_matrix",
         "tests",
     }
-    if not required <= set(review):
+    if not required <= set(review) or any(str(name).startswith("_") for name in review):
         return False
-    strings = ("project", "repository", "repository_url", "commit_sha", "tested_at", "category", "summary")
+    strings = (
+        "worthit_version",
+        "project",
+        "repository",
+        "repository_url",
+        "commit_sha",
+        "tested_at",
+        "category",
+        "summary",
+    )
     if any(not isinstance(review.get(name), str) for name in strings):
         return False
     if (
         not REPOSITORY.fullmatch(review["repository"])
         or review["repository_url"] != f"https://github.com/{review['repository']}"
+        or not re.fullmatch(r"[0-9A-Za-z.+-]{1,40}", review["worthit_version"])
         or len(review["commit_sha"]) != 40
         or any(character not in "0123456789abcdef" for character in review["commit_sha"].casefold())
     ):
@@ -602,16 +751,36 @@ def _valid_hunt(hunt: dict[str, Any]) -> bool:
         return False
     if any(not _valid_candidate_summary(item, skipped=True) for item in hunt["skipped"]):
         return False
-    return all(
+    return all(_valid_outcome(item) for item in hunt["outcomes"]) and all(
+        item is None
+        or (isinstance(item, dict) and item in hunt["outcomes"] and item.get("status") == "PUBLISHED")
+        for item in (hunt.get("best_tool"), hunt.get("biggest_disappointment"))
+    )
+
+
+def _valid_outcome(item: object) -> bool:
+    return bool(
         isinstance(item, dict)
         and isinstance(item.get("repository"), str)
         and REPOSITORY.fullmatch(item["repository"])
         and isinstance(item.get("commit_sha"), str)
         and len(item["commit_sha"]) == 40
         and not set(item["commit_sha"].casefold()) - set("0123456789abcdef")
-        and item.get("status") in {"PUBLISHED", "FAILED", "BLOCKED_RESOURCE_LIMIT"}
+        and item.get("status")
+        in {
+            "PUBLISHED",
+            "INSTALL_FAILED",
+            "TIMEOUT",
+            "BLOCKED",
+            "BLOCKED_RESOURCE_LIMIT",
+            "HOLD_INSUFFICIENT_EVIDENCE",
+            "HOLD_EDITORIAL_REVIEW",
+            "HOLD_SECURITY_REVIEW",
+            "FAILED",
+        }
         and ("reason" not in item or isinstance(item["reason"], str))
-        for item in hunt["outcomes"]
+        and ("score" not in item or _number(item["score"]))
+        and ("verdict" not in item or isinstance(item["verdict"], str))
     )
 
 
@@ -653,12 +822,165 @@ def _public_json(path: Path) -> object:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _valid_review_bundle(root: Path) -> bool:
+CORRECTION_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,79}$")
+
+
+def _load_corrections(root: Path, reviews: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if not root.exists():
+        return []
+    if root.is_symlink() or not root.is_dir():
+        raise ValueError("corrections root is not a safe directory")
+    known = {(review["repository"], review["commit_sha"]): review for review in reviews}
+    corrections = []
+    for path in root.rglob("*"):
+        if path.is_symlink():
+            raise ValueError(f"unsafe correction artifact: {path}")
+        if not path.is_file():
+            continue
+        value = _public_json(path) if path.suffix == ".json" else None
+        if not isinstance(value, dict) or not _valid_correction(value, path, root, known):
+            raise ValueError(f"invalid correction artifact: {path}")
+        original = known[(value["repository"], value["original_commit_sha"])]
+        value["_artifact_path"] = str(path.resolve())
+        value["_original_site_path"] = original["_site_path"]
+        owner, name = value["repository"].split("/", 1)
+        value["_site_path"] = (
+            f"corrections/{_quote(owner)}/{_quote(name)}/{value['original_commit_sha']}/"
+            f"{_quote(value['correction_id'])}/"
+        )
+        replacement = value["rerun"]["replacement_commit_sha"]
+        value["_replacement_site_path"] = (
+            known[(value["repository"], replacement)]["_site_path"] if replacement else None
+        )
+        corrections.append(value)
+    corrections.sort(key=lambda item: item["published_at"])
+    return corrections
+
+
+def _valid_correction(
+    value: dict[str, Any],
+    path: Path,
+    root: Path,
+    known: dict[tuple[str, str], dict[str, Any]],
+) -> bool:
+    fields = {
+        "schema_version",
+        "correction_id",
+        "repository",
+        "original_commit_sha",
+        "original_review_sha256",
+        "published_at",
+        "worthit_version",
+        "summary",
+        "changes",
+        "rerun",
+        "fact_checked",
+        "editorial_approved",
+    }
+    if set(value) != fields or value.get("schema_version") != 1:
+        return False
+    repository = value.get("repository")
+    commit = value.get("original_commit_sha")
+    correction_id = value.get("correction_id")
+    if (
+        not isinstance(repository, str)
+        or not REPOSITORY.fullmatch(repository)
+        or not isinstance(commit, str)
+        or not re.fullmatch(r"[0-9a-f]{40}", commit)
+        or not isinstance(correction_id, str)
+        or not CORRECTION_ID.fullmatch(correction_id)
+        or (repository, commit) not in known
+        or value.get("fact_checked") is not True
+        or value.get("editorial_approved") is not True
+        or not _bounded_text(value.get("summary"), 2_000)
+        or not re.fullmatch(r"[0-9A-Za-z.+-]{1,40}", str(value.get("worthit_version") or ""))
+    ):
+        return False
+    owner, name = repository.split("/", 1)
+    expected = Path(owner, name, commit, f"{correction_id}.json")
+    if path.resolve().relative_to(root.resolve()) != expected:
+        return False
+    try:
+        published = datetime.fromisoformat(str(value.get("published_at")).replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    if published.tzinfo is None:
+        return False
+    review = known[(repository, commit)]
+    bundle = Path(review["_artifact_dir"])
+    if (
+        value.get("original_review_sha256")
+        != hashlib.sha256((bundle / "review.json").read_bytes()).hexdigest()
+    ):
+        return False
+    allowed = {
+        item.relative_to(bundle).as_posix()
+        for item in bundle.rglob("*")
+        if item.is_file() and not item.is_symlink()
+    }
+    changes = value.get("changes")
+    if not isinstance(changes, list) or not 1 <= len(changes) <= 20:
+        return False
+    for change in changes:
+        if (
+            not isinstance(change, dict)
+            or set(change) != {"incorrect", "corrected", "evidence_paths"}
+            or not _bounded_text(change.get("incorrect"), 4_000)
+            or not _bounded_text(change.get("corrected"), 4_000)
+        ):
+            return False
+        evidence = change.get("evidence_paths")
+        if (
+            not isinstance(evidence, list)
+            or not 1 <= len(evidence) <= 20
+            or any(not _safe_public_reference(item, allowed) for item in evidence)
+        ):
+            return False
+    rerun = value.get("rerun")
+    if (
+        not isinstance(rerun, dict)
+        or set(rerun) != {"performed", "reason", "replacement_commit_sha"}
+        or not isinstance(rerun.get("performed"), bool)
+        or not _bounded_text(rerun.get("reason"), 2_000)
+    ):
+        return False
+    replacement = rerun.get("replacement_commit_sha")
+    return bool(
+        (
+            rerun["performed"]
+            and isinstance(replacement, str)
+            and replacement != commit
+            and (repository, replacement) in known
+        )
+        or (not rerun["performed"] and replacement is None)
+    )
+
+
+def _bounded_text(value: object, limit: int) -> bool:
+    return isinstance(value, str) and bool(value.strip()) and len(value) <= limit and "\x00" not in value
+
+
+def _safe_public_reference(value: object, allowed: set[str]) -> bool:
+    if not isinstance(value, str) or len(value) > 240 or "\\" in value:
+        return False
+    relative = Path(value)
+    return not relative.is_absolute() and ".." not in relative.parts and relative.as_posix() in allowed
+
+
+def _valid_review_bundle(root: Path, review: dict[str, Any]) -> bool:
     try:
         fact = _public_json(root / "fact-check.json")
         editorial = _public_json(root / "editorial-critique.json")
         risk = _public_json(root / "risk.json")
         manifest = _public_json(root / "evidence-manifest.json")
+        score = _public_json(root / "score.json")
+        claims_raw = _public_json(root / "claims.json")
+        plan_raw = _public_json(root / "test-plan.json")
+        run = _public_json(root / "run.json")
+        replay = _public_json(root / "replay.json")
+        reproduction = _public_json(root / "reproducibility.json")
+        checkout = _public_json(root / "checkout.json")
+        environment = _public_json(root / "environment.json")
     except (OSError, ValueError, json.JSONDecodeError):
         return False
     editorial_findings = (
@@ -671,12 +993,26 @@ def _valid_review_bundle(root: Path) -> bool:
     if (
         not isinstance(fact, dict)
         or fact.get("passed") is not True
+        or fact.get("bundle_sha256") != publication_bundle_sha256(root)
         or not isinstance(editorial, dict)
         or editorial.get("approved") is not True
         or any(editorial.get(name) for name in editorial_findings)
         or not isinstance(risk, dict)
         or risk.get("classification") != "TRUSTED_ENOUGH_TO_TEST"
         or not isinstance(manifest, list)
+        or not _review_matches_artifacts(
+            review,
+            score,
+            claims_raw,
+            plan_raw,
+            run,
+            replay,
+            reproduction,
+            checkout,
+            environment,
+            risk,
+            root,
+        )
     ):
         return False
     listed: set[str] = set()
@@ -684,14 +1020,7 @@ def _valid_review_bundle(root: Path) -> bool:
         if not isinstance(item, dict) or not isinstance(item.get("path"), str):
             return False
         relative = Path(item["path"])
-        if (
-            relative.is_absolute()
-            or ".." in relative.parts
-            or len(relative.parts) != 4
-            or relative.parts[0] != "evidence"
-            or relative.parts[1] not in {"final", "replay"}
-            or relative.name not in {"stdout.txt", "stderr.txt"}
-        ):
+        if not _valid_evidence_path(item["path"]):
             return False
         path = root / relative
         if (
@@ -703,12 +1032,247 @@ def _valid_review_bundle(root: Path) -> bool:
         ):
             return False
         listed.add(item["path"])
+    references = _run_evidence_paths(run, replay)
+    if references is None or not references <= listed:
+        return False
     actual = {
         path.relative_to(root).as_posix()
         for path in root.rglob("*")
         if path.is_file() and not path.is_symlink()
     }
     return set(REVIEW_FILES) | listed == actual
+
+
+def _valid_evidence_path(value: str) -> bool:
+    relative = Path(value)
+    return bool(
+        not relative.is_absolute()
+        and ".." not in relative.parts
+        and len(relative.parts) == 4
+        and relative.parts[0] == "evidence"
+        and relative.parts[1] in {"final", "replay"}
+        and relative.name in {"stdout.txt", "stderr.txt"}
+    )
+
+
+def _run_evidence_paths(*executions: object) -> set[str] | None:
+    references: set[str] = set()
+    for execution in executions:
+        if not isinstance(execution, dict):
+            return None
+        for name in ("provision", "install", "version_probe"):
+            trace = execution.get(name)
+            if not isinstance(trace, dict):
+                return None
+            for field in ("stdout_file", "stderr_file"):
+                value = trace.get(field)
+                if not isinstance(value, str) or not _valid_evidence_path(value):
+                    return None
+                references.add(value)
+        tests = execution.get("tests")
+        if not isinstance(tests, list):
+            return None
+        for test in tests:
+            evidence = test.get("evidence") if isinstance(test, dict) else None
+            if not isinstance(evidence, list):
+                return None
+            for value in evidence:
+                if not isinstance(value, str) or not _valid_evidence_path(value):
+                    return None
+                references.add(value)
+    return references
+
+
+def _review_matches_artifacts(
+    review: dict[str, Any],
+    score: object,
+    claims_raw: object,
+    plan_raw: object,
+    run: object,
+    replay: object,
+    reproduction: object,
+    checkout: object,
+    environment: object,
+    risk: object,
+    root: Path,
+) -> bool:
+    if not all(
+        isinstance(value, dict)
+        for value in (score, claims_raw, plan_raw, run, replay, reproduction, checkout, environment, risk)
+    ):
+        return False
+    score = cast(dict[str, Any], score)
+    claims_raw = cast(dict[str, Any], claims_raw)
+    plan_raw = cast(dict[str, Any], plan_raw)
+    run = cast(dict[str, Any], run)
+    replay = cast(dict[str, Any], replay)
+    reproduction = cast(dict[str, Any], reproduction)
+    checkout = cast(dict[str, Any], checkout)
+    environment = cast(dict[str, Any], environment)
+    risk = cast(dict[str, Any], risk)
+    if not isinstance(replay.get("tests"), list):
+        return False
+    review_reproduction = review.get("reproduction")
+    if not isinstance(review_reproduction, dict) or (
+        score != review.get("score")
+        or run.get("status") != "COMPLETE"
+        or replay.get("status") != "COMPLETE"
+        or reproduction.get("reproduced") is not True
+        or compare_replays(run, replay) != reproduction
+        or review.get("tested_at") != run.get("completed_at")
+        or review.get("commit_sha") != checkout.get("commit_sha")
+        or review_reproduction.get("source_archive_sha256") != checkout.get("archive_sha256")
+        or review_reproduction.get("reproduced") != reproduction.get("reproduced")
+        or review_reproduction.get("tests_compared") != reproduction.get("tests_compared")
+        or review_reproduction.get("image") != environment.get("image_id")
+        or review_reproduction.get("toolchain") != environment.get("toolchain")
+        or review_reproduction.get("dockerfile_sha256") != environment.get("dockerfile_sha256")
+        or review_reproduction.get("runner_sha256") != environment.get("runner_sha256")
+        or review_reproduction.get("risk_classification") != risk.get("classification")
+    ):
+        return False
+    setup = review.get("setup")
+    performance = review.get("performance")
+    install = run.get("install")
+    replay_install = replay.get("install")
+    run_tests = run.get("tests")
+    review_tests = review.get("tests")
+    raw_claims = claims_raw.get("claims")
+    raw_plan_tests = plan_raw.get("tests")
+    if not all(isinstance(value, dict) for value in (setup, performance, install, replay_install)) or not all(
+        isinstance(value, list) for value in (run_tests, review_tests, raw_claims, raw_plan_tests)
+    ):
+        return False
+    setup = cast(dict[str, Any], setup)
+    performance = cast(dict[str, Any], performance)
+    install = cast(dict[str, Any], install)
+    replay_install = cast(dict[str, Any], replay_install)
+    run_tests = cast(list[Any], run_tests)
+    review_tests = cast(list[Any], review_tests)
+    raw_claims = cast(list[Any], raw_claims)
+    raw_plan_tests = cast(list[Any], raw_plan_tests)
+    if any(
+        not isinstance(item, dict) or not isinstance(item.get(identifier), str)
+        for values, identifier in (
+            (run_tests, "test_id"),
+            (raw_plan_tests, "test_id"),
+            (raw_claims, "claim_id"),
+        )
+        for item in values
+    ):
+        return False
+    if (
+        setup.get("install_duration_ms") != install.get("duration_ms")
+        or setup.get("replay_install_duration_ms") != replay_install.get("duration_ms")
+        or setup.get("manual_interventions") != run.get("manual_interventions")
+        or setup.get("candidate_network") != run.get("candidate_network")
+        or setup.get("installation_method") != run.get("installation_method")
+        or setup.get("automated_adjustments") != run.get("install_adjustments")
+        or setup.get("toolchain") != run.get("toolchain")
+        or performance.get("workspace_bytes") != run.get("workspace_bytes")
+    ):
+        return False
+    run_by_id = {
+        item.get("test_id"): item for item in run_tests if isinstance(item, dict) and item.get("test_id")
+    }
+    plan_by_id = {
+        item.get("test_id"): item for item in raw_plan_tests if isinstance(item, dict) and item.get("test_id")
+    }
+    review_ids = [item.get("test_id") for item in review_tests if isinstance(item, dict)]
+    if (
+        len(run_by_id) != len(run_tests)
+        or len(plan_by_id) != len(raw_plan_tests)
+        or len(review_ids) != len(review_tests)
+        or len(set(review_ids)) != len(review_ids)
+        or set(review_ids) != set(run_by_id)
+        or set(review_ids) != set(plan_by_id)
+    ):
+        return False
+    for test in review_tests:
+        if (
+            not isinstance(test, dict)
+            or (observed := run_by_id.get(test.get("test_id"))) is None
+            or (planned := plan_by_id.get(test.get("test_id"))) is None
+        ):
+            return False
+        if any(
+            test.get(field) != observed.get(field)
+            for field in ("status", "exit_code", "duration_ms", "peak_ram_bytes")
+        ) or any(
+            test.get(public) != planned.get(source)
+            for public, source in (
+                ("purpose", "purpose"),
+                ("claim_ids", "claim_ids"),
+                ("edge_case", "edge_case"),
+            )
+        ):
+            return False
+        observed_evidence = observed.get("evidence")
+        if not isinstance(observed_evidence, list):
+            return False
+        evidence = [str(path).removeprefix("evidence/final/") for path in observed_evidence]
+        if test.get("evidence") != evidence:
+            return False
+    measured_ram = [
+        value
+        for item in run_tests
+        if isinstance(item, dict) and isinstance((value := item.get("peak_ram_bytes")), int)
+    ]
+    if performance.get("slowest_test_ms") != max(
+        (int(item.get("duration_ms") or 0) for item in run_tests if isinstance(item, dict)), default=0
+    ) or performance.get("peak_ram_bytes") != max(measured_ram, default=None):
+        return False
+    claim_matrix = review.get("claim_matrix")
+    if not isinstance(claim_matrix, list) or len(claim_matrix) != len(raw_claims):
+        return False
+    original_by_id = {
+        item.get("claim_id"): item for item in raw_claims if isinstance(item, dict) and item.get("claim_id")
+    }
+    matrix_ids = [item.get("claim_id") for item in claim_matrix if isinstance(item, dict)]
+    if (
+        len(original_by_id) != len(raw_claims)
+        or len(matrix_ids) != len(claim_matrix)
+        or len(set(matrix_ids)) != len(matrix_ids)
+        or set(matrix_ids) != set(original_by_id)
+    ):
+        return False
+    for item in claim_matrix:
+        if not isinstance(item, dict) or (original := original_by_id.get(item.get("claim_id"))) is None:
+            return False
+        if any(
+            item.get(public) != original.get(source)
+            for public, source in (("claim", "text"), ("source", "source"), ("importance", "importance"))
+        ):
+            return False
+    try:
+        if (root / "review.md").read_text(encoding="utf-8") != render_markdown(review):
+            return False
+        if review.get("worthit_version") == __version__:
+            claims = [Claim.from_dict(item) for item in raw_claims]
+            plan = TestPlan.from_dict(plan_raw, claims, str(plan_raw.get("designer") or "published"))
+            evaluated = evaluate_claims(claims, plan, run)
+            evaluated_by_id = {item.claim_id: jsonable(item) for item in evaluated}
+            for item in claim_matrix:
+                expected = evaluated_by_id[item["claim_id"]]
+                if any(
+                    item.get(field) != expected.get(field)
+                    for field in ("status", "test_ids", "evidence", "explanation")
+                ):
+                    return False
+            recalculated = score_run(
+                claims,
+                evaluated,
+                plan,
+                run,
+                risk,
+                reproduction,
+                repaired="repair" in plan.designer,
+            )
+            if jsonable(recalculated) != score:
+                return False
+    except (KeyError, OSError, TypeError, ValueError):
+        return False
+    return True
 
 
 def _base_path(value: str) -> str:
@@ -719,3 +1283,7 @@ def _base_path(value: str) -> str:
 
 def _quote(value: str) -> str:
     return urllib.parse.quote(value, safe="-._~")
+
+
+def _quote_public_path(value: str) -> str:
+    return "/".join(_quote(part) for part in Path(value).parts)

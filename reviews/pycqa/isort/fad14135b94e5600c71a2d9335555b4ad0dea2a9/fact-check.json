@@ -1,4 +1,5 @@
 {
+  "bundle_sha256": "47b5f60a0ae7966dfa1188d057e5f36622e89b65c86e451d573e930347483398",
   "checks": {
     "commit": true,
     "dockerfile": true,

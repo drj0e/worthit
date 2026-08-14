@@ -51,6 +51,45 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Restore bounded evaluator state
+        id: resume-cache
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: .worthit/resume-cache
+          key: worthit-resume-v1-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            worthit-resume-v1-${{ runner.os }}-
+      - name: Rehydrate vetted evaluator state
+        if: steps.resume-cache.outputs.cache-matched-key != ''
+        run: |
+          set -euo pipefail
+          root=.worthit/resume-cache
+          test -d "$root/runs"
+          test "$(find "$root" -type f | wc -l)" -le 750
+          test "$(du -sb "$root" | cut -f1)" -le 52428800
+          test -z "$(find "$root" ! -type d ! -type f -print -quit)"
+          while IFS= read -r -d '' file; do
+            relative=${file#"$root/"}
+            [[ "$relative" =~ ^runs/[^/]+/[0-9a-f]{40}/(state\.json|[^/]*-model[^/]*/(response\.json|request\.sha256))$ ]]
+            test "$(stat -c %s "$file")" -le 5000000
+            case "$relative" in
+              */state.json)
+                sha=${relative%/state.json}
+                sha=${sha##*/}
+                jq -e --arg sha "$sha" '.commit_sha == $sha and (.repository_url | type) == "string" and (.inspection_revision | type) == "number" and (.stages | type) == "object"' "$file" >/dev/null
+                ;;
+              */response.json)
+                jq -e 'keys == ["structured_output", "total_cost_usd"] and (.structured_output | type) == "object" and (.total_cost_usd | type) == "number"' "$file" >/dev/null
+                ;;
+              */request.sha256)
+                test "$(wc -l < "$file")" -eq 1
+                grep -Eq '^[0-9a-f]{64}$' "$file"
+                ;;
+              *.json) jq -e . "$file" >/dev/null ;;
+            esac
+          done < <(find "$root" -type f -print0)
+          mkdir -p .worthit/runs
+          cp -a -- "$root/runs/." .worthit/runs/
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: candidate-state
@@ -87,6 +126,61 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           MAX_LLM_COST_PER_REPO: "5"
           MAX_TOTAL_DAILY_LLM_COST: "25"
+      - name: Stage bounded evaluator state
+        id: stage-resume
+        if: always()
+        run: |
+          set -euo pipefail
+          root=.worthit/resume-cache
+          rm -rf -- "$root"
+          mkdir -p "$root/runs"
+          list="$RUNNER_TEMP/worthit-resume-states"
+          : > "$list"
+          now=$(date -u +%s)
+          cutoff=$((now - 14 * 24 * 60 * 60))
+          while IFS= read -r -d '' state; do
+            updated=$(jq -er '[.stages[]?.updated_at] | max // empty' "$state") || continue
+            updated_epoch=$(date -u -d "$updated" +%s) || continue
+            if (( updated_epoch >= cutoff && updated_epoch <= now + 300 )); then
+              printf '%s\t%s\n' "$updated_epoch" "$state" >> "$list"
+            fi
+          done < <(find .worthit/runs -mindepth 3 -maxdepth 3 -type f -name state.json -print0 2>/dev/null)
+          count=0
+          while IFS=$'\t' read -r _ state; do
+            run_dir=${state%/state.json}
+            relative=${run_dir#".worthit/runs/"}
+            [[ "$relative" =~ ^[^/]+/[0-9a-f]{40}$ ]] || continue
+            sha=${relative##*/}
+            jq -e --arg sha "$sha" '.commit_sha == $sha and (.repository_url | type) == "string" and (.inspection_revision | type) == "number" and (.stages | type) == "object"' "$state" >/dev/null || continue
+            destination="$root/runs/$relative"
+            mkdir -p "$destination"
+            jq '{repository_url, commit_sha, inspection_revision, stages: (.stages | map_values({status, updated_at}))}' "$state" > "$destination/state.json"
+            while IFS= read -r -d '' file; do
+              model_file=${file#"$run_dir/"}
+              [[ "$model_file" =~ ^[^/]*-model[^/]*/(response\.json|request\.sha256)$ ]] || continue
+              test "$(stat -c %s "$file")" -le 5000000 || continue
+              mkdir -p "$destination/${model_file%/*}"
+              if [[ "$model_file" == */response.json ]]; then
+                jq -e '(.structured_output | type) == "object" and (.total_cost_usd | type) == "number"' "$file" >/dev/null || continue
+                jq '{structured_output, total_cost_usd}' "$file" > "$destination/$model_file"
+              elif grep -Eq '^[0-9a-f]{64}$' "$file"; then
+                install -m 600 "$file" "$destination/$model_file"
+              fi
+            done < <(find "$run_dir" -mindepth 2 -maxdepth 2 -type f \( -name response.json -o -name request.sha256 \) -print0)
+            if test "$(du -sb "$root" | cut -f1)" -gt 52428800; then
+              rm -rf -- "$destination"
+              continue
+            fi
+            count=$((count + 1))
+            test "$count" -lt 20 || break
+          done < <(sort -rn "$list")
+          test "$(find "$root" -type f | wc -l)" -le 750
+      - name: Save bounded evaluator state
+        if: always() && steps.stage-resume.outcome == 'success' && steps.resume-cache.outputs.cache-primary-key != ''
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: .worthit/resume-cache
+          key: ${{ steps.resume-cache.outputs.cache-primary-key }}
       - name: Build and sanitize release state
         run: |
           worthit build-site --base-path /worthit/ --site-url https://drj0e.github.io/worthit

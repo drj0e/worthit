@@ -4,6 +4,7 @@
 - Commit tested: `111746bbae5f55c88e3b82b42f14fd0f3129ea53`
 - Tool version output: [`uglify-js 3.19.3`](evidence/final/version/stdout.txt)
 - Date tested: 2026-08-14
+- WorthIt version: `0.1.0`
 - Category: CLI utility
 - WorthIt Score: 87/100
 - Confidence: HIGH
@@ -120,7 +121,7 @@ The slowest accepted test took 1776 ms. Peak measured test RAM was 10.5 MiB. No 
 
 Source archive SHA-256: `0bcdc7aa9cb59330cc79b1e553f22385182d47d89711a9f42144ffd5761d07e9`. The exact commit was run twice with candidate network disabled. The backend was docker/runc with seccomp and AppArmor; runc shares the host kernel. This is not a guarantee that the repository is safe.
 
-Structured provenance: [risk assessment](risk.json), [sandbox environment](environment.json), [dependency fetch](dependency-fetch.json), and [reproducibility comparison](reproducibility.json).
+Structured provenance: [final run](run.json), [replay run](replay.json), [risk assessment](risk.json), [sandbox environment](environment.json), [dependency fetch](dependency-fetch.json), and [reproducibility comparison](reproducibility.json).
 
 ## Limitations
 

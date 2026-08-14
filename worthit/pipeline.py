@@ -66,6 +66,12 @@ def evaluate_repository(
         repository = refresh_repository_inspection(repository, run_dir)
         if not (repository.get("environment") or {}).get("supported"):
             raise ValueError("repository is outside the supported V1 CLI execution tracks")
+        requirements = repository.get("v1_requirements")
+        if not isinstance(requirements, dict) or requirements.get("passed") is not True:
+            classification = (
+                requirements.get("classification") if isinstance(requirements, dict) else "MISSING"
+            )
+            raise ValueError(f"repository does not pass the V1 requirements gate: {classification}")
         _stage(state, run_dir, current, "COMPLETE")
 
         current = "risk_assess"
