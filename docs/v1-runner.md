@@ -1,16 +1,25 @@
 # V1 runner decision and implementation plan
 
-Status: accepted for the first real evaluation, 2026-08-14.
+Status: accepted and exercised across Python and Node, 2026-08-14.
 
 ## Promise and scope
 
 The V1 promise is: **we actually ran the thing**.
 
-The first supported track is a public, open-source, CPU-testable Python CLI with
-static PEP 517 metadata, PyPI wheel dependencies, documented local behavior, no
-required paid service, and no suspicious static findings. Unsupported projects
-are recorded as `UNVERIFIED` or skipped; they are never forced through the wrong
-track.
+The supported proving tracks are public, open-source, CPU-testable CLIs with
+documented local behavior, no required paid service, and no blocking static
+finding:
+
+- Python with static PEP 517 metadata and wheel-only dependencies;
+- Node with a root `package.json`, declared `bin`, no runtime dependencies, and
+  no lifecycle scripts;
+- Go with a root `package main`, pinned `go.mod`/`go.sum`, and no `replace`
+  directive.
+
+Unsupported projects are recorded as `UNVERIFIED` or skipped; they are never
+forced through the wrong track. These boundaries came from the three-repository
+proof and are ceilings, not a claim that every repository in an ecosystem is
+supported.
 
 The first gate is one real repository from URL to local static review. The next
 gate is clean reproduction across Python, Node/TypeScript, and a Rust/Go utility.
@@ -23,9 +32,11 @@ environments.
    metadata and a commit archive but never imports or executes candidate code.
 2. **Planner:** receives bounded, sanitized text. Its model process has no tools.
    Output is treated as untrusted JSON and validated against the execution DSL.
-3. **Dependency fetcher:** receives validated PyPI requirement strings but no
-   candidate source and downloads wheels only.
-4. **Evaluator:** receives source and the offline wheelhouse but no credentials,
+3. **Dependency fetcher:** receives validated PyPI requirement strings or only
+   `go.mod`/`go.sum`, never candidate source. Python downloads wheels only; Go
+   uses `proxy.golang.org` plus the checksum database and exports a hashed local
+   module proxy. The bounded Node track has no dependency fetch.
+4. **Evaluator:** receives source and the offline dependency bundle but no credentials,
    host mounts, host environment, Docker socket, or network.
 5. **Publisher:** consumes only validated JSON and capped text evidence. It does
    not execute candidate artifacts or render candidate HTML/Markdown.
@@ -62,9 +73,13 @@ well-established repositories classified `TRUSTED_ENOUGH_TO_TEST` may run, and
 the operator must explicitly acknowledge this backend. `TEST_WITH_RESTRICTIONS`
 and lower classifications fail closed.
 
-The install-time network problem is avoided rather than waved away: dependency
-wheels are prefetched by a separate container that never receives candidate
-source. Candidate build hooks execute only in the offline evaluator.
+The install-time network problem is avoided rather than waved away. Dependency
+artifacts are prefetched by a separate container that never receives candidate
+source. Node installation uses `--ignore-scripts --offline`. Go compilation uses
+a local file proxy, readonly module graph, local toolchain, and disabled CGO.
+Candidate code executes only in the network-disabled evaluator. The dependency
+tree hash is part of the execution-contract digest, so changed staged artifacts
+invalidate cached test results.
 
 Commit archives can omit metadata required by VCS-based build backends. The
 Python track detects declared `hatch-vcs`/`setuptools-scm` versioning and supplies
@@ -97,8 +112,10 @@ warm repair evidence alone cannot support publication.
 Warm plan repair is mechanically bounded. It cannot change commands, inputs,
 setup files, timeouts, claim mappings, or edge labels. Exit-code corrections
 must equal the diagnostic exit; output and file assertions cannot be removed or
-replaced unless the replacement exists in captured warm evidence. A second model
-critiques the repair before either cold run.
+replaced unless the replacement exists in captured warm evidence. Multiple
+failed output guesses may collapse to one replacement only when it covers at
+least 80% of an observed output line. A second model critiques the repair before
+either cold run.
 
 ## Decision rules
 
@@ -122,21 +139,22 @@ critiques the repair before either cold run.
 ## Implementation sequence
 
 1. Implement strict GitHub URL parsing, metadata/archive retrieval, safe archive
-   extraction, repository evidence discovery, Python metadata detection, and
-   static risk classification.
+   extraction, repository evidence discovery, bounded Python/Node/Go metadata
+   detection, and static risk classification.
 2. Implement validated claim and command-plan schemas plus tool-disabled Claude
    planner and independent critic calls, retaining every input/output artifact.
-3. Implement the hardened Docker backend, offline wheel prefetch, source staging,
-   install/verify/test execution, capped traces, measurements, and teardown.
+3. Implement the hardened Docker backend, ecosystem-specific source-free
+   dependency staging, source installation/build, capped traces, measurements,
+   and teardown.
 4. Implement claim evaluation, scores, confidence, setup friction, Bullshit
    Ratio, deterministic review generation, fact checks, prose lint, and escaped
    static HTML.
 5. Run controlled hostile fixtures for credential isolation, path traversal,
    output limits, timeout cleanup, unsafe plans, secret redaction, stored XSS,
    and resume behavior.
-6. Evaluate one established Python CLI from its exact GitHub commit, repair the
-   runner rather than the project, cold-replay the accepted contract, and build
-   the review locally.
+6. Evaluate established Python, Node, and Go CLIs from exact GitHub commits,
+   repair the runner rather than the project, cold-replay each accepted contract,
+   and build each review locally.
 7. Ask Claude to challenge the plan before execution and independently audit the
    final evidence/review. Resolve valid findings and commit the milestone.
 
@@ -164,10 +182,13 @@ Completed on 2026-08-14:
 - deterministic claim matrix, scoring, confidence, Bullshit Ratio, review,
   fact check, editorial critique, and escaped static publication;
 - first real isort evaluation with 7/7 accepted tests reproduced twice.
+- UglifyJS evaluation with 6/6 accepted tests reproduced twice, including file,
+  STDIN, output-file, source-map, cross-file, and malformed-input workflows;
+- all three evaluator images passed the live mount, secret, socket, network,
+  timeout, and teardown isolation probe.
 
 Daily mode stays disabled. The remaining three-repository-gate work is a
-Node/TypeScript CLI track, a Rust or Go compiled-utility track, one real review
-from each, comparison of their actual bootstrap failure modes, and a clean rerun
-of all three. Stronger-than-runc isolation remains required before lowering the
-current established-project trust threshold or enabling broader unattended
-execution.
+real Go review, comparison of the three actual bootstrap failure modes, and a
+clean rerun of all three. Stronger-than-runc isolation remains required before
+lowering the current established-project trust threshold or enabling broader
+unattended execution.

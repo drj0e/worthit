@@ -11,12 +11,13 @@ import tomllib
 import urllib.error
 import urllib.parse
 import urllib.request
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import IO, Any, cast
 
-from .models import RiskFinding, RiskReport, TrustClass, atomic_json
+from .models import SAFE_ENTRYPOINT, RiskFinding, RiskReport, TrustClass, atomic_json, safe_relative
 
 GITHUB_REPO = re.compile(r"^https://github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?/?$")
 COMMIT = re.compile(r"^[0-9a-fA-F]{7,40}$")
@@ -25,6 +26,20 @@ BIDI = dict.fromkeys(map(ord, "\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\
 MAX_ARCHIVE_BYTES = 100 * 1024 * 1024
 MAX_EXTRACT_BYTES = 250 * 1024 * 1024
 MAX_FILES = 30_000
+OPEN_SOURCE_SPDX = {
+    "0BSD",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "GPL-2.0-only",
+    "GPL-3.0-only",
+    "ISC",
+    "LGPL-2.1-only",
+    "LGPL-3.0-only",
+    "MIT",
+    "MPL-2.0",
+    "Unlicense",
+}
 
 IMPORTANT_NAMES = {
     "README",
@@ -187,6 +202,15 @@ def inspect_repository(url: str, run_dir: Path, commit: str | None = None) -> di
         raise ValueError("extracted source inventory changed before inspection")
     environment = detect_environment(source_dir)
     important = collect_important_evidence(source_dir)
+    api_license = str((repo.get("license") or {}).get("spdx_id") or "")
+    declared_license = str(environment.get("declared_license") or "")
+    license_id = (
+        api_license
+        if api_license not in {"", "NOASSERTION", "OTHER"}
+        else declared_license
+        if declared_license in OPEN_SOURCE_SPDX
+        else api_license
+    )
     metadata = {
         "repository": ref.slug,
         "owner": ref.owner,
@@ -195,7 +219,8 @@ def inspect_repository(url: str, run_dir: Path, commit: str | None = None) -> di
         "description": clean_text(str(repo.get("description") or ""), 2_000),
         "primary_language": repo.get("language"),
         "topics": [clean_text(str(topic), 120) for topic in repo.get("topics", [])[:50]],
-        "license": (repo.get("license") or {}).get("spdx_id"),
+        "license": license_id,
+        "license_source": "GitHub license API" if license_id == api_license else "package.json",
         "created_at": repo.get("created_at"),
         "updated_at": repo.get("updated_at"),
         "pushed_at": repo.get("pushed_at"),
@@ -337,6 +362,12 @@ def detect_environment(source_dir: Path) -> dict[str, Any]:
     result: dict[str, Any] = {"markers": markers[:200], "track": None, "supported": False}
     pyproject = source_dir / "pyproject.toml"
     if not pyproject.exists():
+        package = source_dir / "package.json"
+        if package.exists():
+            return _detect_node_cli(source_dir, package, result)
+        go_mod = source_dir / "go.mod"
+        if go_mod.exists():
+            return _detect_go_cli(source_dir, go_mod, result)
         return result
     try:
         data = tomllib.loads(pyproject.read_text(encoding="utf-8")[:2_000_000])
@@ -370,6 +401,141 @@ def detect_environment(source_dir: Path) -> dict[str, Any]:
             "lockfiles": [
                 name for name in ("uv.lock", "poetry.lock", "Pipfile.lock") if (source_dir / name).exists()
             ],
+        }
+    )
+    return result
+
+
+def _detect_node_cli(source_dir: Path, package: Path, result: dict[str, Any]) -> dict[str, Any]:
+    try:
+        raw = json.loads(package.read_text(encoding="utf-8")[:2_000_000])
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        result["parse_error"] = str(error)
+        return result
+    if not isinstance(raw, dict):
+        result["parse_error"] = "package.json is not an object"
+        return result
+    name = raw.get("name")
+    bin_value = raw.get("bin")
+    bins: dict[str, str] = {}
+    if isinstance(bin_value, str) and isinstance(name, str):
+        bins[name.rsplit("/", 1)[-1]] = bin_value
+    elif isinstance(bin_value, dict):
+        bins = {str(key): str(value) for key, value in list(bin_value.items())[:30]}
+    entrypoints: dict[str, str] = {}
+    invalid_bins: list[str] = []
+    for entrypoint, target_value in bins.items():
+        try:
+            target = safe_relative(target_value, "Node bin target")
+        except ValueError:
+            invalid_bins.append(entrypoint)
+            continue
+        path = source_dir / target
+        if SAFE_ENTRYPOINT.fullmatch(entrypoint) and path.is_file() and not path.is_symlink():
+            entrypoints[entrypoint] = target
+        else:
+            invalid_bins.append(entrypoint)
+    dependency_fields = ("dependencies", "optionalDependencies", "peerDependencies")
+    invalid_dependency_fields = [
+        field
+        for field in dependency_fields
+        if raw.get(field) is not None and not isinstance(raw.get(field), dict)
+    ]
+    dependencies = {
+        field: value for field in dependency_fields if isinstance((value := raw.get(field)), dict) and value
+    }
+    scripts_value = raw.get("scripts")
+    scripts = cast(dict[str, Any], scripts_value) if isinstance(scripts_value, dict) else {}
+    lifecycle = {
+        key: str(scripts[key])
+        for key in ("preinstall", "install", "postinstall", "prepare")
+        if key in scripts
+    }
+    result.update(
+        {
+            "track": "node-cli",
+            "supported": bool(entrypoints)
+            and not invalid_bins
+            and not dependencies
+            and not invalid_dependency_fields
+            and not lifecycle,
+            "project_name": name,
+            "project_version": raw.get("version"),
+            "declared_license": raw.get("license") if isinstance(raw.get("license"), str) else None,
+            "requires_node": (raw.get("engines") or {}).get("node")
+            if isinstance(raw.get("engines"), dict)
+            else None,
+            "entrypoints": entrypoints,
+            "dependencies": dependencies,
+            "invalid_dependency_fields": invalid_dependency_fields,
+            "lifecycle_scripts": lifecycle,
+            "install_strategy": "npm-source-offline-ignore-scripts",
+            "invalid_bins": invalid_bins,
+            "lockfiles": [
+                name
+                for name in ("package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "yarn.lock")
+                if (source_dir / name).exists()
+            ],
+        }
+    )
+    return result
+
+
+def _detect_go_cli(source_dir: Path, go_mod: Path, result: dict[str, Any]) -> dict[str, Any]:
+    try:
+        text = go_mod.read_text(encoding="utf-8")[:2_000_000]
+    except (OSError, UnicodeDecodeError) as error:
+        result["parse_error"] = str(error)
+        return result
+    module_match = re.search(r"(?m)^\s*module\s+(\S+)\s*$", text)
+    version_match = re.search(r"(?m)^\s*go\s+([0-9]+(?:\.[0-9]+){1,2})\s*$", text)
+    module = module_match.group(1) if module_match else ""
+    entrypoint = module.rstrip("/").rsplit("/", 1)[-1]
+    requirements: list[str] = []
+    in_require = False
+    for line in text.splitlines():
+        stripped = line.split("//", 1)[0].strip()
+        if stripped == "require (":
+            in_require = True
+            continue
+        if in_require and stripped == ")":
+            in_require = False
+            continue
+        if stripped.startswith("require "):
+            stripped = stripped.removeprefix("require ").strip()
+        elif not in_require:
+            continue
+        parts = stripped.split()
+        if len(parts) >= 2:
+            requirements.append(f"{parts[0]} {parts[1]}")
+    has_replace = bool(re.search(r"(?m)^\s*replace(?:\s|\()", text))
+    main = source_dir / "main.go"
+    root_main = False
+    if main.is_file() and not main.is_symlink():
+        with suppress(OSError, UnicodeDecodeError):
+            root_main = bool(
+                re.search(r"(?m)^\s*package\s+main\s*$", main.read_text(encoding="utf-8")[:1_000_000])
+            )
+    valid_entrypoint = bool(SAFE_ENTRYPOINT.fullmatch(entrypoint))
+    result.update(
+        {
+            "track": "go-cli",
+            "supported": bool(module_match)
+            and valid_entrypoint
+            and root_main
+            and not has_replace
+            and (not requirements or (source_dir / "go.sum").is_file()),
+            "project_name": entrypoint or None,
+            "project_version": None,
+            "requires_go": version_match.group(1) if version_match else None,
+            "module": module or None,
+            "entrypoints": {entrypoint: "."} if valid_entrypoint and root_main else {},
+            "dependencies": requirements[:250],
+            "has_go_sum": (source_dir / "go.sum").is_file(),
+            "has_replace_directive": has_replace,
+            "build_target": ".",
+            "install_strategy": "go-build-offline-module-proxy",
+            "lockfiles": ["go.sum"] if (source_dir / "go.sum").is_file() else [],
         }
     )
     return result
@@ -412,6 +578,11 @@ RISK_PATTERNS: list[tuple[str, str, re.Pattern[str]]] = [
     ("HIGH", "persistence", re.compile(r"\b(?:crontab|systemctl\s+enable|/etc/cron\.)\b")),
     ("HIGH", "privilege_escalation", re.compile(r"\b(?:sudo\s+|setcap\s+|chmod\s+(?:-R\s+)?777\s+/)")),
     (
+        "HIGH",
+        "shell_execution",
+        re.compile(r"exec\.Command(?:Context)?\s*\(\s*[\"'](?:/bin/)?(?:sh|bash)[\"']\s*,\s*[\"']-c[\"']"),
+    ),
+    (
         "MEDIUM",
         "encoded_execution",
         re.compile(r"\bbase64\s+(?:-d|--decode)[^\n|]{0,300}\|\s*(?:sh|bash|python)\b"),
@@ -426,6 +597,7 @@ EXECUTION_RELEVANT = {
     ".mjs",
     ".cjs",
     ".ts",
+    ".go",
     ".ps1",
     ".yml",
     ".yaml",
@@ -458,6 +630,7 @@ def assess_risk(source_dir: Path, repository: dict[str, Any]) -> RiskReport:
             "Dockerfile",
             "Makefile",
             "configure",
+            "package.json",
         }:
             continue
         try:
@@ -475,7 +648,12 @@ def assess_risk(source_dir: Path, repository: dict[str, Any]) -> RiskReport:
                 evidence = clean_text(
                     text[max(0, match.start() - 80) : match.end() + 120].replace("\n", " "), 300
                 )
-                findings.append(RiskFinding(severity, category, rel, line, evidence))
+                effective_severity = (
+                    "MEDIUM"
+                    if category == "privilege_escalation" and rel.startswith(".github/workflows/")
+                    else severity
+                )
+                findings.append(RiskFinding(effective_severity, category, rel, line, evidence))
                 if len(findings) >= 200:
                     break
             if len(findings) >= 200:

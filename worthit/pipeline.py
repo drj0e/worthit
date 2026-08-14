@@ -15,7 +15,6 @@ from .runner import (
     RunnerConfig,
     vcs_version_fallback,
     verify_source_snapshot,
-    verify_wheelhouse,
 )
 from .site import build_site
 
@@ -58,7 +57,7 @@ def evaluate_repository(
         if repository.get("commit_sha") != sha or repository.get("url") != ref.url:
             raise ValueError("cached repository identity does not match this run")
         if not (repository.get("environment") or {}).get("supported"):
-            raise ValueError("repository is outside the V1 static Python CLI track")
+            raise ValueError("repository is outside the supported V1 CLI execution tracks")
         _stage(state, run_dir, current, "COMPLETE")
 
         current = "risk_assess"
@@ -95,20 +94,19 @@ def evaluate_repository(
         source = run_dir / "source"
         checkout_report = verify_source_snapshot(source, run_dir / "source.tar.gz", repository)
         atomic_json(run_dir / "checkout.json", checkout_report)
-        runner = DockerRunner(run_dir, RunnerConfig.from_env(allow_runc=allow_runc), trust)
+        environment = repository["environment"]
+        if not isinstance(environment, dict):
+            raise ValueError("repository environment metadata is invalid")
+        runner = DockerRunner(run_dir, RunnerConfig.from_env(allow_runc=allow_runc), trust, environment)
         runner.preflight()
-        install_environment, install_adjustments = vcs_version_fallback(repository["environment"], sha)
-        if (run_dir / "dependency-fetch.json").exists():
-            wheelhouse = verify_wheelhouse(run_dir)
-        else:
-            runner.prefetch_wheels(repository["environment"])
-            wheelhouse = verify_wheelhouse(run_dir)
+        install_environment, install_adjustments = vcs_version_fallback(environment, sha)
+        dependency_dir = runner.prepare_dependencies(source)
         _stage(state, run_dir, current, "COMPLETE")
 
         current = "diagnostic_run"
         _stage(state, run_dir, current, "RUNNING")
         warm = _execute_or_resume(
-            runner, source, plan, wheelhouse, "warm", install_environment, install_adjustments
+            runner, source, plan, dependency_dir, "warm", install_environment, install_adjustments
         )
         if warm.get("status") != "COMPLETE":
             raise ValueError("clean installation failed; review cannot proceed")
@@ -129,10 +127,10 @@ def evaluate_repository(
         current = "clean_replay"
         _stage(state, run_dir, current, "RUNNING")
         final_run = _execute_or_resume(
-            runner, source, plan, wheelhouse, "final", install_environment, install_adjustments
+            runner, source, plan, dependency_dir, "final", install_environment, install_adjustments
         )
         replay_run = _execute_or_resume(
-            runner, source, plan, wheelhouse, "replay", install_environment, install_adjustments
+            runner, source, plan, dependency_dir, "replay", install_environment, install_adjustments
         )
         _stage(state, run_dir, current, "COMPLETE")
 
@@ -187,7 +185,7 @@ def _execute_or_resume(
     runner: DockerRunner,
     source: Path,
     plan: TestPlan,
-    wheelhouse: Path,
+    dependency_dir: Path,
     label: str,
     install_environment: dict[str, str],
     install_adjustments: list[dict[str, str]],
@@ -200,7 +198,7 @@ def _execute_or_resume(
         ):
             return cached
     executed = jsonable(
-        runner.execute_plan(source, plan, wheelhouse, label, install_environment, install_adjustments)
+        runner.execute_plan(source, plan, dependency_dir, label, install_environment, install_adjustments)
     )
     if not isinstance(executed, dict):
         raise TypeError("runner result was not an object")

@@ -15,7 +15,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import BinaryIO
+from typing import BinaryIO, cast
 
 from .inspect import clean_text, source_tree_report
 from .models import (
@@ -27,9 +27,15 @@ from .models import (
     TrustClass,
     atomic_json,
     jsonable,
+    safe_relative,
 )
 
 IMAGE = "worthit-python:0.2"
+IMAGES = {
+    "python-cli": (IMAGE, "python.Dockerfile", ["python", "--version"]),
+    "node-cli": ("worthit-node:0.2", "node.Dockerfile", ["node", "--version"]),
+    "go-cli": ("worthit-go:0.2", "go.Dockerfile", ["go", "version"]),
+}
 MANAGED_LABEL = "worthit.managed=true"
 REQUIREMENT = re.compile(
     r"^[A-Za-z0-9][A-Za-z0-9_.-]*(?:\[[A-Za-z0-9_,.-]+\])?(?:\s*(?:===|==|~=|!=|<=|>=|<|>)\s*[A-Za-z0-9*+_.!-]+)?(?:\s*;\s*[A-Za-z0-9_ .<>=!'\"()andor-]+)?$"
@@ -105,10 +111,22 @@ def verify_source_snapshot(source: Path, archive: Path, repository: dict[str, ob
 
 
 class DockerRunner:
-    def __init__(self, run_dir: Path, config: RunnerConfig, trust: TrustClass) -> None:
+    def __init__(
+        self,
+        run_dir: Path,
+        config: RunnerConfig,
+        trust: TrustClass,
+        environment: dict[str, object] | None = None,
+    ) -> None:
         self.run_dir = run_dir.resolve()
         self.config = config
         self.trust = trust
+        self.environment = environment or {"track": "python-cli"}
+        self.track = str(self.environment.get("track") or "")
+        try:
+            self.image, self.dockerfile, self.toolchain_command = IMAGES[self.track]
+        except KeyError as error:
+            raise SandboxUnavailable(f"unsupported runner track {self.track!r}") from error
 
     def preflight(self) -> dict[str, object]:
         if shutil.which("docker") is None:
@@ -155,7 +173,7 @@ class DockerRunner:
         self._ensure_image()
         image = json.loads(
             subprocess.run(
-                ["docker", "image", "inspect", IMAGE, "--format", "{{json .}}"],
+                ["docker", "image", "inspect", self.image, "--format", "{{json .}}"],
                 text=True,
                 capture_output=True,
                 timeout=15,
@@ -165,15 +183,44 @@ class DockerRunner:
         self._image_id = str(image.get("Id") or "")
         if not self._image_id:
             raise SandboxUnavailable("trusted evaluator image has no immutable ID")
+        toolchain = subprocess.run(
+            [
+                "docker",
+                "run",
+                "--rm",
+                "--runtime",
+                runtime,
+                "--network",
+                "none",
+                "--read-only",
+                "--user",
+                "65534:65534",
+                "--cap-drop",
+                "ALL",
+                "--security-opt",
+                "no-new-privileges:true",
+                self.image,
+                *self.toolchain_command,
+            ],
+            text=True,
+            capture_output=True,
+            timeout=30,
+            check=False,
+        )
+        if toolchain.returncode:
+            raise SandboxUnavailable("trusted evaluator image toolchain probe failed")
+        self._toolchain_version = clean_text((toolchain.stdout + toolchain.stderr).strip(), 500)
         report = {
             "backend": "docker",
+            "track": self.track,
             "runtime": runtime,
             "security_options": options,
             "rootless": any(option == "name=rootless" for option in options),
             "cgroup_version": parsed.get("CgroupVersion"),
-            "image": IMAGE,
+            "image": self.image,
             "image_id": self._image_id,
             "image_digests": image.get("RepoDigests", []),
+            "toolchain": self._toolchain_version,
             "limits": {
                 "memory": self.config.memory,
                 "cpus": self.config.cpus,
@@ -197,10 +244,49 @@ class DockerRunner:
             "image_id": getattr(self, "_image_id", ""),
             "runtime": getattr(self, "_runtime", ""),
             "limits": jsonable(self.config),
+            "track": self.track,
+            "dependency_bundle_sha256": getattr(self, "_dependency_sha256", ""),
         }
-        if not context["image_id"] or not context["runtime"]:
-            raise SandboxUnavailable("runner preflight must precede execution digest calculation")
+        if not context["image_id"] or not context["runtime"] or not context["dependency_bundle_sha256"]:
+            raise SandboxUnavailable("runner preflight and dependency preparation must precede execution")
         return execution_contract_sha256(plan, install_environment, context)
+
+    def prepare_dependencies(self, source: Path) -> Path:
+        report_path = self.run_dir / "dependency-fetch.json"
+        if self.track == "python-cli":
+            if not report_path.exists():
+                self.prefetch_wheels(self.environment)
+            bundle = verify_wheelhouse(self.run_dir)
+        elif self.track == "node-cli":
+            dependencies = self.environment.get("dependencies")
+            lifecycle = self.environment.get("lifecycle_scripts")
+            if dependencies or lifecycle:
+                raise SandboxUnavailable(
+                    "V1 Node execution requires no runtime dependencies or lifecycle scripts"
+                )
+            bundle = self.run_dir / "node-dependencies"
+            bundle.mkdir(parents=True, exist_ok=True)
+            tree = source_tree_report(bundle)
+            if not report_path.exists():
+                atomic_json(
+                    report_path,
+                    {
+                        "ecosystem": "npm",
+                        "network_phase": "none; package.json declared no runtime dependencies",
+                        "candidate_code_executed": False,
+                        "artifacts": [],
+                        "total_bytes": 0,
+                        "bundle_sha256": tree["sha256"],
+                    },
+                )
+            verify_dependency_bundle(bundle, report_path)
+        else:
+            if not report_path.exists():
+                self.prefetch_go_modules(source)
+            bundle = self.run_dir / "go-module-proxy"
+            verify_dependency_bundle(bundle, report_path)
+        self._dependency_sha256 = str(source_tree_report(bundle)["sha256"])
+        return bundle
 
     def prefetch_wheels(self, environment: dict[str, object]) -> dict[str, object]:
         build_requires = environment.get("build_requires")
@@ -244,7 +330,7 @@ class DockerRunner:
             "1",
             "--env",
             "HOME=/tmp",
-            IMAGE,
+            self.image,
             "sleep",
             "infinity",
         ]
@@ -309,13 +395,175 @@ class DockerRunner:
             if total > 1024 * 1024 * 1024:
                 raise SandboxUnavailable("wheelhouse exceeded 1 GB")
             wheels.append({"name": path.name, "bytes": path.stat().st_size, "sha256": _sha256(path)})
+        tree = source_tree_report(wheel_dir)
         report = {
+            "ecosystem": "pypi",
             "requirements": requirements,
             "network_phase": "PyPI wheel fetch only; candidate source was not present",
             "candidate_code_executed": False,
             "wheels": wheels,
+            "artifacts": wheels,
             "total_bytes": total,
+            "bundle_sha256": tree["sha256"],
             "trace": jsonable(trace),
+        }
+        atomic_json(self.run_dir / "dependency-fetch.json", report)
+        return report
+
+    def prefetch_go_modules(self, source: Path) -> dict[str, object]:
+        go_mod = source / "go.mod"
+        go_sum = source / "go.sum"
+        if not go_mod.is_file() or go_mod.is_symlink() or not go_sum.is_file() or go_sum.is_symlink():
+            raise SandboxUnavailable("Go dependency staging requires regular go.mod and go.sum files")
+        destination = self.run_dir / "go-module-proxy"
+        if destination.exists() and not any(destination.iterdir()):
+            destination.rmdir()
+        destination.mkdir(parents=True, exist_ok=False)
+        name = f"worthit-fetch-{uuid.uuid4().hex[:12]}"
+        create = [
+            "docker",
+            "create",
+            "--name",
+            name,
+            "--label",
+            MANAGED_LABEL,
+            "--network",
+            "bridge",
+            "--read-only",
+            "--tmpfs",
+            "/tmp:rw,nosuid,nodev,noexec,size=128m,mode=1777",
+            "--tmpfs",
+            "/manifests:rw,nosuid,nodev,noexec,size=8m,mode=1777",
+            "--tmpfs",
+            "/go:rw,nosuid,nodev,noexec,size=1g,mode=1777",
+            "--user",
+            "65534:65534",
+            "--cap-drop",
+            "ALL",
+            "--security-opt",
+            "no-new-privileges:true",
+            "--pids-limit",
+            "128",
+            "--memory",
+            "1g",
+            "--memory-swap",
+            "1g",
+            "--cpus",
+            "1",
+            "--env",
+            "HOME=/tmp",
+            "--env",
+            "GOENV=off",
+            "--env",
+            "GOTOOLCHAIN=local",
+            "--env",
+            "GOPROXY=https://proxy.golang.org",
+            "--env",
+            "GOSUMDB=sum.golang.org",
+            "--env",
+            "GOVCS=*:off",
+            "--env",
+            "GOMODCACHE=/go/pkg/mod",
+            "--env",
+            "GOCACHE=/go/cache",
+            self.image,
+            "sleep",
+            "infinity",
+        ]
+        evidence = self.run_dir / "evidence" / "dependency-fetch"
+        try:
+            created = subprocess.run(create, text=True, capture_output=True, timeout=30, check=False)
+            if created.returncode:
+                raise SandboxUnavailable(f"could not create Go dependency fetcher: {created.stderr[-500:]}")
+            started = subprocess.run(
+                ["docker", "start", name], text=True, capture_output=True, timeout=30, check=False
+            )
+            if started.returncode:
+                raise SandboxUnavailable(f"could not start Go dependency fetcher: {started.stderr[-500:]}")
+            for manifest in (go_mod, go_sum):
+                copied = subprocess.run(
+                    ["docker", "cp", str(manifest), f"{name}:/manifests/{manifest.name}"],
+                    text=True,
+                    capture_output=True,
+                    timeout=30,
+                    check=False,
+                )
+                if copied.returncode:
+                    raise SandboxUnavailable(f"could not stage {manifest.name}: {copied.stderr[-500:]}")
+            environment = [
+                "--env",
+                "HOME=/tmp",
+                "--env",
+                "GOENV=off",
+                "--env",
+                "GOTOOLCHAIN=local",
+                "--env",
+                "GOPROXY=https://proxy.golang.org",
+                "--env",
+                "GOSUMDB=sum.golang.org",
+                "--env",
+                "GOVCS=*:off",
+                "--env",
+                "GOMODCACHE=/go/pkg/mod",
+                "--env",
+                "GOCACHE=/go/cache",
+            ]
+            prefix = [
+                "docker",
+                "exec",
+                "-i",
+                "--user",
+                "65534:65534",
+                "--workdir",
+                "/manifests",
+                *environment,
+                name,
+            ]
+            download = run_capped(
+                [*prefix, "go", "mod", "download", "all"],
+                evidence / "download",
+                "dependency-fetch",
+                self.config.install_timeout,
+                self.config.output_bytes,
+                None,
+                name,
+            )
+            if download.exit_code != 0:
+                raise SandboxUnavailable("checksum-backed Go module download failed")
+            verify = run_capped(
+                [*prefix, "go", "mod", "verify"],
+                evidence / "verify",
+                "dependency-verify",
+                self.config.install_timeout,
+                self.config.output_bytes,
+                None,
+                name,
+            )
+            if verify.exit_code != 0:
+                raise SandboxUnavailable("go mod verify rejected the fetched dependency cache")
+            artifacts = _extract_module_proxy(name, destination)
+        finally:
+            subprocess.run(
+                ["docker", "rm", "-f", name],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
+        tree = source_tree_report(destination)
+        report = {
+            "ecosystem": "go",
+            "network_phase": "proxy.golang.org and sum.golang.org via the Go tool; candidate source was not present",
+            "candidate_code_executed": False,
+            "manifests": {
+                "go.mod": _sha256(go_mod),
+                "go.sum": _sha256(go_sum),
+            },
+            "artifacts": artifacts,
+            "total_bytes": sum(cast(int, item["bytes"]) for item in artifacts),
+            "bundle_sha256": tree["sha256"],
+            "download_trace": jsonable(download),
+            "verify_trace": jsonable(verify),
+            "verified": True,
         }
         atomic_json(self.run_dir / "dependency-fetch.json", report)
         return report
@@ -324,27 +572,29 @@ class DockerRunner:
         self,
         source: Path,
         plan: TestPlan,
-        wheel_dir: Path,
+        dependency_dir: Path,
         label: str,
         install_environment: dict[str, str],
         install_adjustments: list[dict[str, str]],
     ) -> dict[str, object]:
-        sandbox = Sandbox(self.run_dir, self.config, getattr(self, "_runtime", self.config.runtime), label)
+        entrypoints = self.environment.get("entrypoints")
+        if not isinstance(entrypoints, dict) or plan.entrypoint not in entrypoints:
+            raise SandboxUnavailable("test plan selected an entrypoint outside inspected metadata")
+        sandbox = Sandbox(
+            self.run_dir,
+            self.config,
+            getattr(self, "_runtime", self.config.runtime),
+            label,
+            self.image,
+        )
         started = time.monotonic()
         try:
             sandbox.start()
             sandbox.stage_directory(source, "repo")
-            sandbox.stage_directory(wheel_dir, "deps")
-            venv = sandbox.exec(
-                ["/usr/local/bin/python", "-m", "venv", "/work/venv"],
-                "/work",
-                b"",
-                min(120, self.config.install_timeout),
-                self.run_dir / "evidence" / label / "venv",
-                "provision",
-            )
-            install = sandbox.exec(
-                [
+            sandbox.stage_directory(dependency_dir, "deps")
+            if self.track == "python-cli":
+                provision_argv = ["/usr/local/bin/python", "-m", "venv", "/work/venv"]
+                install_argv = [
                     "/work/venv/bin/python",
                     "-m",
                     "pip",
@@ -354,22 +604,94 @@ class DockerRunner:
                     "--find-links",
                     "/work/deps",
                     "/work/repo",
-                ],
+                ]
+                install_env = {
+                    "PIP_NO_INDEX": "1",
+                    "PIP_FIND_LINKS": "/work/deps",
+                    **install_environment,
+                }
+                entrypoint_path = f"/work/venv/bin/{plan.entrypoint}"
+                interpreter_path = "/work/venv/bin/python"
+                installation_method = "pip source install from an offline wheelhouse"
+                install_controls = ["no package-index access"]
+            elif self.track == "node-cli":
+                provision_argv = ["mkdir", "-p", "/work/install", "/work/npm-cache"]
+                install_argv = [
+                    "npm",
+                    "install",
+                    "--global",
+                    "--prefix",
+                    "/work/install",
+                    "--ignore-scripts",
+                    "--offline",
+                    "--no-audit",
+                    "--no-fund",
+                    "/work/repo",
+                ]
+                install_env = {
+                    "npm_config_cache": "/work/npm-cache",
+                    "npm_config_ignore_scripts": "true",
+                    "npm_config_offline": "true",
+                    "npm_config_audit": "false",
+                    "npm_config_fund": "false",
+                    "npm_config_update_notifier": "false",
+                    "npm_config_userconfig": "/dev/null",
+                }
+                entrypoint_path = f"/work/install/bin/{plan.entrypoint}"
+                interpreter_path = None
+                installation_method = "npm global source install with lifecycle scripts disabled"
+                install_controls = [
+                    "offline",
+                    "lifecycle scripts disabled",
+                    "audit and funding requests disabled",
+                ]
+            else:
+                provision_argv = ["mkdir", "-p", "/work/bin", "/work/gocache", "/work/modcache"]
+                install_argv = [
+                    "go",
+                    "build",
+                    "-trimpath",
+                    "-mod=readonly",
+                    "-o",
+                    f"/work/bin/{plan.entrypoint}",
+                    str(self.environment.get("build_target") or "."),
+                ]
+                install_env = {
+                    "CGO_ENABLED": "0",
+                    "GOENV": "off",
+                    "GOTOOLCHAIN": "local",
+                    "GOPROXY": "file:///work/deps",
+                    "GOSUMDB": "sum.golang.org",
+                    "GOMODCACHE": "/work/modcache",
+                    "GOCACHE": "/work/gocache",
+                }
+                entrypoint_path = f"/work/bin/{plan.entrypoint}"
+                interpreter_path = None
+                installation_method = (
+                    "offline Go source build against a staged checksum-verified module proxy"
+                )
+                install_controls = ["CGO disabled", "local module proxy only", "readonly module graph"]
+            provision = sandbox.exec(
+                provision_argv,
                 "/work",
+                b"",
+                min(120, self.config.install_timeout),
+                self.run_dir / "evidence" / label / "provision",
+                "provision",
+            )
+            install = sandbox.exec(
+                install_argv,
+                "/work/repo" if self.track == "go-cli" else "/work",
                 b"",
                 self.config.install_timeout,
                 self.run_dir / "evidence" / label / "install",
                 "install",
-                extra_env={
-                    "PIP_NO_INDEX": "1",
-                    "PIP_FIND_LINKS": "/work/deps",
-                    **install_environment,
-                },
+                extra_env=install_env,
             )
-            installed = sandbox.path_exists(f"/work/venv/bin/{plan.entrypoint}")
+            installed = sandbox.path_exists(entrypoint_path)
             if installed:
                 version_probe = sandbox.exec(
-                    [f"/work/venv/bin/{plan.entrypoint}", "--version"],
+                    [entrypoint_path, "--version"],
                     "/work",
                     b"",
                     30,
@@ -379,17 +701,17 @@ class DockerRunner:
             else:
                 version_probe = _blocked_trace(
                     "verify-install",
-                    [f"/work/venv/bin/{plan.entrypoint}", "--version"],
+                    [entrypoint_path, "--version"],
                     "/work",
                     self.run_dir / "evidence" / label / "version",
                     "entrypoint was not installed",
                 )
             tests: list[TestResult] = []
-            if venv.exit_code == 0 and install.exit_code == 0 and installed:
+            if provision.exit_code == 0 and install.exit_code == 0 and installed:
                 for spec in plan.tests:
                     sandbox.stage_case(spec.test_id, spec.setup_files)
                     trace = sandbox.exec(
-                        _expand_argv(spec.argv, plan.entrypoint),
+                        _expand_argv(spec.argv, entrypoint_path, interpreter_path),
                         f"/work/cases/{spec.test_id}",
                         spec.stdin.encode("utf-8"),
                         min(spec.timeout_sec, self.config.test_timeout),
@@ -403,9 +725,16 @@ class DockerRunner:
             result: dict[str, object] = {
                 "label": label,
                 "execution_contract_sha256": self.execution_contract_sha256(plan, install_environment),
-                "status": "COMPLETE" if install.exit_code == 0 and installed else "INSTALL_FAILED",
-                "venv": venv,
+                "status": "COMPLETE"
+                if provision.exit_code == 0 and install.exit_code == 0 and installed
+                else "INSTALL_FAILED",
+                "provision": provision,
+                "venv": provision if self.track == "python-cli" else None,
                 "install": install,
+                "installation_method": installation_method,
+                "install_controls": install_controls,
+                "track": self.track,
+                "toolchain": getattr(self, "_toolchain_version", None),
                 "entrypoint": plan.entrypoint,
                 "entrypoint_installed": installed,
                 "version_probe": version_probe,
@@ -414,6 +743,7 @@ class DockerRunner:
                 "manual_interventions": 0,
                 "install_adjustments": install_adjustments,
                 "candidate_network": "none",
+                "dependency_bundle_sha256": getattr(self, "_dependency_sha256", None),
                 "duration_ms": round((time.monotonic() - started) * 1000),
                 "completed_at": datetime.now(UTC).isoformat(),
             }
@@ -424,7 +754,7 @@ class DockerRunner:
 
     def _ensure_image(self) -> None:
         exists = subprocess.run(
-            ["docker", "image", "inspect", IMAGE],
+            ["docker", "image", "inspect", self.image],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             timeout=15,
@@ -439,9 +769,9 @@ class DockerRunner:
                 "build",
                 "--pull",
                 "-f",
-                str(context / "python.Dockerfile"),
+                str(context / self.dockerfile),
                 "-t",
-                IMAGE,
+                self.image,
                 str(context),
             ],
             text=True,
@@ -475,11 +805,19 @@ class DockerRunner:
 
 
 class Sandbox:
-    def __init__(self, run_dir: Path, config: RunnerConfig, runtime: str, label: str) -> None:
+    def __init__(
+        self,
+        run_dir: Path,
+        config: RunnerConfig,
+        runtime: str,
+        label: str,
+        image: str = IMAGE,
+    ) -> None:
         self.run_dir = run_dir
         self.config = config
         self.runtime = runtime
         self.label = label
+        self.image = image
         self.name = f"worthit-{label}-{uuid.uuid4().hex[:10]}"
         self.alive = False
 
@@ -528,7 +866,7 @@ class Sandbox:
             "PIP_NO_INPUT=1",
             "--workdir",
             "/work",
-            IMAGE,
+            self.image,
             "sleep",
             "infinity",
         ]
@@ -1060,8 +1398,89 @@ def _extract_wheels(container: str, destination: Path) -> None:
             raise SandboxUnavailable(f"dependency wheel exceeds 250 MB: {name}")
 
 
-def _expand_argv(argv: list[str], entrypoint: str) -> list[str]:
-    first = f"/work/venv/bin/{entrypoint}" if argv[0] == "{entrypoint}" else "/work/venv/bin/python"
+def _extract_module_proxy(container: str, destination: Path) -> list[dict[str, object]]:
+    program = """import json,pathlib,sys
+root=pathlib.Path('/go/pkg/mod/cache/download')
+if not root.is_dir(): print('[]'); raise SystemExit()
+files=[]
+for path in root.rglob('*'):
+    if path.is_symlink(): raise SystemExit(2)
+    if not path.is_file(): continue
+    relative=path.relative_to(root)
+    if '@v' not in relative.parts: continue
+    if path.name != 'list' and path.suffix not in {'.info','.mod','.zip','.ziphash'}: continue
+    files.append(relative.as_posix())
+    if len(files)>1000: raise SystemExit(3)
+print(json.dumps(sorted(files)))
+"""
+    listed = subprocess.run(
+        [
+            "docker",
+            "exec",
+            "--user",
+            "65534:65534",
+            container,
+            "/usr/local/bin/python",
+            "-I",
+            "-c",
+            program,
+        ],
+        text=True,
+        capture_output=True,
+        timeout=30,
+        check=False,
+    )
+    if listed.returncode:
+        raise SandboxUnavailable("could not enumerate the Go module proxy safely")
+    try:
+        names = json.loads(listed.stdout)
+    except json.JSONDecodeError as error:
+        raise SandboxUnavailable("Go module fetcher returned an invalid file list") from error
+    if not isinstance(names, list):
+        raise SandboxUnavailable("Go module fetcher returned a non-list file inventory")
+    artifacts: list[dict[str, object]] = []
+    total = 0
+    for value in names:
+        relative = safe_relative(value, "Go module artifact")
+        if "@v" not in Path(relative).parts:
+            raise SandboxUnavailable("Go module artifact escaped the versioned proxy tree")
+        target = destination / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open("xb") as output:
+            copied = subprocess.run(
+                [
+                    "docker",
+                    "exec",
+                    "--user",
+                    "65534:65534",
+                    container,
+                    "cat",
+                    f"/go/pkg/mod/cache/download/{relative}",
+                ],
+                stdout=output,
+                stderr=subprocess.PIPE,
+                timeout=120,
+                check=False,
+            )
+        if copied.returncode:
+            target.unlink(missing_ok=True)
+            raise SandboxUnavailable(f"could not extract Go module artifact {relative}")
+        size = target.stat().st_size
+        total += size
+        if size > 250 * 1024 * 1024 or total > 1024 * 1024 * 1024:
+            target.unlink()
+            raise SandboxUnavailable("Go module dependency bundle exceeded V1 size limits")
+        artifacts.append({"path": relative, "bytes": size, "sha256": _sha256(target)})
+    return artifacts
+
+
+def _expand_argv(argv: list[str], entrypoint_path: str, interpreter_path: str | None) -> list[str]:
+    if argv[0] == "{entrypoint}":
+        first = entrypoint_path
+    elif argv[0] == "{python}" and interpreter_path:
+        first = interpreter_path
+    else:
+        raise SandboxUnavailable("test plan requested an unavailable interpreter")
     return [first, *argv[1:]]
 
 
@@ -1155,6 +1574,37 @@ def verify_wheelhouse(run_dir: Path) -> Path:
         if path.stat().st_size != item.get("bytes") or _sha256(path) != item.get("sha256"):
             raise SandboxUnavailable(f"cached dependency wheel changed: {path.name}")
     return wheel_dir
+
+
+def verify_dependency_bundle(bundle: Path, report_path: Path) -> Path:
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    expected = report.get("artifacts")
+    expected_tree = report.get("bundle_sha256")
+    if not isinstance(expected, list) or not isinstance(expected_tree, str) or not bundle.is_dir():
+        raise SandboxUnavailable("cached dependency evidence is incomplete")
+    actual: dict[str, Path] = {}
+    for path in bundle.rglob("*"):
+        if path.is_symlink():
+            raise SandboxUnavailable("cached dependency bundle contains a symlink")
+        if path.is_file():
+            actual[path.relative_to(bundle).as_posix()] = path
+    expected_paths: set[str] = set()
+    for item in expected:
+        if not isinstance(item, dict):
+            raise SandboxUnavailable("cached dependency artifact record is invalid")
+        value = item.get("path", item.get("name"))
+        relative = safe_relative(value, "dependency artifact")
+        expected_paths.add(relative)
+        artifact_path = actual.get(relative)
+        if (
+            artifact_path is None
+            or artifact_path.stat().st_size != item.get("bytes")
+            or _sha256(artifact_path) != item.get("sha256")
+        ):
+            raise SandboxUnavailable(f"cached dependency artifact changed: {relative}")
+    if set(actual) != expected_paths or source_tree_report(bundle)["sha256"] != expected_tree:
+        raise SandboxUnavailable("cached dependency bundle inventory changed")
+    return bundle
 
 
 def _directory_size(path: Path) -> int:

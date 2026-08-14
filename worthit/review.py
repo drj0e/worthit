@@ -71,11 +71,19 @@ def generate_review(
     failed = [str(test.get("test_id")) for test in tests if test.get("status") != "PASS"]
     install_ms = int((execution.get("install") or {}).get("duration_ms") or 0)
     replay_install_ms = int((replay.get("install") or {}).get("duration_ms") or 0)
-    peak_ram = max((int(test.get("peak_ram_bytes") or 0) for test in tests), default=0)
+    ram_measurements = [
+        int(value) for test in tests if isinstance((value := test.get("peak_ram_bytes")), int)
+    ]
+    peak_ram = max(ram_measurements, default=None)
     partial = [claim for claim in claims if by_claim[claim.claim_id].status.value == "PARTIAL"]
+    unverified = [claim for claim in claims if by_claim[claim.claim_id].status.value == "UNVERIFIED"]
+    gaps = [*partial, *unverified]
     observed_version = _observed_version(execution, run_dir)
     release_tag = str((repository.get("release") or {}).get("tag") or "UNVERIFIED")
     adjustments = execution.get("install_adjustments") or []
+    environment = json.loads((run_dir / "environment.json").read_text(encoding="utf-8"))
+    track = str(execution.get("track") or (repository.get("environment") or {}).get("track") or "")
+    installation_method = str(execution.get("installation_method") or "offline source installation")
     description = str(repository.get("description") or "the tested CLI described above").strip().rstrip(".")
     description = description[:1].lower() + description[1:]
     current_limitations = [
@@ -84,13 +92,41 @@ def generate_review(
         if "should be validated again" not in limitation.casefold()
         and not any(claim.claim_id in limitation for claim in partial)
     ]
+    risk_findings = [item for item in risk.get("findings", []) if isinstance(item, dict)]
+    risk_notes = [
+        f"Static screening recorded {item.get('severity', 'UNVERIFIED')} {item.get('category', 'finding')} at {item.get('path', 'unknown path')}; see risk.json for context."
+        for item in risk_findings
+    ]
+    release_version = re.search(r"\d+(?:\.\d+)+", release_tag)
+    observed_version_number = re.search(r"\d+(?:\.\d+)+", observed_version or "")
+    versions_match = bool(
+        release_version
+        and observed_version_number
+        and release_version.group() == observed_version_number.group()
+    )
     version_note = (
         f"The commit archive lacked VCS metadata required by the build backend, so WorthIt injected the deterministic build version {observed_version or 'UNVERIFIED'}. "
         f"GitHub's latest-release metadata was {release_tag}; the commit SHA, not the synthetic version, identifies the tested artifact."
         if adjustments
-        else f"GitHub's latest-release metadata was {release_tag}, while the tested commit-archive source build reported "
-        f"{observed_version or 'no version'}. This review identifies the artifact by commit and does not equate those labels."
+        else (
+            f"The source install reported {observed_version}, matching GitHub's latest-release metadata {release_tag}. The commit SHA identifies the exact tested artifact."
+            if versions_match
+            else f"GitHub's latest-release metadata was {release_tag}, while the tested commit-archive source build reported "
+            f"{observed_version or 'no version'}. WorthIt built this Go commit rather than testing a published release binary; the commit SHA identifies the artifact."
+            if track == "go-cli"
+            else f"GitHub's latest-release metadata was {release_tag}, while the tested commit-archive source install reported "
+            f"{observed_version or 'no version'}. This review identifies the artifact by commit and does not equate those labels."
+        )
     )
+    documented_vs_actual = {
+        "python-cli": (
+            "WorthIt used pip to install the exact staged commit offline and injected a deterministic VCS-version fallback because GitHub's commit archive has no .git metadata; it did not run the README's registry command verbatim."
+            if adjustments
+            else "WorthIt used pip to install the exact staged commit offline; it did not run the README's registry command verbatim."
+        ),
+        "node-cli": "WorthIt used npm to install the exact staged commit globally with network and lifecycle scripts disabled; it did not run the README's registry command verbatim.",
+        "go-cli": "WorthIt compiled the exact staged commit with go build against a local checksum-verified module proxy; it did not download a release binary or run the README's go install command verbatim.",
+    }.get(track, installation_method)
     review = {
         "schema_version": 1,
         "project": repository["name"],
@@ -106,11 +142,11 @@ def generate_review(
         "category": "CLI utility",
         "score": jsonable(score),
         "summary": (
-            f"The exact commit installed from source in {install_ms / 1000:.2f} seconds with no manual intervention"
+            f"The exact commit completed {installation_method} in {install_ms / 1000:.2f} seconds with no manual intervention"
             + (f" and {len(adjustments)} automated VCS-version adjustment" if adjustments else "")
             + ". "
             f"{passed} of {len(tests)} accepted tests passed with the same results in a second clean, offline container. "
-            f"{len(partial)} claims remain only partially verified. Evidence confidence is {score.confidence.value.lower()}."
+            f"Claim coverage gaps: {len(partial)} partial, {len(unverified)} unverified. Evidence confidence is {score.confidence.value.lower()}."
         ),
         "result_counts": {"passed": passed, "total": len(tests)},
         "claim_matrix": [
@@ -147,11 +183,10 @@ def generate_review(
             "manual_interventions": int(execution.get("manual_interventions") or 0),
             "candidate_network": execution.get("candidate_network"),
             "automated_adjustments": adjustments,
-            "documented_vs_actual": (
-                "WorthIt used pip to install the exact staged commit offline and injected a deterministic VCS-version fallback because GitHub's commit archive has no .git metadata; it did not run the README's registry command verbatim."
-                if adjustments
-                else "WorthIt used pip to install the exact staged commit offline; it did not run the README's registry command verbatim."
-            ),
+            "installation_method": installation_method,
+            "install_controls": execution.get("install_controls") or [],
+            "toolchain": execution.get("toolchain"),
+            "documented_vs_actual": documented_vs_actual,
             "version_note": version_note,
         },
         "performance": {
@@ -175,6 +210,8 @@ def generate_review(
             if "repair" in plan.designer
             else "The accepted contract did not require diagnostic repair.",
             *[f"Not fully verified: {claim.claim_id}, {claim.text}" for claim in partial],
+            *[f"Unverified: {claim.claim_id}, {claim.text}" for claim in unverified],
+            *risk_notes,
         ],
         "who_should_use_it": [
             f"Developers evaluating {repository['name']} as {description}.",
@@ -182,13 +219,14 @@ def generate_review(
         ],
         "who_should_skip_it": [
             "This review is not enough if your decision requires full verification of: "
-            + "; ".join(f"{claim.claim_id}: {claim.text.rstrip('.')}" for claim in partial)
+            + "; ".join(f"{claim.claim_id}: {claim.text.rstrip('.')}" for claim in gaps)
             + ".",
         ],
-        "limitations": [*current_limitations, version_note],
+        "limitations": [*current_limitations, *risk_notes, version_note],
         "reproduction": {
-            "runtime": "Docker/runc with seccomp and AppArmor; runc shares the host kernel.",
-            "image": json.loads((run_dir / "environment.json").read_text(encoding="utf-8")).get("image_id"),
+            "runtime": _runtime_description(environment),
+            "image": environment.get("image_id"),
+            "toolchain": environment.get("toolchain"),
             "candidate_network": "none",
             "reproduced": reproducibility.get("reproduced"),
             "tests_compared": reproducibility.get("tests_compared"),
@@ -266,8 +304,13 @@ def render_markdown(review: dict[str, Any]) -> str:
             "",
             "## Performance",
             "",
-            f"The slowest accepted test took {performance['slowest_test_ms']} ms. Peak measured test RAM was "
-            f"{performance['peak_ram_bytes'] / 1024 / 1024:.1f} MiB. No comparative baseline was run, so this is a measurement, not a speed claim.",
+            f"The slowest accepted test took {performance['slowest_test_ms']} ms. "
+            + (
+                f"Peak measured test RAM was {performance['peak_ram_bytes'] / 1024 / 1024:.1f} MiB. "
+                if performance["peak_ram_bytes"] is not None
+                else "Peak RAM was below the runner's 200 ms sampling resolution. "
+            )
+            + "No comparative baseline was run, so this is a measurement, not a speed claim.",
             "",
             "## What broke",
             "",
@@ -318,6 +361,10 @@ def fact_check(
     run_dir: Path,
 ) -> dict[str, Any]:
     tests = execution.get("tests", [])
+    environment = json.loads((run_dir / "environment.json").read_text(encoding="utf-8"))
+    ram_measurements = [
+        int(value) for test in tests if isinstance((value := test.get("peak_ram_bytes")), int)
+    ]
     checks = {
         "commit": review["commit_sha"] == repository["commit_sha"],
         "tested_at": review["tested_at"] == (execution.get("completed_at") or repository.get("inspected_at")),
@@ -331,6 +378,9 @@ def fact_check(
         == (replay.get("install") or {}).get("duration_ms"),
         "version": review["version"] == _observed_version(execution, run_dir),
         "reproduced": review["reproduction"]["reproduced"] == reproducibility.get("reproduced"),
+        "runtime": review["reproduction"]["runtime"] == _runtime_description(environment),
+        "toolchain": review["reproduction"]["toolchain"] == environment.get("toolchain"),
+        "peak_ram": review["performance"]["peak_ram_bytes"] == max(ram_measurements, default=None),
         "prose_lint": BANNED_PROSE.search(markdown) is None,
     }
     failures = [name for name, passed in checks.items() if not passed]
@@ -499,3 +549,11 @@ def _observed_version(execution: dict[str, Any], run_dir: Path) -> str | None:
                     line = match.group(1)
                 return clean_text(line, 240)
     return None
+
+
+def _runtime_description(environment: dict[str, Any]) -> str:
+    backend = str(environment.get("backend") or "UNVERIFIED")
+    runtime = str(environment.get("runtime") or "UNVERIFIED")
+    if runtime == "runc":
+        return f"{backend}/{runtime} with seccomp and AppArmor; runc shares the host kernel."
+    return f"{backend}/{runtime}; candidate execution used the recorded stronger container runtime."

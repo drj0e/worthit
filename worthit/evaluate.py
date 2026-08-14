@@ -69,6 +69,7 @@ def evaluate_claims(claims: list[Claim], plan: TestPlan, execution: dict[str, An
         limitation = limitation_text is not None
         evidence = [path for test in mapped for path in test.get("evidence", []) if isinstance(path, str)]
         if _is_install_claim(claim) and execution.get("status") == "COMPLETE":
+            method = str(execution.get("installation_method") or "offline staged-source installation")
             adjustment = (
                 " An automated VCS-version fallback was required."
                 if execution.get("install_adjustments")
@@ -80,7 +81,7 @@ def evaluate_claims(claims: list[Claim], plan: TestPlan, execution: dict[str, An
                     ResultState.PARTIAL,
                     [str(test["test_id"]) for test in mapped],
                     ["final.json#install", *evidence],
-                    "The exact commit installed successfully with pip from staged source, but the registry command was not run verbatim."
+                    f"The exact commit completed {method}, but the documented registry command was not run verbatim."
                     + adjustment,
                     0.5,
                     0.0,
@@ -227,13 +228,16 @@ def score_run(
         if reproducibility.get("reproduced")
         else 40
     )
-    peak_ram = max((int(test.get("peak_ram_bytes") or 0) for test in tests), default=0)
+    ram_measurements = [
+        int(value) for test in tests if isinstance((value := test.get("peak_ram_bytes")), int)
+    ]
+    peak_ram = max(ram_measurements, default=None)
     slowest = max((int(test.get("duration_ms") or 0) for test in tests), default=0)
     performance = (
         85
-        if peak_ram <= 256 * 1024 * 1024 and slowest <= 10_000
+        if peak_ram is not None and peak_ram <= 256 * 1024 * 1024 and slowest <= 10_000
         else 70
-        if peak_ram <= 1024 * 1024 * 1024 and slowest <= 30_000
+        if (peak_ram is None or peak_ram <= 1024 * 1024 * 1024) and slowest <= 30_000
         else 50
     )
     documentation = 80 if repaired else 90
@@ -254,6 +258,18 @@ def score_run(
         "novelty": 50,
     }
     overall = round(sum(dimensions[name] * weight for name, weight in WEIGHTS.items()) / 100)
+    risk_findings = [item for item in risk.get("findings", []) if isinstance(item, dict)]
+    severity_counts = {
+        severity: sum(item.get("severity") == severity for item in risk_findings)
+        for severity in ("CRITICAL", "HIGH", "MEDIUM", "LOW")
+    }
+    static_summary = (
+        "Static screening recorded "
+        + ", ".join(f"{count} {severity}" for severity, count in severity_counts.items() if count)
+        + " finding(s)"
+        if risk_findings
+        else "Static screening recorded no findings"
+    )
 
     denominator = sum(
         IMPORTANCE_WEIGHT[claim.importance] * by_id[claim.claim_id].tested_fraction for claim in claims
@@ -305,13 +321,19 @@ def score_run(
     reasons = {
         "claim_verification": "Importance-weighted claim results; unverified claim portions reduce coverage rather than becoming failures.",
         "utility": f"{sum(test.get('status') == ResultState.PASS.value for test in core)}/{len(core)} core workflow tests ({', '.join(str(test.get('test_id')) for test in core)}) passed.",
-        "setup_experience": f"Offline source installation took {int(install.get('duration_ms') or 0)} ms with {int(execution.get('manual_interventions') or 0)} manual interventions and {len(adjustments)} automated setup {'adjustment' if len(adjustments) == 1 else 'adjustments'}.",
+        "setup_experience": f"{execution.get('installation_method') or 'Offline source installation'} took {int(install.get('duration_ms') or 0)} ms with {int(execution.get('manual_interventions') or 0)} manual interventions and {len(adjustments)} automated setup {'adjustment' if len(adjustments) == 1 else 'adjustments'}.",
         "reliability": f"Two clean runs compared across {reproducibility.get('tests_compared', 0)} tests; reproduced={bool(reproducibility.get('reproduced'))}.",
-        "performance_efficiency": f"Slowest test was {slowest} ms and measured peak RAM was {peak_ram} bytes; no comparative baseline was used.",
+        "performance_efficiency": f"Slowest test was {slowest} ms and "
+        + (
+            f"measured peak RAM was {peak_ram} bytes"
+            if peak_ram is not None
+            else "peak RAM was below the 200 ms sampling resolution"
+        )
+        + "; no comparative baseline was used.",
         "documentation": "README-derived workflows worked; diagnostic execution was needed to correct undocumented exit/format details."
         if repaired
         else "README-derived workflows worked without contract repair.",
-        "safety_privacy": "Static screening found no high-risk behavior and candidate execution had no network; static review is not a safety guarantee.",
+        "safety_privacy": f"{static_summary}; candidate execution had no network. Static review is not a safety guarantee.",
         "novelty": "Neutral score: WorthIt did not run a comparative novelty study.",
     }
     return Scorecard(

@@ -12,18 +12,20 @@ import unittest
 from pathlib import Path
 
 from worthit.evaluate import compare_replays, evaluate_claims
-from worthit.inspect import assess_risk, safe_extract_tar, source_tree_report
+from worthit.inspect import assess_risk, detect_environment, safe_extract_tar, source_tree_report
 from worthit.models import Claim, TestPlan, TrustClass, atomic_json
-from worthit.planning import _ensure_grounded_repair
+from worthit.planning import _ensure_grounded_repair, _ensure_grounded_strings
 from worthit.review import _observed_version
 from worthit.runner import (
     DockerRunner,
     RunnerConfig,
     Sandbox,
+    _expand_argv,
     _validate_requirements,
     execution_contract_sha256,
     redact,
     vcs_version_fallback,
+    verify_dependency_bundle,
     verify_source_snapshot,
 )
 from worthit.site import build_site
@@ -91,6 +93,94 @@ def plan_raw() -> dict[str, object]:
 
 
 class CoreBoundaryTests(unittest.TestCase):
+    def test_detects_bounded_node_and_go_cli_tracks(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "cli.js").write_text("#!/usr/bin/env node\n")
+            (root / "package.json").write_text(
+                json.dumps(
+                    {
+                        "name": "@scope/tool",
+                        "version": "1.2.3",
+                        "license": "MIT",
+                        "bin": "cli.js",
+                        "dependencies": {},
+                    }
+                )
+            )
+            node = detect_environment(root)
+            self.assertEqual(node["track"], "node-cli")
+            self.assertEqual(node["entrypoints"], {"tool": "cli.js"})
+            self.assertTrue(node["supported"])
+            (root / "package.json").write_text(
+                json.dumps({"name": "tool", "bin": {"tool": "cli.js"}, "dependencies": {"x": "1"}})
+            )
+            self.assertFalse(detect_environment(root)["supported"])
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "go.mod").write_text(
+                "module example.com/gron\n\ngo 1.24\n\nrequire example.com/dependency v1.2.3\n"
+            )
+            (root / "go.sum").write_text("example.com/dependency v1.2.3 h1:placeholder\n")
+            (root / "main.go").write_text("package main\n\nfunc main() {}\n")
+            go = detect_environment(root)
+            self.assertEqual(go["track"], "go-cli")
+            self.assertEqual(go["entrypoints"], {"gron": "."})
+            self.assertTrue(go["supported"])
+            (root / "go.sum").unlink()
+            self.assertFalse(detect_environment(root)["supported"])
+
+    def test_go_source_is_included_in_static_risk_screening(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary)
+            (source / "main.go").write_text(
+                'package main\nimport "os/exec"\nfunc main(){ exec.Command("bash", "-c", "id") }\n'
+            )
+            report = assess_risk(
+                source,
+                {
+                    "license": "MIT",
+                    "created_at": "2020-01-01T00:00:00Z",
+                    "stars": 5_000,
+                    "contributors_sample": 10,
+                },
+            )
+            self.assertEqual(report.classification, TrustClass.REVIEW)
+            self.assertIn("shell_execution", {finding.category for finding in report.findings})
+
+    def test_dependency_bundle_integrity_and_track_argv(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            artifact = bundle / "module" / "@v" / "v1.0.0.mod"
+            artifact.parent.mkdir(parents=True)
+            artifact.write_text("module example.com/module\n")
+            tree = source_tree_report(bundle)
+            report = root / "dependency-fetch.json"
+            atomic_json(
+                report,
+                {
+                    "artifacts": [
+                        {
+                            "path": artifact.relative_to(bundle).as_posix(),
+                            "bytes": artifact.stat().st_size,
+                            "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest(),
+                        }
+                    ],
+                    "bundle_sha256": tree["sha256"],
+                },
+            )
+            self.assertEqual(verify_dependency_bundle(bundle, report), bundle)
+            artifact.write_text("changed\n")
+            with self.assertRaises(RuntimeError):
+                verify_dependency_bundle(bundle, report)
+        self.assertEqual(
+            _expand_argv(["{entrypoint}", "x"], "/work/bin/tool", None),
+            ["/work/bin/tool", "x"],
+        )
+        with self.assertRaises(RuntimeError):
+            _expand_argv(["{python}", "-V"], "/work/bin/tool", None)
+
     def test_archive_traversal_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             archive = Path(temporary) / "source.tar.gz"
@@ -149,6 +239,24 @@ class CoreBoundaryTests(unittest.TestCase):
             )
             self.assertEqual(report.classification, TrustClass.REVIEW)
             self.assertIn("pipe_to_shell", {finding.category for finding in report.findings})
+
+    def test_ci_only_sudo_is_recorded_without_blocking_unrelated_execution(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary)
+            workflow = source / ".github" / "workflows" / "ci.yml"
+            workflow.parent.mkdir(parents=True)
+            workflow.write_text("run: sudo sed -i 's/a/b/' /etc/example\n")
+            report = assess_risk(
+                source,
+                {
+                    "license": "MIT",
+                    "created_at": "2020-01-01T00:00:00Z",
+                    "stars": 5_000,
+                    "contributors_sample": 10,
+                },
+            )
+            self.assertEqual(report.classification, TrustClass.TRUSTED)
+            self.assertEqual(report.findings[0].severity, "MEDIUM")
 
     def test_runner_command_has_no_mount_socket_network_or_caps(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -225,6 +333,7 @@ class CoreBoundaryTests(unittest.TestCase):
         )
         execution = {
             "status": "COMPLETE",
+            "installation_method": "pip source install from an offline wheelhouse",
             "install_adjustments": [{"kind": "vcs_version_fallback"}],
             "tests": [
                 {
@@ -282,6 +391,17 @@ class CoreBoundaryTests(unittest.TestCase):
         weakened = TestPlan.from_dict(weakened_raw, [claim()], "repair")
         with self.assertRaises(ValueError):
             _ensure_grounded_repair(original, weakened, evidence)
+        _ensure_grounded_strings(
+            "T03",
+            "stdout",
+            ["function add(first,second)", "add(3,7)"],
+            ["console.log(10)"],
+            "console.log(10);\n",
+        )
+        with self.assertRaises(ValueError):
+            _ensure_grounded_strings(
+                "T03", "stdout", ["function add(first,second)", "add(3,7)"], ["log"], "console.log(10);\n"
+            )
 
     def test_static_site_escapes_stored_xss(self) -> None:
         template_path = next((ROOT / "reviews").rglob("review.json"))
@@ -303,9 +423,14 @@ class CoreBoundaryTests(unittest.TestCase):
             self.assertNotIn("<img", rendered)
             self.assertIn("&lt;script&gt;", rendered)
             review["score"]["bullshit_ratio"] = None
+            review["performance"]["peak_ram_bytes"] = None
             atomic_json(artifact / "review.json", review)
             self.assertEqual(build_site(root / "reviews", site), 1)
             self.assertIn("Bullshit Ratio N/A", next((site / "reviews").rglob("index.html")).read_text())
+            self.assertIn(
+                "below the 200 ms sampling resolution",
+                next((site / "reviews").rglob("index.html")).read_text(),
+            )
             review["score"]["overall"] = attack
             atomic_json(artifact / "review.json", review)
             with self.assertRaises(ValueError):
@@ -324,65 +449,76 @@ class CoreBoundaryTests(unittest.TestCase):
 class DockerIsolationTests(unittest.TestCase):
     def test_disposable_container_has_no_secret_mount_or_network(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
-            run_dir = Path(temporary).resolve()
             config = RunnerConfig(allow_runc=True, test_timeout=10)
-            DockerRunner(run_dir, config, TrustClass.TRUSTED).preflight()
-            sandbox = Sandbox(run_dir, config, "runc", "hostile-fixture")
-            sandbox.start()
             canary = "ghp_" + "z" * 40
             os.environ["WORTHIT_TEST_CANARY"] = canary
             try:
-                inspected = json.loads(
-                    subprocess.run(
-                        ["docker", "inspect", sandbox.name],
-                        text=True,
-                        capture_output=True,
-                        timeout=10,
-                        check=True,
-                    ).stdout
-                )[0]
-                self.assertEqual(inspected["Mounts"], [])
-                self.assertEqual(inspected["HostConfig"]["NetworkMode"], "none")
-                trace = sandbox.exec(
-                    [
-                        "/usr/local/bin/python",
-                        "-I",
-                        "-c",
-                        "import json,os,socket,sys; s=socket.socket(); s.settimeout(.2); print(json.dumps({'env':sorted(os.environ),'socket':os.path.exists('/var/run/docker.sock'),'host_home':os.path.exists(sys.argv[1]),'network':s.connect_ex(('1.1.1.1',53))}))",
-                        str(Path.home()),
-                    ],
-                    "/work",
-                    b"",
-                    5,
-                    run_dir / "evidence" / "probe",
-                    "probe",
-                )
-                output = (run_dir / trace.stdout_file).read_text()
-                observation = json.loads(output)
-                self.assertNotIn("WORTHIT_TEST_CANARY", observation["env"])
-                self.assertNotIn(canary, output)
-                self.assertFalse(observation["socket"])
-                self.assertFalse(observation["host_home"])
-                self.assertNotEqual(observation["network"], 0)
-                timed = sandbox.exec(
-                    ["/usr/local/bin/python", "-I", "-c", "import time; time.sleep(60)"],
-                    "/work",
-                    b"",
-                    1,
-                    run_dir / "evidence" / "timeout",
-                    "timeout",
-                )
-                self.assertTrue(timed.timed_out)
+                for track in ("python-cli", "node-cli", "go-cli"):
+                    with self.subTest(track=track):
+                        run_dir = (Path(temporary) / track).resolve()
+                        run_dir.mkdir()
+                        runner = DockerRunner(run_dir, config, TrustClass.TRUSTED, {"track": track})
+                        runner.preflight()
+                        sandbox = Sandbox(run_dir, config, "runc", "hostile-fixture", runner.image)
+                        sandbox.start()
+                        try:
+                            inspected = json.loads(
+                                subprocess.run(
+                                    ["docker", "inspect", sandbox.name],
+                                    text=True,
+                                    capture_output=True,
+                                    timeout=10,
+                                    check=True,
+                                ).stdout
+                            )[0]
+                            self.assertEqual(inspected["Mounts"], [])
+                            self.assertEqual(inspected["HostConfig"]["NetworkMode"], "none")
+                            trace = sandbox.exec(
+                                [
+                                    "/usr/local/bin/python",
+                                    "-I",
+                                    "-c",
+                                    "import json,os,socket,sys; s=socket.socket(); s.settimeout(.2); print(json.dumps({'env':sorted(os.environ),'socket':os.path.exists('/var/run/docker.sock'),'host_home':os.path.exists(sys.argv[1]),'network':s.connect_ex(('1.1.1.1',53))}))",
+                                    str(Path.home()),
+                                ],
+                                "/work",
+                                b"",
+                                5,
+                                run_dir / "evidence" / "probe",
+                                "probe",
+                            )
+                            output = (run_dir / trace.stdout_file).read_text()
+                            observation = json.loads(output)
+                            self.assertNotIn("WORTHIT_TEST_CANARY", observation["env"])
+                            self.assertNotIn(canary, output)
+                            self.assertFalse(observation["socket"])
+                            self.assertFalse(observation["host_home"])
+                            self.assertNotEqual(observation["network"], 0)
+                            timed = sandbox.exec(
+                                [
+                                    "/usr/local/bin/python",
+                                    "-I",
+                                    "-c",
+                                    "import time; time.sleep(60)",
+                                ],
+                                "/work",
+                                b"",
+                                1,
+                                run_dir / "evidence" / "timeout",
+                                "timeout",
+                            )
+                            self.assertTrue(timed.timed_out)
+                        finally:
+                            sandbox.close()
+                        missing = subprocess.run(
+                            ["docker", "inspect", sandbox.name],
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                            check=False,
+                        )
+                        self.assertNotEqual(missing.returncode, 0)
             finally:
-                sandbox.close()
                 os.environ.pop("WORTHIT_TEST_CANARY", None)
-            missing = subprocess.run(
-                ["docker", "inspect", sandbox.name],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                check=False,
-            )
-            self.assertNotEqual(missing.returncode, 0)
 
 
 if __name__ == "__main__":

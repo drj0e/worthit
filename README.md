@@ -7,10 +7,11 @@ tools. It extracts documented claims, designs and critiques tests, installs an
 exact commit in a disposable environment, runs core and failure workflows,
 captures evidence, scores the result, and generates a static technical review.
 
-This repository currently implements the first deliberately narrow track:
-well-established, public Python CLI repositories with static PEP 517 metadata
-and wheel-only dependencies. Daily discovery and unattended top-five execution
-remain disabled until the three-repository gate is complete.
+This repository currently implements deliberately narrow Python, Node, and Go
+CLI tracks. Python requires static PEP 517 metadata and wheel dependencies; Node
+requires a declared CLI with no runtime dependencies or lifecycle scripts; Go
+requires a root command with pinned modules. Daily discovery and unattended
+top-five execution remain disabled until the three-repository gate is complete.
 
 ## Run one evaluation
 
@@ -44,6 +45,11 @@ tests twice from fresh offline containers. The resulting review is
 The score is 84/100 with `HIGH` confidence. The registry-install, Python-version,
 and atomic guarantees remain partial. The review records the automated synthetic
 version needed because GitHub's commit archive omits VCS metadata.
+
+The second proof evaluated mishoo/UglifyJS at commit
+`111746bbae5f55c88e3b82b42f14fd0f3129ea53`. Its accepted Node contract passed
+6/6 tests in both clean offline containers. The evidence-backed review is
+[`reviews/mishoo/uglifyjs/111746bbae5f55c88e3b82b42f14fd0f3129ea53/review.md`](reviews/mishoo/uglifyjs/111746bbae5f55c88e3b82b42f14fd0f3129ea53/review.md).
 
 ## Checks
 
