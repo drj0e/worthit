@@ -1,0 +1,223 @@
+{
+  "core_workflow": "Invoke the installed `uglifyjs` binary to minify JavaScript from a file or STDIN, verifying default STDOUT output, `-o` file output, source-map generation, multi-file cross-scope compression, and behavior on malformed input, using compress-only structural assertions rather than mangler-dependent exact strings.",
+  "designer": "claude-warm-repair-reconciled",
+  "entrypoint": "uglifyjs",
+  "limitations": [
+    "CLAIM-001 (global npm install exposing the `uglifyjs` command) is not directly tested; the harness installs the package via its own npm-source-offline install strategy rather than `npm install -g`, so this suite assumes the runner's install step is equivalent and only verifies the resulting `uglifyjs` entrypoint behaves correctly.",
+    "CLAIM-007 (engines >=0.8.0 in package.json) is not tested since it would require running against multiple Node.js versions, which is outside the scope of behavioral CLI tests.",
+    "T01/T02/T03/T05 use compress-only (-c, no -m) output instead of the mangled-identifier string from the README's programmatic API example, since mangler variable-naming can vary across versions/flag combinations; compress-only whitespace/brace stripping is more stable but is still an assumption about the compressor's exact formatting conventions.",
+    "T03 and T04 verify that output is correctly written to the specified file but cannot assert that STDOUT is empty in this case, because the test schema only supports positive substring matching (stdout_contains) with no exact/empty-stdout assertion mechanism; the 'no STDOUT when -o is used' half of CLAIM-005 is therefore not fully verified.",
+    "T04 does not assert the presence of a `//# sourceMappingURL=output.js.map` comment in output.js: the claim text only promises that a source map file named output.js.map is written, not that a linking comment is embedded in the compressed output, so that assertion is out of scope for this claim and is not included.",
+    "T05 asserts the constant-folded numeric result (console.log(10)) rather than an intermediate partially-evaluated call, since with -c and --toplevel the compressor fully inlines and folds the cross-file call; this is a stronger indicator that the reference to add() declared in file1.js was correctly resolved while compressing file2.js, since an unresolved or incorrectly scoped reference could not have produced the correct folded value. This does couple the test to the compressor's current folding/inlining aggressiveness, and could produce a false negative if a future version changes folding behavior for reasons unrelated to cross-file scope resolution.",
+    "T06's exit code and stderr content on parse failure are not documented anywhere in the claims; the test only asserts that a nonzero exit occurs (from a small set of plausible codes) and makes no assertion about stderr text, to avoid a misleading FAIL on undocumented behavior."
+  ],
+  "tests": [
+    {
+      "argv": [
+        "{entrypoint}",
+        "input.js",
+        "-c"
+      ],
+      "claim_ids": [
+        "CLAIM-002",
+        "CLAIM-008"
+      ],
+      "edge_case": false,
+      "evidence": [
+        "uglifyjs [input files] [options]",
+        "\"bin\": {\"uglifyjs\": \"bin/uglifyjs\"}"
+      ],
+      "expected_exit_codes": [
+        0
+      ],
+      "file_assertions": [],
+      "purpose": "Verify the installed uglifyjs binary accepts an input file plus a compress option and prints compressed code to STDOUT, without relying on mangler-specific variable naming.",
+      "required_resources": [],
+      "setup_files": {
+        "input.js": "function add(first, second) { return first + second; }"
+      },
+      "stderr_contains": [],
+      "stdin": "",
+      "stdout_contains": [
+        "function add(first,second){return first+second}"
+      ],
+      "test_id": "T01",
+      "timeout_sec": 15
+    },
+    {
+      "argv": [
+        "{entrypoint}",
+        "-c"
+      ],
+      "claim_ids": [
+        "CLAIM-003"
+      ],
+      "edge_case": false,
+      "evidence": [
+        "If no input file is specified, UglifyJS will read from STDIN."
+      ],
+      "expected_exit_codes": [
+        0
+      ],
+      "file_assertions": [],
+      "purpose": "Verify uglifyjs reads JavaScript from STDIN and compresses it when no input file is given.",
+      "required_resources": [],
+      "setup_files": {},
+      "stderr_contains": [],
+      "stdin": "function add(first, second) { return first + second; }",
+      "stdout_contains": [
+        "function add(first,second){return first+second}"
+      ],
+      "test_id": "T02",
+      "timeout_sec": 15
+    },
+    {
+      "argv": [
+        "{entrypoint}",
+        "input.js",
+        "-c",
+        "-o",
+        "output.js"
+      ],
+      "claim_ids": [
+        "CLAIM-005"
+      ],
+      "edge_case": false,
+      "evidence": [
+        "Specify `--output` (`-o`) to declare the output file.  Otherwise the output\ngoes to STDOUT."
+      ],
+      "expected_exit_codes": [
+        0
+      ],
+      "file_assertions": [
+        {
+          "contains": [
+            "function add(first,second){return first+second}"
+          ],
+          "exact_text": null,
+          "exists": true,
+          "path": "output.js"
+        }
+      ],
+      "purpose": "Verify that with -o/--output specified, compressed output is written to the named file with the expected content.",
+      "required_resources": [],
+      "setup_files": {
+        "input.js": "function add(first, second) { return first + second; }"
+      },
+      "stderr_contains": [],
+      "stdin": "",
+      "stdout_contains": [],
+      "test_id": "T03",
+      "timeout_sec": 15
+    },
+    {
+      "argv": [
+        "{entrypoint}",
+        "input.js",
+        "-o",
+        "output.js",
+        "--source-map"
+      ],
+      "claim_ids": [
+        "CLAIM-006"
+      ],
+      "edge_case": false,
+      "evidence": [
+        "To get a source map, pass\n`--source-map --output output.js` (source map will be written out to\n`output.js.map`)."
+      ],
+      "expected_exit_codes": [
+        0
+      ],
+      "file_assertions": [
+        {
+          "contains": [
+            "function add(first,second){return first+second}"
+          ],
+          "exact_text": null,
+          "exists": true,
+          "path": "output.js"
+        },
+        {
+          "contains": [
+            "\"version\"",
+            "\"mappings\""
+          ],
+          "exact_text": null,
+          "exists": true,
+          "path": "output.js.map"
+        }
+      ],
+      "purpose": "Verify that passing --source-map with --output output.js causes UglifyJS to generate a source map file named output.js.map alongside the compressed output file, and that the map contains the standard source-map fields.",
+      "required_resources": [],
+      "setup_files": {
+        "input.js": "function add(first, second) { return first + second; }"
+      },
+      "stderr_contains": [],
+      "stdin": "",
+      "stdout_contains": [],
+      "test_id": "T04",
+      "timeout_sec": 15
+    },
+    {
+      "argv": [
+        "{entrypoint}",
+        "file1.js",
+        "file2.js",
+        "-c",
+        "--toplevel"
+      ],
+      "claim_ids": [
+        "CLAIM-004"
+      ],
+      "edge_case": false,
+      "evidence": [
+        "UglifyJS can take multiple input files. ... The files are parsed in the\nsame global scope, that is, a reference from a file to some\nvariable/function declared in another file will be matched properly."
+      ],
+      "expected_exit_codes": [
+        0
+      ],
+      "file_assertions": [],
+      "purpose": "Verify multiple input files are parsed in sequence within the same global scope so a reference in file2.js to a function declared in file1.js resolves correctly. With -c and --toplevel enabled, correct cross-file linkage lets the compressor constant-fold add(1+2,3+4) into its computed result, which is only possible if add's definition from file1.js was correctly resolved while processing the call in file2.js.",
+      "required_resources": [],
+      "setup_files": {
+        "file1.js": "function add(first, second) { return first + second; }",
+        "file2.js": "console.log(add(1 + 2, 3 + 4));"
+      },
+      "stderr_contains": [],
+      "stdin": "",
+      "stdout_contains": [
+        "console.log(10)"
+      ],
+      "test_id": "T05",
+      "timeout_sec": 15
+    },
+    {
+      "argv": [
+        "{entrypoint}",
+        "bad.js"
+      ],
+      "claim_ids": [
+        "CLAIM-002"
+      ],
+      "edge_case": true,
+      "evidence": [
+        "uglifyjs [input files] [options]"
+      ],
+      "expected_exit_codes": [
+        1,
+        2
+      ],
+      "file_assertions": [],
+      "purpose": "Verify uglifyjs fails with a nonzero exit code when given syntactically invalid JavaScript, as a minimal edge-case check; exact exit code and stderr wording are not documented so are not asserted.",
+      "required_resources": [],
+      "setup_files": {
+        "bad.js": "function foo( { return 1; }"
+      },
+      "stderr_contains": [],
+      "stdin": "",
+      "stdout_contains": [],
+      "test_id": "T06",
+      "timeout_sec": 15
+    }
+  ]
+}

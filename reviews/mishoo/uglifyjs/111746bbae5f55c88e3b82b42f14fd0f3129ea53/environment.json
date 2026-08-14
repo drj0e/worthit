@@ -1,0 +1,32 @@
+{
+  "backend": "docker",
+  "candidate_network": "none",
+  "cgroup_version": "2",
+  "docker_socket_exposed": false,
+  "host_mounts": [],
+  "image": "worthit-node:0.2",
+  "image_digests": [
+    "worthit-node@sha256:96adf3af31a3e3336000466cd2d5eff7d93b8137f2bb3b49a55d831521301c61"
+  ],
+  "image_id": "sha256:96adf3af31a3e3336000466cd2d5eff7d93b8137f2bb3b49a55d831521301c61",
+  "inherited_environment": [],
+  "limits": {
+    "cpus": "2",
+    "install_timeout": 600,
+    "memory": "2g",
+    "output_bytes": 262144,
+    "pids": 256,
+    "test_timeout": 120,
+    "workspace": "1g"
+  },
+  "residual_risk": "gVisor is preferred; runc shares the host kernel and is restricted to TRUSTED_ENOUGH_TO_TEST.",
+  "rootless": false,
+  "runtime": "runc",
+  "security_options": [
+    "name=apparmor",
+    "name=seccomp,profile=builtin",
+    "name=cgroupns"
+  ],
+  "toolchain": "v22.23.2",
+  "track": "node-cli"
+}

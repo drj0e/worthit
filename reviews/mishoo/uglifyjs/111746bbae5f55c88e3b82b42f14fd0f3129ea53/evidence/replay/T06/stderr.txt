@@ -1,0 +1,13 @@
+Parse error at bad.js:1,23
+function foo( { return 1; }
+                       ^
+ERROR: Name expected
+    at js_error (eval at <anonymous> (/work/repo/tools/node.js:18:1), <anonymous>:3135:11)
+    at croak (eval at <anonymous> (/work/repo/tools/node.js:18:1), <anonymous>:3659:9)
+    at as_symbol (eval at <anonymous> (/work/repo/tools/node.js:18:1), <anonymous>:5091:28)
+    at maybe_destructured (eval at <anonymous> (/work/repo/tools/node.js:18:1), <anonymous>:5140:28)
+    at maybe_default (eval at <anonymous> (/work/repo/tools/node.js:18:1), <anonymous>:5170:20)
+    at eval (eval at <anonymous> (/work/repo/tools/node.js:18:1), <anonymous>:4307:20)
+    at expr_list (eval at <anonymous> (/work/repo/tools/node.js:18:1), <anonymous>:4884:24)
+    at function_ (eval at <anonymous> (/work/repo/tools/node.js:18:1), <anonymous>:4306:24)
+    at eval (eval at <anonymous> (/work/repo/tools/node.js:18:1), <anonymous>:3862:50)

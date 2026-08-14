@@ -1,0 +1,76 @@
+{
+  "claims": [
+    {
+      "claim_id": "CLAIM-001",
+      "importance": "HIGH",
+      "rationale": "This is the documented primary installation step for CLI usage; can be directly verified by running the command and checking that a global `uglifyjs` binary becomes available.",
+      "source": "README.md",
+      "source_excerpt": "npm install uglify-js -g",
+      "testability": "HIGH",
+      "text": "Running `npm install uglify-js -g` installs UglifyJS as a command line app."
+    },
+    {
+      "claim_id": "CLAIM-002",
+      "importance": "HIGH",
+      "rationale": "Documents the core CLI invocation syntax; testable by running the installed binary with sample files and options.",
+      "source": "README.md",
+      "source_excerpt": "uglifyjs [input files] [options]",
+      "testability": "HIGH",
+      "text": "After installation, the CLI is invoked as `uglifyjs [input files] [options]`."
+    },
+    {
+      "claim_id": "CLAIM-003",
+      "importance": "MEDIUM",
+      "rationale": "A specific, observable behavior claim that can be tested by piping code into `uglifyjs` with no file arguments and checking it produces minified output.",
+      "source": "README.md",
+      "source_excerpt": "If no input file is specified, UglifyJS will read from STDIN.",
+      "testability": "HIGH",
+      "text": "If no input file is given on the command line, UglifyJS reads JavaScript source from STDIN."
+    },
+    {
+      "claim_id": "CLAIM-004",
+      "importance": "MEDIUM",
+      "rationale": "Testable by minifying two files referencing each other's declarations and checking the mangled/compressed output preserves correct references, though 'matched properly' requires some judgment to verify.",
+      "source": "README.md",
+      "source_excerpt": "UglifyJS can take multiple input files.  It's recommended that you pass the\ninput files first, then pass the options.  UglifyJS will parse input files\nin sequence and apply any compression options.  The files are parsed in the\nsame global scope, that is, a reference from a file to some\nvariable/function declared in another file will be matched properly.",
+      "testability": "MEDIUM",
+      "text": "UglifyJS can accept multiple input files, parses them in sequence within the same global scope, and resolves cross-file variable/function references correctly."
+    },
+    {
+      "claim_id": "CLAIM-005",
+      "importance": "MEDIUM",
+      "rationale": "Directly observable by running the CLI with and without -o and inspecting where output appears.",
+      "source": "README.md",
+      "source_excerpt": "Specify `--output` (`-o`) to declare the output file.  Otherwise the output\ngoes to STDOUT.",
+      "testability": "HIGH",
+      "text": "Without the `--output`/`-o` flag, UglifyJS writes its minified output to STDOUT; with it, output is written to the specified file."
+    },
+    {
+      "claim_id": "CLAIM-006",
+      "importance": "MEDIUM",
+      "rationale": "Directly testable by running the documented command and checking for the existence and naming of the generated .map file.",
+      "source": "README.md",
+      "source_excerpt": "UglifyJS can generate a source map file, which is highly useful for\ndebugging your compressed JavaScript.  To get a source map, pass\n`--source-map --output output.js` (source map will be written out to\n`output.js.map`).",
+      "testability": "HIGH",
+      "text": "Passing `--source-map --output output.js` causes UglifyJS to write a source map file to `output.js.map`."
+    },
+    {
+      "claim_id": "CLAIM-007",
+      "importance": "LOW",
+      "rationale": "An explicit, machine-checkable compatibility declaration in package.json that can be verified by attempting installs/runs on various Node versions, though it is a stated requirement rather than a tested guarantee.",
+      "source": "package.json",
+      "source_excerpt": "\"engines\": {\n    \"node\": \">=0.8.0\"\n  }",
+      "testability": "HIGH",
+      "text": "The package declares a required Node.js engine version of >=0.8.0 for uglify-js."
+    },
+    {
+      "claim_id": "CLAIM-008",
+      "importance": "HIGH",
+      "rationale": "Directly verifiable by inspecting the installed package or checking that the `uglifyjs` command resolves to this file after global install.",
+      "source": "package.json",
+      "source_excerpt": "\"bin\": {\n    \"uglifyjs\": \"bin/uglifyjs\"\n  }",
+      "testability": "HIGH",
+      "text": "The package exposes a binary named `uglifyjs` located at `bin/uglifyjs`, which becomes the CLI entry point after installation."
+    }
+  ]
+}

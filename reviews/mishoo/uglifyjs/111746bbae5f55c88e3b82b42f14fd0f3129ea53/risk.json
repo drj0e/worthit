@@ -1,0 +1,20 @@
+{
+  "bytes_scanned": 3812081,
+  "classification": "TRUSTED_ENOUGH_TO_TEST",
+  "files_scanned": 266,
+  "findings": [
+    {
+      "category": "privilege_escalation",
+      "evidence": "u         if: runner.os == 'Linux'         shell: bash         run: |           sudo sed -i 's/providers = provider_sect/# providers = provider_sect/' /etc/ssl/openssl.cnf       - name: Perform tests      ",
+      "line": 29,
+      "path": ".github/workflows/ci.yml",
+      "severity": "MEDIUM"
+    }
+  ],
+  "limitations": [
+    "Pattern-based static screening cannot establish that code is safe.",
+    "Dependencies are not executed during screening and require their own provenance controls.",
+    "Generated, encrypted, or runtime-downloaded behavior may not be visible."
+  ],
+  "rationale": "Long-lived repository, recognized license, multiple sampled contributors, substantial public use, and no high-risk static finding."
+}
