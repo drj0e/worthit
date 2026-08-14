@@ -1,0 +1,150 @@
+name: Daily verification
+
+on:
+  schedule:
+    - cron: "17 05 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: worthit-daily
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    outputs:
+      run_date: ${{ steps.clock.outputs.date }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check -e .
+      - name: Fix the UTC operating date for every job
+        id: clock
+        run: echo "date=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+      - name: Discover and qualify without executing candidate code
+        run: worthit daily --run-date "${{ steps.clock.outputs.date }}" --base-path /worthit/ --site-url https://drj0e.github.io/worthit
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: candidate-state
+          path: |
+            data/candidates.json
+            hunts
+          if-no-files-found: error
+          retention-days: 2
+
+  evaluate:
+    needs: discover
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: candidate-state
+          path: .
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check -e .
+      - name: Detect evaluator authentication
+        id: auth
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [ -n "${ANTHROPIC_API_KEY}${CLAUDE_CODE_OAUTH_TOKEN}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "No Claude credential is configured; publishing the discovery report without execution."
+          fi
+      - name: Install pinned Claude CLI
+        if: steps.auth.outputs.enabled == 'true'
+        run: |
+          curl -fsSL https://claude.ai/install.sh -o "$RUNNER_TEMP/install-claude.sh"
+          echo "cde4f1702d3b1695f92b73d26888364e17bca476e17f0fd676484c951d36c125  $RUNNER_TEMP/install-claude.sh" | sha256sum -c -
+          bash "$RUNNER_TEMP/install-claude.sh" 2.1.227
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Execute selected repositories
+        if: steps.auth.outputs.enabled == 'true'
+        run: worthit daily --run-date "${{ needs.discover.outputs.run_date }}" --execute --allow-runc --base-path /worthit/ --site-url https://drj0e.github.io/worthit
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+          MAX_LLM_COST_PER_REPO: "5"
+          MAX_TOTAL_DAILY_LLM_COST: "25"
+      - name: Build and sanitize release state
+        run: |
+          worthit build-site --base-path /worthit/ --site-url https://drj0e.github.io/worthit
+          worthit verify-site --base-path /worthit/
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-state
+          path: |
+            data/candidates.json
+            hunts
+            reviews
+          if-no-files-found: error
+          retention-days: 2
+
+  record:
+    needs: evaluate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-state
+          path: .
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check -e .
+      - name: Rebuild only from sanitized artifacts
+        run: |
+          worthit build-site --base-path /worthit/ --site-url https://drj0e.github.io/worthit
+          worthit verify-site --base-path /worthit/
+      - name: Record changed reviews and hunt state
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add data/candidates.json hunts reviews
+          if ! git diff --cached --quiet; then
+            git commit -m "content: publish daily WorthIt run"
+            git push
+          fi
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+
+  deploy:
+    needs: record
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
