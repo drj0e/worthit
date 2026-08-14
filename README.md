@@ -16,8 +16,8 @@ has passed the clean-replay gate. Daily discovery ranks a persistent backlog and
 selects at most five repositories that pass every gate. It is allowed to select
 none.
 
-The generated publication is deployed at
-[drj0e.github.io/worthit](https://drj0e.github.io/worthit/).
+The static publication can be built and reviewed locally. Public deployment is
+currently disabled.
 
 ## Run one evaluation
 

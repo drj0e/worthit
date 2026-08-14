@@ -1000,6 +1000,8 @@ The 4 GB model download is optional.
         self.assertNotIn("workflow_dispatch", pages)
         self.assertIn("needs: [evaluate, verify]", record)
         self.assertIn("actions/deploy-pages", daily)
+        self.assertIn("vars.WORTHIT_PUBLISH_SITE == 'true'", daily)
+        self.assertIn("vars.WORTHIT_PUBLISH_SITE == 'true'", pages)
         self.assertIn("python -m unittest discover -s tests -v", daily.split("\n  discover:\n", 1)[0])
         self.assertIn("persist-credentials: false", record)
         self.assertNotIn("pip install", record)

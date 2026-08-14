@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
   build:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && vars.WORTHIT_PUBLISH_SITE == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:

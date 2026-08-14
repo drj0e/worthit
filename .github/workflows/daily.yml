@@ -230,6 +230,7 @@ jobs:
           if-no-files-found: error
           retention-days: 2
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        if: vars.WORTHIT_PUBLISH_SITE == 'true'
         with:
           path: _site
 
@@ -266,6 +267,7 @@ jobs:
         run: git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main
 
   deploy:
+    if: vars.WORTHIT_PUBLISH_SITE == 'true'
     needs: record
     runs-on: ubuntu-latest
     timeout-minutes: 10
