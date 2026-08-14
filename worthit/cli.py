@@ -14,7 +14,7 @@ from .site import build_site, verify_site
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="worthit", description="Execution-backed verification for public GitHub CLIs"
+        prog="worthit", description="Execution-backed verification for public GitHub developer tools"
     )
     commands = parser.add_subparsers(dest="command", required=True)
     evaluate = commands.add_parser(

@@ -15,7 +15,13 @@ from .inspect import (
     resolve_commit,
 )
 from .models import Claim, TestPlan, TrustClass, atomic_json, jsonable, read_json
-from .planning import design_and_critique_plan, extract_claims, model_cost, repair_and_critique_plan
+from .planning import (
+    _validate_plan,
+    design_and_critique_plan,
+    extract_claims,
+    model_cost,
+    repair_and_critique_plan,
+)
 from .review import editorial_critique, generate_review, publish_review_artifacts
 from .runner import (
     DockerRunner,
@@ -64,8 +70,9 @@ def evaluate_repository(
         if repository.get("commit_sha") != sha or repository.get("url") != ref.url:
             raise ValueError("cached repository identity does not match this run")
         repository = refresh_repository_inspection(repository, run_dir)
-        if not (repository.get("environment") or {}).get("supported"):
-            raise ValueError("repository is outside the supported V1 CLI execution tracks")
+        environment = repository.get("environment")
+        if not isinstance(environment, dict) or not environment.get("supported"):
+            raise ValueError("repository is outside the supported V1 execution tracks")
         requirements = repository.get("v1_requirements")
         if not isinstance(requirements, dict) or requirements.get("passed") is not True:
             classification = (
@@ -96,7 +103,13 @@ def evaluate_repository(
         plan_path = run_dir / "test-plan.json"
         if plan_path.exists():
             raw_plan = json.loads(plan_path.read_text())
-            plan = TestPlan.from_dict(raw_plan, claims, str(raw_plan.get("designer") or "cached"))
+            plan = _validate_plan(
+                raw_plan,
+                claims,
+                environment["entrypoints"],
+                str(environment["track"]),
+                str(raw_plan.get("designer") or "cached"),
+            )
         else:
             plan, _ = design_and_critique_plan(repository, claims, run_dir)
         _stage(state, run_dir, current, "COMPLETE")
@@ -106,9 +119,6 @@ def evaluate_repository(
         source = run_dir / "source"
         checkout_report = verify_source_snapshot(source, run_dir / "source.tar.gz", repository)
         atomic_json(run_dir / "checkout.json", checkout_report)
-        environment = repository["environment"]
-        if not isinstance(environment, dict):
-            raise ValueError("repository environment metadata is invalid")
         runner = DockerRunner(run_dir, RunnerConfig.from_env(allow_runc=allow_runc), trust, environment)
         runner.preflight()
         install_environment, install_adjustments = vcs_version_fallback(environment, sha)
@@ -131,7 +141,13 @@ def evaluate_repository(
             repaired_path = run_dir / "test-plan-repaired.json"
             if repaired_path.exists():
                 raw_plan = json.loads(repaired_path.read_text())
-                plan = TestPlan.from_dict(raw_plan, claims, str(raw_plan.get("designer") or "cached-repair"))
+                plan = _validate_plan(
+                    raw_plan,
+                    claims,
+                    environment["entrypoints"],
+                    str(environment["track"]),
+                    str(raw_plan.get("designer") or "cached-repair"),
+                )
             else:
                 plan, _ = repair_and_critique_plan(repository, claims, plan, warm, run_dir)
             _stage(state, run_dir, current, "COMPLETE")

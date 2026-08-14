@@ -1,0 +1,37 @@
+{
+  "backend": "docker",
+  "candidate_network": "none",
+  "cgroup_version": "2",
+  "docker_socket_exposed": false,
+  "dockerfile_sha256": "fb955c87f30e3274678aa36b4cc57aab6a58b630c5fa9062ae96cbdcf317b2ca",
+  "entrypoints": {
+    "starlette": "starlette"
+  },
+  "host_mounts": [],
+  "image": "worthit-python:0.2",
+  "image_digests": [
+    "worthit-python@sha256:41f5ca5169deda1c81c4bf886e8805a7f159f782f2ed55f5fe011caf5fc67619"
+  ],
+  "image_id": "sha256:41f5ca5169deda1c81c4bf886e8805a7f159f782f2ed55f5fe011caf5fc67619",
+  "inherited_environment": [],
+  "limits": {
+    "cpus": "2",
+    "install_timeout": 600,
+    "memory": "2g",
+    "output_bytes": 262144,
+    "pids": 256,
+    "test_timeout": 120,
+    "workspace": "1g"
+  },
+  "residual_risk": "gVisor is preferred; runc shares the host kernel and is restricted to TRUSTED_ENOUGH_TO_TEST.",
+  "rootless": false,
+  "runner_sha256": "e5cf72d8e8c0a62e50672c6211d65d93740db8a2492967ac4fd93795c88564e6",
+  "runtime": "runc",
+  "security_options": [
+    "name=apparmor",
+    "name=seccomp,profile=builtin",
+    "name=cgroupns"
+  ],
+  "toolchain": "Python 3.12.14",
+  "track": "python-library"
+}

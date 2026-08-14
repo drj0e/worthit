@@ -1,0 +1,327 @@
+{
+  "category": "Python library",
+  "claim_matrix": [
+    {
+      "claim": "Starlette can be installed via `pip install starlette`.",
+      "claim_id": "CLAIM-001",
+      "evidence": [
+        "final.json#install",
+        "evidence/final/T01/stdout.txt",
+        "evidence/final/T01/stderr.txt"
+      ],
+      "explanation": "The exact commit completed pip library source install from an offline wheelhouse, but the documented registry command was not run verbatim.",
+      "importance": "HIGH",
+      "source": "README.md",
+      "status": "PARTIAL",
+      "test_ids": [
+        "T01"
+      ]
+    },
+    {
+      "claim": "Running a Starlette application requires a separate ASGI server (e.g. uvicorn), which is not bundled with the `starlette` package itself.",
+      "claim_id": "CLAIM-002",
+      "evidence": [
+        "evidence/final/T04/stdout.txt",
+        "evidence/final/T04/stderr.txt"
+      ],
+      "explanation": "Tests T04 passed in both clean replays. Remaining gap: CLAIM-002 and CLAIM-003 (optional dependency behavior) are verified via installed package metadata (importlib.metadata.requires) rather than by actually installing/uninstalling httpx2, jinja2, python-multipart, itsdangerous, or pyyaml and exercising TestClient/Jinja2Templates/SessionMiddleware/SchemaGenerator failure paths, since installing extras requires network access.",
+      "importance": "HIGH",
+      "source": "README.md",
+      "status": "PARTIAL",
+      "test_ids": [
+        "T04"
+      ]
+    },
+    {
+      "claim": "`anyio` is the only hard runtime dependency of Starlette; `httpx2`, `jinja2`, `python-multipart`, `itsdangerous`, and `pyyaml` are optional and only required for specific features (TestClient, Jinja2Templates, form parsing, SessionMiddleware, and SchemaGenerator respectively).",
+      "claim_id": "CLAIM-003",
+      "evidence": [
+        "evidence/final/T05/stdout.txt",
+        "evidence/final/T05/stderr.txt"
+      ],
+      "explanation": "Tests T05 passed in both clean replays. Remaining gap: CLAIM-002 and CLAIM-003 (optional dependency behavior) are verified via installed package metadata (importlib.metadata.requires) rather than by actually installing/uninstalling httpx2, jinja2, python-multipart, itsdangerous, or pyyaml and exercising TestClient/Jinja2Templates/SessionMiddleware/SchemaGenerator failure paths, since installing extras requires network access.",
+      "importance": "HIGH",
+      "source": "README.md",
+      "status": "PARTIAL",
+      "test_ids": [
+        "T05"
+      ]
+    },
+    {
+      "claim": "Running `pip install starlette[full]` installs all of Starlette's optional dependencies (httpx2, jinja2, python-multipart, itsdangerous, pyyaml).",
+      "claim_id": "CLAIM-004",
+      "evidence": [],
+      "explanation": "No accepted test exercised this claim.",
+      "importance": "MEDIUM",
+      "source": "README.md",
+      "status": "UNVERIFIED",
+      "test_ids": []
+    },
+    {
+      "claim": "The documented example, defining a homepage endpoint returning `JSONResponse({'hello': 'world'})` registered via `Route(\"/\", endpoint=homepage)` and wrapped in `Starlette(debug=True, routes=routes)`, runs successfully with `uvicorn main:app` and serves that JSON response at `/`.",
+      "claim_id": "CLAIM-005",
+      "evidence": [
+        "evidence/final/T02/stdout.txt",
+        "evidence/final/T02/stderr.txt",
+        "evidence/final/T07/stdout.txt",
+        "evidence/final/T07/stderr.txt"
+      ],
+      "explanation": "Tests T02, T07 passed in both clean replays. Remaining gap: Tests avoid uvicorn and TestClient/httpx entirely since only the exact staged starlette commit is pip-installed (no network, no extras); the ASGI protocol is exercised directly via hand-written scope/receive/send instead of a real HTTP client or server socket, so CLAIM-005 and CLAIM-006's literal 'run with uvicorn' and 'request over HTTP' framing is verified only at the ASGI-callable level, not end-to-end over a socket.",
+      "importance": "HIGH",
+      "source": "README.md",
+      "status": "PARTIAL",
+      "test_ids": [
+        "T02",
+        "T07"
+      ]
+    },
+    {
+      "claim": "Starlette's `PlainTextResponse` component can be used independently as a raw ASGI callable (without the `Starlette` application class) to serve 'Hello, world!' when run with `uvicorn example:app`.",
+      "claim_id": "CLAIM-006",
+      "evidence": [
+        "evidence/final/T03/stdout.txt",
+        "evidence/final/T03/stderr.txt",
+        "evidence/final/T06/stdout.txt",
+        "evidence/final/T06/stderr.txt"
+      ],
+      "explanation": "Tests T03, T06 passed in both clean replays. Remaining gap: Tests avoid uvicorn and TestClient/httpx entirely since only the exact staged starlette commit is pip-installed (no network, no extras); the ASGI protocol is exercised directly via hand-written scope/receive/send instead of a real HTTP client or server socket, so CLAIM-005 and CLAIM-006's literal 'run with uvicorn' and 'request over HTTP' framing is verified only at the ASGI-callable level, not end-to-end over a socket.",
+      "importance": "MEDIUM",
+      "source": "README.md",
+      "status": "PARTIAL",
+      "test_ids": [
+        "T03",
+        "T06"
+      ]
+    }
+  ],
+  "commit_sha": "398e5a3430eb1ddd33e1d48d766efe41426e231f",
+  "description": "The little ASGI framework that shines. 🌟",
+  "limitations": [
+    "CLAIM-004 (pip install starlette[full]) is not tested at all because it requires a real package index installation, which is disallowed in this offline/no-network test harness.",
+    "T02 parses the JSON response body with json.loads and compares it as a dict to {'hello': 'world'} rather than asserting the exact serialized byte string, so it tracks only the dict value documented by the README and is insensitive to JSONResponse's internal separator/formatting choices, which are not claimed.",
+    "The source install reported 1.6.0, matching GitHub's latest-release metadata 1.6.0. The commit SHA identifies the exact tested artifact."
+  ],
+  "performance": {
+    "baseline": null,
+    "peak_ram_bytes": 46546289,
+    "slowest_test_ms": 1768,
+    "workspace_bytes": 18331472
+  },
+  "project": "starlette",
+  "release_at_inspection": {
+    "body": "## What's Changed\r\n* Add `max_body_size` to `Starlette` and route classes by @Kludex in https://github.com/Kludex/starlette/pull/3431\r\n* Expose `http.response.debug` info via response extensions by @y2kbugger in https://github.com/Kludex/starlette/pull/3130\r\n\r\n## New Contributors\r\n* @y2kbugger made their first contribution in https://github.com/Kludex/starlette/pull/3130\r\n\r\n**Full Changelog**: https://github.com/Kludex/starlette/compare/1.5.1...1.6.0",
+    "name": "Version 1.6.0",
+    "prerelease": false,
+    "published_at": "2026-08-08T18:27:12Z",
+    "tag": "1.6.0",
+    "url": "https://github.com/Kludex/starlette/releases/tag/1.6.0"
+  },
+  "repository": "encode/starlette",
+  "repository_url": "https://github.com/encode/starlette",
+  "reproduction": {
+    "candidate_network": "none",
+    "dockerfile_sha256": "fb955c87f30e3274678aa36b4cc57aab6a58b630c5fa9062ae96cbdcf317b2ca",
+    "image": "sha256:41f5ca5169deda1c81c4bf886e8805a7f159f782f2ed55f5fe011caf5fc67619",
+    "reproduced": true,
+    "risk_classification": "TRUSTED_ENOUGH_TO_TEST",
+    "runner_sha256": "e5cf72d8e8c0a62e50672c6211d65d93740db8a2492967ac4fd93795c88564e6",
+    "runtime": "docker/runc with seccomp and AppArmor; runc shares the host kernel.",
+    "source_archive_sha256": "e2c2c835e016a75faa5bcf1364a4bf2aa9f829de3f3f875d0a4132d754265168",
+    "tests_compared": 7,
+    "toolchain": "Python 3.12.14"
+  },
+  "result_counts": {
+    "passed": 7,
+    "total": 7
+  },
+  "schema_version": 2,
+  "score": {
+    "bullshit_denominator": 7.0,
+    "bullshit_numerator": 0.0,
+    "bullshit_ratio": 0,
+    "confidence": "MEDIUM",
+    "dimensions": {
+      "claim_verification": 70,
+      "documentation": 90,
+      "novelty": 50,
+      "performance_efficiency": 85,
+      "reliability": 95,
+      "safety_privacy": 90,
+      "setup_experience": 90,
+      "utility": 85
+    },
+    "overall": 81,
+    "reasons": {
+      "claim_verification": "Importance-weighted claim results; unverified claim portions reduce coverage rather than becoming failures.",
+      "documentation": "README-derived workflows worked without contract repair.",
+      "novelty": "Neutral score: WorthIt did not run a comparative novelty study.",
+      "performance_efficiency": "Slowest test was 1768 ms and measured peak RAM was 46546289 bytes; no comparative baseline was used.",
+      "reliability": "Two clean runs compared across 7 tests; reproduced=True.",
+      "safety_privacy": "Static screening recorded no findings; candidate execution had no network. Static review is not a safety guarantee.",
+      "setup_experience": "pip library source install from an offline wheelhouse took 8044 ms with 0 manual interventions and 0 automated setup adjustments.",
+      "utility": "5/5 core workflow tests (T01, T02, T03, T04, T05) passed."
+    },
+    "setup_friction": "EASY",
+    "verdict": "WORTH IT",
+    "weights": {
+      "claim_verification": 30,
+      "documentation": 5,
+      "novelty": 5,
+      "performance_efficiency": 10,
+      "reliability": 10,
+      "safety_privacy": 5,
+      "setup_experience": 15,
+      "utility": 20
+    }
+  },
+  "setup": {
+    "automated_adjustments": [],
+    "candidate_network": "none",
+    "documented_vs_actual": "WorthIt used pip to install the exact staged library commit offline, then exercised its documented API through isolated user scripts; it did not run the project's own test suite.",
+    "friction": "EASY",
+    "install_controls": [
+      "no package-index access"
+    ],
+    "install_duration_ms": 8044,
+    "installation_method": "pip library source install from an offline wheelhouse",
+    "manual_interventions": 0,
+    "replay_install_duration_ms": 8046,
+    "toolchain": "Python 3.12.14",
+    "version_note": "The source install reported 1.6.0, matching GitHub's latest-release metadata 1.6.0. The commit SHA identifies the exact tested artifact."
+  },
+  "summary": "The exact commit completed pip library source install from an offline wheelhouse in 8.04 seconds with no manual intervention. 7 of 7 accepted tests passed with the same results in a second clean, offline container. Claim coverage gaps: 5 partial, 1 unverified. Evidence confidence is medium.",
+  "tested_at": "2026-08-14T12:36:01.644860+00:00",
+  "tests": [
+    {
+      "claim_ids": [
+        "CLAIM-001"
+      ],
+      "duration_ms": 1768,
+      "edge_case": false,
+      "evidence": [
+        "T01/stdout.txt",
+        "T01/stderr.txt"
+      ],
+      "exit_code": 0,
+      "peak_ram_bytes": 24043848,
+      "purpose": "Confirm the starlette package installed from the staged commit imports successfully.",
+      "status": "PASS",
+      "test_id": "T01"
+    },
+    {
+      "claim_ids": [
+        "CLAIM-005"
+      ],
+      "duration_ms": 1360,
+      "edge_case": false,
+      "evidence": [
+        "T02/stdout.txt",
+        "T02/stderr.txt"
+      ],
+      "exit_code": 0,
+      "peak_ram_bytes": 46546289,
+      "purpose": "Reproduce the README homepage example (Starlette app + Route + JSONResponse) and confirm it returns status 200 with a JSON body that decodes to {'hello': 'world'} when driven through the ASGI protocol directly. The body is parsed with json.loads and compared as a dict rather than asserting the exact serialized byte string, since the README only documents the dict value, not JSONResponse's internal separator/formatting choices.",
+      "status": "PASS",
+      "test_id": "T02"
+    },
+    {
+      "claim_ids": [
+        "CLAIM-006"
+      ],
+      "duration_ms": 1284,
+      "edge_case": false,
+      "evidence": [
+        "T03/stdout.txt",
+        "T03/stderr.txt"
+      ],
+      "exit_code": 0,
+      "peak_ram_bytes": 24033362,
+      "purpose": "Reproduce the README's toolkit example: PlainTextResponse used as a bare ASGI callable independent of the Starlette application class, and confirm it serves 'Hello, world!' with status 200.",
+      "status": "PASS",
+      "test_id": "T03"
+    },
+    {
+      "claim_ids": [
+        "CLAIM-002"
+      ],
+      "duration_ms": 1286,
+      "edge_case": false,
+      "evidence": [
+        "T04/stdout.txt",
+        "T04/stderr.txt"
+      ],
+      "exit_code": 0,
+      "peak_ram_bytes": 24379392,
+      "purpose": "Confirm uvicorn is not an unconditional Starlette dependency. Requirements tagged with an 'extra ==' marker are excluded; this does not test every possible ASGI server package.",
+      "status": "PASS",
+      "test_id": "T04"
+    },
+    {
+      "claim_ids": [
+        "CLAIM-003"
+      ],
+      "duration_ms": 1289,
+      "edge_case": false,
+      "evidence": [
+        "T05/stdout.txt",
+        "T05/stderr.txt"
+      ],
+      "exit_code": 0,
+      "peak_ram_bytes": 24243077,
+      "purpose": "Confirm anyio is declared as an unconditional (hard) requirement while jinja2 is declared only as an optional extra, per the documented dependency split.",
+      "status": "PASS",
+      "test_id": "T05"
+    },
+    {
+      "claim_ids": [
+        "CLAIM-006"
+      ],
+      "duration_ms": 1361,
+      "edge_case": true,
+      "evidence": [
+        "T06/stdout.txt",
+        "T06/stderr.txt"
+      ],
+      "exit_code": 1,
+      "peak_ram_bytes": 43033559,
+      "purpose": "Failure case: the documented bare-ASGI-callable example explicitly asserts scope['type'] == 'http'; feeding a non-http scope (e.g. websocket) must raise an uncaught AssertionError, confirming the exact code sample as written behaves this way. This validates fidelity to the literal README code sample, not a separately documented Starlette guarantee about non-http scope handling.",
+      "status": "PASS",
+      "test_id": "T06"
+    },
+    {
+      "claim_ids": [
+        "CLAIM-005"
+      ],
+      "duration_ms": 1461,
+      "edge_case": true,
+      "evidence": [
+        "T07/stdout.txt",
+        "T07/stderr.txt"
+      ],
+      "exit_code": 0,
+      "peak_ram_bytes": 42467328,
+      "purpose": "Edge case: requesting a path not registered in the README's single-route example returns a non-200 status through the ASGI router. This is a supplementary smoke check on routing behavior surrounding CLAIM-005's example, not itself a documented claim about 404 handling.",
+      "status": "PASS",
+      "test_id": "T07"
+    }
+  ],
+  "version": "1.6.0",
+  "what_broke": [
+    "No accepted final or replay test failed.",
+    "The accepted contract did not require diagnostic repair.",
+    "Not fully verified: CLAIM-001, Starlette can be installed via `pip install starlette`.",
+    "Not fully verified: CLAIM-002, Running a Starlette application requires a separate ASGI server (e.g. uvicorn), which is not bundled with the `starlette` package itself.",
+    "Not fully verified: CLAIM-003, `anyio` is the only hard runtime dependency of Starlette; `httpx2`, `jinja2`, `python-multipart`, `itsdangerous`, and `pyyaml` are optional and only required for specific features (TestClient, Jinja2Templates, form parsing, SessionMiddleware, and SchemaGenerator respectively).",
+    "Not fully verified: CLAIM-005, The documented example, defining a homepage endpoint returning `JSONResponse({'hello': 'world'})` registered via `Route(\"/\", endpoint=homepage)` and wrapped in `Starlette(debug=True, routes=routes)`, runs successfully with `uvicorn main:app` and serves that JSON response at `/`.",
+    "Not fully verified: CLAIM-006, Starlette's `PlainTextResponse` component can be used independently as a raw ASGI callable (without the `Starlette` application class) to serve 'Hello, world!' when run with `uvicorn example:app`.",
+    "Unverified: CLAIM-004, Running `pip install starlette[full]` installs all of Starlette's optional dependencies (httpx2, jinja2, python-multipart, itsdangerous, pyyaml)."
+  ],
+  "who_should_skip_it": [
+    "This review is not enough if your decision requires full verification of: CLAIM-001: Starlette can be installed via `pip install starlette`; CLAIM-002: Running a Starlette application requires a separate ASGI server (e.g. uvicorn), which is not bundled with the `starlette` package itself; CLAIM-003: `anyio` is the only hard runtime dependency of Starlette; `httpx2`, `jinja2`, `python-multipart`, `itsdangerous`, and `pyyaml` are optional and only required for specific features (TestClient, Jinja2Templates, form parsing, SessionMiddleware, and SchemaGenerator respectively); CLAIM-005: The documented example, defining a homepage endpoint returning `JSONResponse({'hello': 'world'})` registered via `Route(\"/\", endpoint=homepage)` and wrapped in `Starlette(debug=True, routes=routes)`, runs successfully with `uvicorn main:app` and serves that JSON response at `/`; CLAIM-006: Starlette's `PlainTextResponse` component can be used independently as a raw ASGI callable (without the `Starlette` application class) to serve 'Hello, world!' when run with `uvicorn example:app`; CLAIM-004: Running `pip install starlette[full]` installs all of Starlette's optional dependencies (httpx2, jinja2, python-multipart, itsdangerous, pyyaml)."
+  ],
+  "who_should_use_it": [
+    "Developers evaluating starlette's tested Python library API.",
+    "Teams that need the tested workflow to run locally without candidate-time network access."
+  ],
+  "worthit_version": "0.2.0"
+}

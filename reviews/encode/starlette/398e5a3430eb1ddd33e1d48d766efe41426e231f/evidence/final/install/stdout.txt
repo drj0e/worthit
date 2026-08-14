@@ -1,0 +1,19 @@
+Looking in links: /work/deps, /work/deps
+Processing ./repo
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Processing ./deps/anyio-4.14.2-py3-none-any.whl (from starlette==1.6.0)
+Processing ./deps/typing_extensions-4.16.0-py3-none-any.whl (from starlette==1.6.0)
+Processing ./deps/idna-3.18-py3-none-any.whl (from anyio<5,>=3.6.2->starlette==1.6.0)
+Building wheels for collected packages: starlette
+  Building wheel for starlette (pyproject.toml): started
+  Building wheel for starlette (pyproject.toml): finished with status 'done'
+  Created wheel for starlette: filename=starlette-1.6.0-py3-none-any.whl size=75950 sha256=504ffd160a262a98d6ca36f970d24f14f505016db844fccbf4eea15a94bd948a
+  Stored in directory: /tmp/pip-ephem-wheel-cache-bz3446wl/wheels/3a/4a/18/2e0c658c99e17426cd11b3c369a39c9159b7d6a4981ab576c1
+Successfully built starlette
+Installing collected packages: typing-extensions, idna, anyio, starlette
+Successfully installed anyio-4.14.2 idna-3.18 starlette-1.6.0 typing-extensions-4.16.0

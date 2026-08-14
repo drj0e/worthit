@@ -26,8 +26,9 @@ BIDI = dict.fromkeys(map(ord, "\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\
 MAX_ARCHIVE_BYTES = 100 * 1024 * 1024
 MAX_EXTRACT_BYTES = 250 * 1024 * 1024
 MAX_FILES = 30_000
-INSPECTION_REVISION = 3
+INSPECTION_REVISION = 5
 V1_REQUIREMENTS_REVISION = 2
+PYTHON_IMPORT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*$")
 OPEN_SOURCE_SPDX = {
     "0BSD",
     "AGPL-3.0",
@@ -450,14 +451,53 @@ def detect_environment(source_dir: Path) -> dict[str, Any]:
     dependencies = dependencies_value if isinstance(dependencies_value, list) else []
     build_requires = build_requires_value if isinstance(build_requires_value, list) else []
     dynamic = dynamic_value if isinstance(dynamic_value, list) else []
+    tool_value = data.get("tool")
+    tool = cast(dict[str, Any], tool_value) if isinstance(tool_value, dict) else {}
+    flit_value = tool.get("flit")
+    flit = cast(dict[str, Any], flit_value) if isinstance(flit_value, dict) else {}
+    module_value = flit.get("module")
+    module = cast(dict[str, Any], module_value) if isinstance(module_value, dict) else {}
+    import_value = module.get("name")
+    import_module = (
+        import_value if isinstance(import_value, str) and PYTHON_IMPORT.fullmatch(import_value) else None
+    )
+    hatch_value = tool.get("hatch")
+    hatch = cast(dict[str, Any], hatch_value) if isinstance(hatch_value, dict) else {}
+    version_value = hatch.get("version")
+    version = cast(dict[str, Any], version_value) if isinstance(version_value, dict) else {}
+    version_path_value = version.get("path")
+    if import_module is None and isinstance(version_path_value, str):
+        try:
+            version_path = safe_relative(version_path_value, "Hatch version path")
+        except ValueError:
+            version_path = ""
+        parts = Path(version_path).parts
+        package_index = 1 if parts[:1] == ("src",) else 0
+        if (
+            parts[-1:] == ("__init__.py",)
+            and len(parts) > package_index + 1
+            and PYTHON_IMPORT.fullmatch(parts[package_index])
+            and (source_dir / version_path).is_file()
+        ):
+            import_module = parts[package_index]
+    track = "python-cli" if scripts else "python-library"
+    entrypoints = (
+        {str(key): str(value) for key, value in list(scripts.items())[:30]}
+        if scripts
+        else ({import_module: import_module} if import_module else {})
+    )
     result.update(
         {
-            "track": "python-cli",
-            "supported": bool(scripts) and "dependencies" not in dynamic,
+            "track": track,
+            "supported": bool(entrypoints)
+            and "dependencies" not in dynamic
+            and isinstance(project.get("name"), str)
+            and isinstance(build.get("build-backend"), str),
             "project_name": project.get("name"),
             "project_version": project.get("version"),
             "requires_python": project.get("requires-python"),
-            "entrypoints": {str(key): str(value) for key, value in list(scripts.items())[:30]},
+            "entrypoints": entrypoints,
+            "import_module": import_module if track == "python-library" else None,
             "dependencies": [str(value) for value in dependencies[:200]],
             "build_requires": [str(value) for value in build_requires[:50]],
             "build_backend": build.get("build-backend"),

@@ -33,12 +33,13 @@ from .models import (
 IMAGE = "worthit-python:0.2"
 IMAGES = {
     "python-cli": (IMAGE, "python.Dockerfile", ["python", "--version"]),
+    "python-library": (IMAGE, "python.Dockerfile", ["python", "--version"]),
     "node-cli": ("worthit-node:0.2", "node.Dockerfile", ["node", "--version"]),
     "go-cli": ("worthit-go:0.2", "go.Dockerfile", ["go", "version"]),
 }
 MANAGED_LABEL = "worthit.managed=true"
 REQUIREMENT = re.compile(
-    r"^[A-Za-z0-9][A-Za-z0-9_.-]*(?:\[[A-Za-z0-9_,.-]+\])?(?:\s*(?:===|==|~=|!=|<=|>=|<|>)\s*[A-Za-z0-9*+_.!-]+)?(?:\s*;\s*[A-Za-z0-9_ .<>=!'\"()andor-]+)?$"
+    r"^[A-Za-z0-9][A-Za-z0-9_.-]*(?:\[[A-Za-z0-9_,.-]+\])?(?:\s*(?:===|==|~=|!=|<=|>=|<|>)\s*[A-Za-z0-9*+_.!-]+(?:\s*,\s*(?:===|==|~=|!=|<=|>=|<|>)\s*[A-Za-z0-9*+_.!-]+)*)?(?:\s*;\s*[A-Za-z0-9_ .<>=!'\"()andor-]+)?$"
 )
 WHEEL_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.+-]{0,299}\.whl$")
 SECRET_PATTERNS = [
@@ -223,6 +224,7 @@ class DockerRunner:
         report = {
             "backend": "docker",
             "track": self.track,
+            "entrypoints": jsonable(self.environment.get("entrypoints") or {}),
             "runtime": runtime,
             "security_options": options,
             "rootless": any(option == "name=rootless" for option in options),
@@ -267,7 +269,7 @@ class DockerRunner:
 
     def prepare_dependencies(self, source: Path) -> Path:
         report_path = self.run_dir / "dependency-fetch.json"
-        if self.track == "python-cli":
+        if self.track in {"python-cli", "python-library"}:
             if not report_path.exists():
                 self.prefetch_wheels(self.environment)
             bundle = verify_wheelhouse(self.run_dir)
@@ -586,6 +588,8 @@ class DockerRunner:
         entrypoints = self.environment.get("entrypoints")
         if not isinstance(entrypoints, dict) or plan.entrypoint not in entrypoints:
             raise SandboxUnavailable("test plan selected an entrypoint outside inspected metadata")
+        if self.track == "python-library" and any(test.argv[0] != "{python}" for test in plan.tests):
+            raise SandboxUnavailable("python-library tests must invoke the isolated Python interpreter")
         sandbox = Sandbox(
             self.run_dir,
             self.config,
@@ -598,7 +602,7 @@ class DockerRunner:
             sandbox.start()
             sandbox.stage_directory(source, "repo")
             sandbox.stage_directory(dependency_dir, "deps")
-            if self.track == "python-cli":
+            if self.track in {"python-cli", "python-library"}:
                 provision_argv = ["/usr/local/bin/python", "-m", "venv", "/work/venv"]
                 install_argv = [
                     "/work/venv/bin/python",
@@ -616,9 +620,15 @@ class DockerRunner:
                     "PIP_FIND_LINKS": "/work/deps",
                     **install_environment,
                 }
-                entrypoint_path = f"/work/venv/bin/{plan.entrypoint}"
+                entrypoint_path = (
+                    f"/work/venv/bin/{plan.entrypoint}" if self.track == "python-cli" else plan.entrypoint
+                )
                 interpreter_path = "/work/venv/bin/python"
-                installation_method = "pip source install from an offline wheelhouse"
+                installation_method = (
+                    "pip source install from an offline wheelhouse"
+                    if self.track == "python-cli"
+                    else "pip library source install from an offline wheelhouse"
+                )
                 install_controls = ["no package-index access"]
             elif self.track == "node-cli":
                 provision_argv = ["mkdir", "-p", "/work/install", "/work/npm-cache"]
@@ -694,23 +704,54 @@ class DockerRunner:
                 "install",
                 extra_env=install_env,
             )
-            installed = sandbox.path_exists(entrypoint_path)
-            if installed:
-                version_probe = sandbox.exec(
-                    [entrypoint_path, "--version"],
-                    "/work",
-                    b"",
-                    30,
-                    self.run_dir / "evidence" / label / "version",
-                    "verify-install",
+            version_argv = (
+                _python_library_probe_argv(
+                    str(interpreter_path),
+                    str(self.environment.get("project_name") or ""),
+                    plan.entrypoint,
                 )
+                if self.track == "python-library"
+                else [entrypoint_path, "--version"]
+            )
+            installed = False
+            if provision.exit_code == 0 and install.exit_code == 0:
+                if self.track == "python-library":
+                    version_probe = sandbox.exec(
+                        version_argv,
+                        "/work",
+                        b"",
+                        30,
+                        self.run_dir / "evidence" / label / "version",
+                        "verify-install",
+                    )
+                    installed = version_probe.exit_code == 0
+                else:
+                    installed = sandbox.path_exists(entrypoint_path)
+                    version_probe = (
+                        sandbox.exec(
+                            version_argv,
+                            "/work",
+                            b"",
+                            30,
+                            self.run_dir / "evidence" / label / "version",
+                            "verify-install",
+                        )
+                        if installed
+                        else _blocked_trace(
+                            "verify-install",
+                            version_argv,
+                            "/work",
+                            self.run_dir / "evidence" / label / "version",
+                            "entrypoint was not installed",
+                        )
+                    )
             else:
                 version_probe = _blocked_trace(
                     "verify-install",
-                    [entrypoint_path, "--version"],
+                    version_argv,
                     "/work",
                     self.run_dir / "evidence" / label / "version",
-                    "entrypoint was not installed",
+                    "installation did not complete",
                 )
             tests: list[TestResult] = []
             if provision.exit_code == 0 and install.exit_code == 0 and installed:
@@ -735,7 +776,7 @@ class DockerRunner:
                 if provision.exit_code == 0 and install.exit_code == 0 and installed
                 else "INSTALL_FAILED",
                 "provision": provision,
-                "venv": provision if self.track == "python-cli" else None,
+                "venv": provision if self.track in {"python-cli", "python-library"} else None,
                 "install": install,
                 "installation_method": installation_method,
                 "install_controls": install_controls,
@@ -1540,6 +1581,24 @@ def _expand_argv(argv: list[str], entrypoint_path: str, interpreter_path: str | 
     else:
         raise SandboxUnavailable("test plan requested an unavailable interpreter")
     return [first, *argv[1:]]
+
+
+def _python_library_probe_argv(interpreter: str, distribution: str, module: str) -> list[str]:
+    program = """import importlib,importlib.metadata,importlib.util,pathlib,sys
+dist=importlib.metadata.distribution(sys.argv[1])
+prefix=pathlib.Path(sys.prefix).resolve()
+owned={pathlib.Path(dist.locate_file(path)).resolve() for path in (dist.files or ())}
+spec=importlib.util.find_spec(sys.argv[2])
+origin=pathlib.Path(spec.origin).resolve() if spec and spec.origin else None
+if origin is None or not origin.is_relative_to(prefix) or origin not in owned:
+    raise SystemExit('declared import is not owned by the installed distribution')
+loaded=importlib.import_module(sys.argv[2])
+loaded_path=pathlib.Path(getattr(loaded,'__file__','')).resolve()
+if loaded_path != origin or loaded_path not in owned:
+    raise SystemExit('loaded module is not owned by the installed distribution')
+print(dist.version)
+"""
+    return [interpreter, "-I", "-c", program, distribution, module]
 
 
 def _blocked_trace(stage: str, argv: list[str], cwd: str, evidence: Path, reason: str) -> CommandTrace:

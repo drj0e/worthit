@@ -1,0 +1,255 @@
+{
+  "core_workflow": "Verify starlette installs and its ASGI application/toolkit components behave as documented by invoking the ASGI callable protocol (scope/receive/send) directly in-process — building a Starlette app with routes (JSONResponse example from README) and exercising bare response objects as raw ASGI apps (PlainTextResponse example) — without needing a live ASGI server, network access, or optional extras like httpx/uvicorn.",
+  "designer": "claude-reconciled",
+  "entrypoint": "starlette",
+  "limitations": [
+    "Tests avoid uvicorn and TestClient/httpx entirely since only the exact staged starlette commit is pip-installed (no network, no extras); the ASGI protocol is exercised directly via hand-written scope/receive/send instead of a real HTTP client or server socket, so CLAIM-005 and CLAIM-006's literal 'run with uvicorn' and 'request over HTTP' framing is verified only at the ASGI-callable level, not end-to-end over a socket.",
+    "CLAIM-002 and CLAIM-003 (optional dependency behavior) are verified via installed package metadata (importlib.metadata.requires) rather than by actually installing/uninstalling httpx2, jinja2, python-multipart, itsdangerous, or pyyaml and exercising TestClient/Jinja2Templates/SessionMiddleware/SchemaGenerator failure paths, since installing extras requires network access.",
+    "CLAIM-004 (pip install starlette[full]) is not tested at all because it requires a real package index installation, which is disallowed in this offline/no-network test harness.",
+    "T02 parses the JSON response body with json.loads and compares it as a dict to {'hello': 'world'} rather than asserting the exact serialized byte string, so it tracks only the dict value documented by the README and is insensitive to JSONResponse's internal separator/formatting choices, which are not claimed.",
+    "T04 excludes any requirement string containing an 'extra ==' marker before checking for uvicorn, so it only asserts uvicorn is absent from the unconditional runtime requirement set (matching CLAIM-002's scope), not from every extras/dev group in the package metadata.",
+    "T06 and T07 are supplementary smoke/edge checks (non-http scope assertion, 404 for an unregistered path); they validate fidelity to the literal README code sample and general routing behavior rather than a separately documented claim, and a PASS/FAIL on them should not be read as confirming or denying CLAIM-005/CLAIM-006 beyond what those claims literally state."
+  ],
+  "tests": [
+    {
+      "argv": [
+        "{python}",
+        "script.py"
+      ],
+      "claim_ids": [
+        "CLAIM-001"
+      ],
+      "edge_case": false,
+      "evidence": [
+        "CLAIM-001: Starlette can be installed via `pip install starlette`."
+      ],
+      "expected_exit_codes": [
+        0
+      ],
+      "file_assertions": [
+        {
+          "contains": [],
+          "exact_text": "IMPORT_OK\n",
+          "exists": true,
+          "path": "result.txt"
+        }
+      ],
+      "purpose": "Confirm the starlette package installed from the staged commit imports successfully.",
+      "required_resources": [],
+      "setup_files": {
+        "script.py": "import starlette\n\nwith open('result.txt', 'w') as f:\n    f.write('IMPORT_OK\\n')\n"
+      },
+      "stderr_contains": [],
+      "stdin": "",
+      "stdout_contains": [],
+      "test_id": "T01",
+      "timeout_sec": 15
+    },
+    {
+      "argv": [
+        "{python}",
+        "script.py"
+      ],
+      "claim_ids": [
+        "CLAIM-005"
+      ],
+      "edge_case": false,
+      "evidence": [
+        "CLAIM-005: async def homepage(request): return JSONResponse({'hello': 'world'}) ... routes = [Route(\"/\", endpoint=homepage)] ... app = Starlette(debug=True, routes=routes)"
+      ],
+      "expected_exit_codes": [
+        0
+      ],
+      "file_assertions": [
+        {
+          "contains": [],
+          "exact_text": "200\nOK\n",
+          "exists": true,
+          "path": "result.txt"
+        }
+      ],
+      "purpose": "Reproduce the README homepage example (Starlette app + Route + JSONResponse) and confirm it returns status 200 with a JSON body that decodes to {'hello': 'world'} when driven through the ASGI protocol directly. The body is parsed with json.loads and compared as a dict rather than asserting the exact serialized byte string, since the README only documents the dict value, not JSONResponse's internal separator/formatting choices.",
+      "required_resources": [],
+      "setup_files": {
+        "script.py": "import asyncio\nimport json\nfrom starlette.applications import Starlette\nfrom starlette.responses import JSONResponse\nfrom starlette.routing import Route\n\nasync def homepage(request):\n    return JSONResponse({'hello': 'world'})\n\nroutes = [Route('/', endpoint=homepage)]\napp = Starlette(debug=True, routes=routes)\n\nasync def main():\n    scope = {'type': 'http', 'method': 'GET', 'path': '/', 'headers': [], 'query_string': b''}\n    messages = []\n\n    async def receive():\n        return {'type': 'http.request', 'body': b'', 'more_body': False}\n\n    async def send(message):\n        messages.append(message)\n\n    await app(scope, receive, send)\n    status = messages[0]['status']\n    body = json.loads(messages[1]['body'].decode())\n    assert body == {'hello': 'world'}\n    with open('result.txt', 'w') as f:\n        f.write(f'{status}\\nOK\\n')\n\nasyncio.run(main())\n"
+      },
+      "stderr_contains": [],
+      "stdin": "",
+      "stdout_contains": [],
+      "test_id": "T02",
+      "timeout_sec": 15
+    },
+    {
+      "argv": [
+        "{python}",
+        "script.py"
+      ],
+      "claim_ids": [
+        "CLAIM-006"
+      ],
+      "edge_case": false,
+      "evidence": [
+        "CLAIM-006: async def app(scope, receive, send): assert scope['type'] == 'http'; response = PlainTextResponse('Hello, world!'); await response(scope, receive, send)"
+      ],
+      "expected_exit_codes": [
+        0
+      ],
+      "file_assertions": [
+        {
+          "contains": [],
+          "exact_text": "200\nHello, world!\n",
+          "exists": true,
+          "path": "result.txt"
+        }
+      ],
+      "purpose": "Reproduce the README's toolkit example: PlainTextResponse used as a bare ASGI callable independent of the Starlette application class, and confirm it serves 'Hello, world!' with status 200.",
+      "required_resources": [],
+      "setup_files": {
+        "script.py": "import asyncio\nfrom starlette.responses import PlainTextResponse\n\nasync def app(scope, receive, send):\n    assert scope['type'] == 'http'\n    response = PlainTextResponse('Hello, world!')\n    await response(scope, receive, send)\n\nasync def main():\n    scope = {'type': 'http', 'method': 'GET', 'headers': []}\n    messages = []\n\n    async def receive():\n        return {'type': 'http.request', 'body': b'', 'more_body': False}\n\n    async def send(message):\n        messages.append(message)\n\n    await app(scope, receive, send)\n    status = messages[0]['status']\n    body = messages[1]['body'].decode()\n    with open('result.txt', 'w') as f:\n        f.write(f'{status}\\n{body}\\n')\n\nasyncio.run(main())\n"
+      },
+      "stderr_contains": [],
+      "stdin": "",
+      "stdout_contains": [],
+      "test_id": "T03",
+      "timeout_sec": 15
+    },
+    {
+      "argv": [
+        "{python}",
+        "script.py"
+      ],
+      "claim_ids": [
+        "CLAIM-002"
+      ],
+      "edge_case": false,
+      "evidence": [
+        "CLAIM-002: Running a Starlette application requires a separate ASGI server (e.g. uvicorn), which is not bundled with the `starlette` package itself."
+      ],
+      "expected_exit_codes": [
+        0
+      ],
+      "file_assertions": [
+        {
+          "contains": [],
+          "exact_text": "HAS_UVICORN=False\n",
+          "exists": true,
+          "path": "result.txt"
+        }
+      ],
+      "purpose": "Confirm uvicorn is not an unconditional Starlette dependency. Requirements tagged with an 'extra ==' marker are excluded; this does not test every possible ASGI server package.",
+      "required_resources": [],
+      "setup_files": {
+        "script.py": "import importlib.metadata as metadata\n\nreqs = metadata.requires('starlette') or []\nunconditional = [r for r in reqs if 'extra ==' not in r]\nhas_uvicorn = any('uvicorn' in r.lower() for r in unconditional)\n\nwith open('result.txt', 'w') as f:\n    f.write(f'HAS_UVICORN={has_uvicorn}\\n')\n\nassert not has_uvicorn\n"
+      },
+      "stderr_contains": [],
+      "stdin": "",
+      "stdout_contains": [],
+      "test_id": "T04",
+      "timeout_sec": 15
+    },
+    {
+      "argv": [
+        "{python}",
+        "script.py"
+      ],
+      "claim_ids": [
+        "CLAIM-003"
+      ],
+      "edge_case": false,
+      "evidence": [
+        "CLAIM-003: `anyio` is the only hard runtime dependency of Starlette; `httpx2`, `jinja2`, `python-multipart`, `itsdangerous`, and `pyyaml` are optional and only required for specific features."
+      ],
+      "expected_exit_codes": [
+        0
+      ],
+      "file_assertions": [
+        {
+          "contains": [],
+          "exact_text": "ANYIO_HARD=True\nJINJA2_OPTIONAL=True\n",
+          "exists": true,
+          "path": "result.txt"
+        }
+      ],
+      "purpose": "Confirm anyio is declared as an unconditional (hard) requirement while jinja2 is declared only as an optional extra, per the documented dependency split.",
+      "required_resources": [],
+      "setup_files": {
+        "script.py": "import importlib.metadata as metadata\n\nreqs = metadata.requires('starlette') or []\nanyio_reqs = [r for r in reqs if r.split(';')[0].strip().lower().startswith('anyio')]\njinja_reqs = [r for r in reqs if 'jinja2' in r.lower()]\n\nanyio_hard = bool(anyio_reqs) and all('extra ==' not in r for r in anyio_reqs)\njinja_optional = bool(jinja_reqs) and all('extra ==' in r for r in jinja_reqs)\n\nwith open('result.txt', 'w') as f:\n    f.write(f'ANYIO_HARD={anyio_hard}\\n')\n    f.write(f'JINJA2_OPTIONAL={jinja_optional}\\n')\n\nassert anyio_hard\nassert jinja_optional\n"
+      },
+      "stderr_contains": [],
+      "stdin": "",
+      "stdout_contains": [],
+      "test_id": "T05",
+      "timeout_sec": 15
+    },
+    {
+      "argv": [
+        "{python}",
+        "script.py"
+      ],
+      "claim_ids": [
+        "CLAIM-006"
+      ],
+      "edge_case": true,
+      "evidence": [
+        "CLAIM-006: async def app(scope, receive, send): assert scope['type'] == 'http'; response = PlainTextResponse('Hello, world!'); await response(scope, receive, send)"
+      ],
+      "expected_exit_codes": [
+        1
+      ],
+      "file_assertions": [
+        {
+          "contains": [],
+          "exact_text": null,
+          "exists": false,
+          "path": "result.txt"
+        }
+      ],
+      "purpose": "Failure case: the documented bare-ASGI-callable example explicitly asserts scope['type'] == 'http'; feeding a non-http scope (e.g. websocket) must raise an uncaught AssertionError, confirming the exact code sample as written behaves this way. This validates fidelity to the literal README code sample, not a separately documented Starlette guarantee about non-http scope handling.",
+      "required_resources": [],
+      "setup_files": {
+        "script.py": "import asyncio\nfrom starlette.responses import PlainTextResponse\n\nasync def app(scope, receive, send):\n    assert scope['type'] == 'http'\n    response = PlainTextResponse('Hello, world!')\n    await response(scope, receive, send)\n\nasync def main():\n    scope = {'type': 'websocket', 'headers': []}\n\n    async def receive():\n        return {'type': 'websocket.connect'}\n\n    async def send(message):\n        pass\n\n    await app(scope, receive, send)\n\nasyncio.run(main())\n"
+      },
+      "stderr_contains": [
+        "AssertionError"
+      ],
+      "stdin": "",
+      "stdout_contains": [],
+      "test_id": "T06",
+      "timeout_sec": 15
+    },
+    {
+      "argv": [
+        "{python}",
+        "script.py"
+      ],
+      "claim_ids": [
+        "CLAIM-005"
+      ],
+      "edge_case": true,
+      "evidence": [
+        "CLAIM-005: routes = [Route(\"/\", endpoint=homepage)]; app = Starlette(debug=True, routes=routes)"
+      ],
+      "expected_exit_codes": [
+        0
+      ],
+      "file_assertions": [
+        {
+          "contains": [],
+          "exact_text": "404\n",
+          "exists": true,
+          "path": "result.txt"
+        }
+      ],
+      "purpose": "Edge case: requesting a path not registered in the README's single-route example returns a non-200 status through the ASGI router. This is a supplementary smoke check on routing behavior surrounding CLAIM-005's example, not itself a documented claim about 404 handling.",
+      "required_resources": [],
+      "setup_files": {
+        "script.py": "import asyncio\nfrom starlette.applications import Starlette\nfrom starlette.responses import JSONResponse\nfrom starlette.routing import Route\n\nasync def homepage(request):\n    return JSONResponse({'hello': 'world'})\n\nroutes = [Route('/', endpoint=homepage)]\napp = Starlette(debug=True, routes=routes)\n\nasync def main():\n    scope = {'type': 'http', 'method': 'GET', 'path': '/nope', 'headers': [], 'query_string': b''}\n    messages = []\n\n    async def receive():\n        return {'type': 'http.request', 'body': b'', 'more_body': False}\n\n    async def send(message):\n        messages.append(message)\n\n    await app(scope, receive, send)\n    status = messages[0]['status']\n    with open('result.txt', 'w') as f:\n        f.write(f'{status}\\n')\n\nasyncio.run(main())\n"
+      },
+      "stderr_contains": [],
+      "stdin": "",
+      "stdout_contains": [],
+      "test_id": "T07",
+      "timeout_sec": 15
+    }
+  ]
+}

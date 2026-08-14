@@ -1,0 +1,145 @@
+{
+  "artifacts": [
+    {
+      "bytes": 125813,
+      "name": "anyio-4.14.2-py3-none-any.whl",
+      "sha256": "9f505dda5ac9f0c8309b5e8bd445a8c2bf7246f3ce950121e45ea15bc41d1494"
+    },
+    {
+      "bytes": 78435,
+      "name": "hatchling-1.32.0-py3-none-any.whl",
+      "sha256": "0e17c9c3b9aa7c625acc8d0f5b622f107d5049af9ecf5ada4de1aada5be7cdbc"
+    },
+    {
+      "bytes": 65455,
+      "name": "idna-3.18-py3-none-any.whl",
+      "sha256": "7f952cbe720b688055e3f87de14f5c3e5fdaa8bc3928985c4077ca689de849a2"
+    },
+    {
+      "bytes": 129956,
+      "name": "packaging-26.3-py3-none-any.whl",
+      "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c"
+    },
+    {
+      "bytes": 57328,
+      "name": "pathspec-1.1.1-py3-none-any.whl",
+      "sha256": "a00ce642f577bf7f473932318056212bc4f8bfdf53128c78bbd5af0b9b20b189"
+    },
+    {
+      "bytes": 20538,
+      "name": "pluggy-1.6.0-py3-none-any.whl",
+      "sha256": "e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746"
+    },
+    {
+      "bytes": 49449,
+      "name": "tomlkit-0.15.1-py3-none-any.whl",
+      "sha256": "177a05aece5a8ca5266fd3c448abb47b8d352f09d477d3ca8332db4d89b24304"
+    },
+    {
+      "bytes": 14211,
+      "name": "trove_classifiers-2026.6.1.19-py3-none-any.whl",
+      "sha256": "ab4c4ec93cc4a4e7815fa759906e05e6bb3f2fbd92ea0f897288c6a43efd15b3"
+    },
+    {
+      "bytes": 45571,
+      "name": "typing_extensions-4.16.0-py3-none-any.whl",
+      "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8"
+    }
+  ],
+  "bundle_sha256": "7db5ba857a34e40ad5cc3f0af552239661fe73bb71cf37d4d02f70d28adfcb89",
+  "candidate_code_executed": false,
+  "ecosystem": "pypi",
+  "network_phase": "PyPI wheel fetch only; candidate source was not present",
+  "requirements": [
+    "anyio>=3.6.2,<5",
+    "hatchling",
+    "typing_extensions>=4.10.0; python_version < '3.13'"
+  ],
+  "total_bytes": 586756,
+  "trace": {
+    "argv": [
+      "docker",
+      "exec",
+      "-i",
+      "--user",
+      "65534:65534",
+      "--workdir",
+      "/deps",
+      "--env",
+      "HOME=/tmp",
+      "worthit-fetch-38c29a9e1fcf",
+      "python",
+      "-m",
+      "pip",
+      "download",
+      "--disable-pip-version-check",
+      "--only-binary=:all:",
+      "--dest",
+      "/deps",
+      "anyio>=3.6.2,<5",
+      "hatchling",
+      "typing_extensions>=4.10.0; python_version < '3.13'"
+    ],
+    "cwd": "",
+    "duration_ms": 5324,
+    "exit_code": 0,
+    "failure_reason": null,
+    "max_cpu_percent": 102.19,
+    "output_limited": false,
+    "peak_ram_bytes": 40537948,
+    "stage": "dependency-fetch",
+    "status": "PASS",
+    "stderr_file": "<host-home>/work/worthit/.worthit/runs/encode--starlette/398e5a3430eb1ddd33e1d48d766efe41426e231f/evidence/dependency-fetch/stderr.txt",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_file": "<host-home>/work/worthit/.worthit/runs/encode--starlette/398e5a3430eb1ddd33e1d48d766efe41426e231f/evidence/dependency-fetch/stdout.txt",
+    "stdout_sha256": "e4caaab35552a8cd96e63a51efff8bccfdc38d55e774c77c582063839ebe18ae",
+    "timed_out": false
+  },
+  "wheels": [
+    {
+      "bytes": 125813,
+      "name": "anyio-4.14.2-py3-none-any.whl",
+      "sha256": "9f505dda5ac9f0c8309b5e8bd445a8c2bf7246f3ce950121e45ea15bc41d1494"
+    },
+    {
+      "bytes": 78435,
+      "name": "hatchling-1.32.0-py3-none-any.whl",
+      "sha256": "0e17c9c3b9aa7c625acc8d0f5b622f107d5049af9ecf5ada4de1aada5be7cdbc"
+    },
+    {
+      "bytes": 65455,
+      "name": "idna-3.18-py3-none-any.whl",
+      "sha256": "7f952cbe720b688055e3f87de14f5c3e5fdaa8bc3928985c4077ca689de849a2"
+    },
+    {
+      "bytes": 129956,
+      "name": "packaging-26.3-py3-none-any.whl",
+      "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c"
+    },
+    {
+      "bytes": 57328,
+      "name": "pathspec-1.1.1-py3-none-any.whl",
+      "sha256": "a00ce642f577bf7f473932318056212bc4f8bfdf53128c78bbd5af0b9b20b189"
+    },
+    {
+      "bytes": 20538,
+      "name": "pluggy-1.6.0-py3-none-any.whl",
+      "sha256": "e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746"
+    },
+    {
+      "bytes": 49449,
+      "name": "tomlkit-0.15.1-py3-none-any.whl",
+      "sha256": "177a05aece5a8ca5266fd3c448abb47b8d352f09d477d3ca8332db4d89b24304"
+    },
+    {
+      "bytes": 14211,
+      "name": "trove_classifiers-2026.6.1.19-py3-none-any.whl",
+      "sha256": "ab4c4ec93cc4a4e7815fa759906e05e6bb3f2fbd92ea0f897288c6a43efd15b3"
+    },
+    {
+      "bytes": 45571,
+      "name": "typing_extensions-4.16.0-py3-none-any.whl",
+      "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8"
+    }
+  ]
+}

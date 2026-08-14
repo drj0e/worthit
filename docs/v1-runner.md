@@ -1,31 +1,35 @@
 # V1 runner decision and implementation plan
 
-Status: accepted and clean-replayed across Python, Node, and Go; daily discovery
-and static publication implemented, 2026-08-14.
+Status: accepted and clean-replayed across Python CLI/library, Node CLI, and Go
+CLI tracks; daily discovery and static publication implemented, 2026-08-14.
 
 ## Promise and scope
 
 The V1 promise is: **we actually ran the thing**.
 
-The supported proving tracks are public, open-source, CPU-testable CLIs with
-documented local behavior, no required paid service, and no blocking static
-finding:
+The supported proving tracks are public, open-source, CPU-testable developer
+tools with documented local behavior, no required paid service, and no blocking
+static finding:
 
-- Python with static PEP 517 metadata and wheel-only dependencies;
+- Python CLIs with static PEP 517 metadata and wheel-only dependencies;
+- Python libraries with the same dependency constraints plus an explicit import
+  package in Flit module metadata or a Hatch `__init__.py` version path;
 - Node with a root `package.json`, declared `bin`, no runtime dependencies, and
   no lifecycle scripts;
 - Go with a root `package main`, pinned `go.mod`/`go.sum`, and no `replace`
   directive.
 
 Unsupported projects are recorded as `UNVERIFIED` or skipped; they are never
-forced through the wrong track. These boundaries came from the three-repository
-proof and are ceilings, not a claim that every repository in an ecosystem is
+forced through the wrong track. These boundaries came from real clean-replay
+proofs and are ceilings, not a claim that every repository in an ecosystem is
 supported.
 
 The first gate was one real repository from URL to local static review. The
 second gate was clean reproduction across Python, Node/TypeScript, and a Go
-utility. All three now pass twice from clean environments with the runner and
-container-build hashes included in the execution contract.
+utility. The next gate added a non-CLI Python library whose installed API is
+driven by staged user programs. All four reviews pass twice from clean
+environments with the runner and container-build hashes included in the
+execution contract.
 
 ## Trust boundaries
 
@@ -145,8 +149,8 @@ either cold run.
 ## Implementation sequence
 
 1. Implement strict GitHub URL parsing, metadata/archive retrieval, safe archive
-   extraction, repository evidence discovery, bounded Python/Node/Go metadata
-   detection, and static risk classification.
+   extraction, repository evidence discovery, bounded Python CLI/library and
+   Node/Go metadata detection, and static risk classification.
 2. Implement validated claim and command-plan schemas plus tool-disabled Claude
    planner and independent critic calls, retaining every input/output artifact.
 3. Implement the hardened Docker backend, ecosystem-specific source-free
@@ -158,9 +162,9 @@ either cold run.
 5. Run controlled hostile fixtures for credential isolation, path traversal,
    output limits, timeout cleanup, unsafe plans, secret redaction, stored XSS,
    and resume behavior.
-6. Evaluate established Python, Node, and Go CLIs from exact GitHub commits,
-   repair the runner rather than the project, cold-replay each accepted contract,
-   and build each review locally.
+6. Evaluate established Python and Node/Go developer tools from exact GitHub
+   commits, repair the runner rather than the project, cold-replay each accepted
+   contract, and build each review locally.
 7. Ask Claude to challenge the plan before execution and independently audit the
    final evidence/review. Resolve valid findings and commit the milestone.
 8. Persist GitHub discovery signals, fail closed through metadata and deep gates,
@@ -206,10 +210,9 @@ credentials, and Claude session state. Entries are bounded to 14 days, 20
 commits, 50 MiB, 750 files, and 5 MiB per file; every restored path and schema is
 validated before it reaches `.worthit/runs`.
 
-Defaults ask the Claude CLI to cap model use at $5 per repository and reserve no
-more than $25 per UTC day. WorthIt rejects a response that reports an overage,
-but the external provider/CLI remains the authoritative real-time billing
-boundary.
+Defaults cap Claude model use at $5 per repository and reserve no more than $25
+per UTC day. The external provider/CLI remains the authoritative real-time
+billing boundary.
 
 ## Corrections
 
@@ -246,7 +249,7 @@ than a second content store, and Daily Hunt preserves typed failure/hold states.
 The broader execution tracks stay deferred until evidence shows they are needed
 and a stronger isolation backend is available.
 
-## Three-repository failure comparison
+## Four-review failure comparison
 
 Observed bring-up failures, not hypothetical ones:
 
@@ -255,6 +258,7 @@ Observed bring-up failures, not hypothetical ones:
 | Python | PyCQA/isort | GitHub's archive omitted VCS metadata required by the declared version backend; one generated edge assertion guessed the wrong exit code. | Detect declared VCS versioning, inject and disclose a deterministic sandbox-only version, mechanically constrain warm correction, and require two cold replays. |
 | Node | mishoo/UglifyJS | A CI-only `sudo` command triggered an execution-path risk block; generated source-map and cross-file assertions guessed intermediate output; editorial drafts hid a MEDIUM finding and leaked repair history. | Preserve the risk finding but grade non-executed CI context separately, require near-complete observed-line replacements plus independent criticism, surface every risk/coverage gap, and reject reviewer-history prose. |
 | Go | tomnomnom/gron | Docker `cp` could not write manifests through a read-only container root despite a tmpfs destination. Cold compilation also made setup materially slower than interpreted-package installs. | Transfer capped inert manifests over stdin to fixed tmpfs paths as UID 65534, keep source out of the network phase, hash the local module proxy, and report build time/toolchain independently. |
+| Python library | encode/starlette | The critic found a JSON formatting assertion the README never promised, and the editorial gate caught an untested extras-install claim receiving partial credit. | Exercise the installed API only through staged `{python}` scripts, compare semantic JSON, and require mapped test evidence before an install claim receives credit. |
 
 Only these demonstrated differences were generalized. Node remains limited to
 dependency-free, lifecycle-free packages; Go remains limited to a root command
@@ -267,8 +271,8 @@ runner-code hash, runtime, and limits.
 Completed on 2026-08-14:
 
 - prior-art and license research;
-- static GitHub inspection, Python CLI detection, claims, plan, independent
-  critique, and objective provenance/risk gate;
+- static GitHub inspection, Python CLI/library detection, claims, plan,
+  independent critique, and objective provenance/risk gate;
 - offline wheel preparation separated from candidate source;
 - hardened disposable runner with clean replay, measurements, redaction, and
   teardown;
@@ -279,10 +283,12 @@ Completed on 2026-08-14:
   STDIN, output-file, source-map, cross-file, and malformed-input workflows;
 - gron evaluation with 7/7 accepted tests reproduced twice, including file,
   stdin, JSON-stream, reverse-conversion, filtering, and invalid-input paths;
+- Starlette library evaluation with 7/7 accepted API and edge tests reproduced
+  twice, with registry extras and live-server behavior kept partial or unverified;
 - all three evaluator images passed the live mount, secret, socket, network,
   timeout, and teardown isolation probe.
 
-The finalized runner clean-reran all three repositories with identical
+The finalized runner clean-reran all four repositories with identical
 per-repository execution contracts and dependency-bundle hashes. Daily mode may
 now select only repositories that pass the existing established-project trust
 threshold. Stronger-than-runc isolation remains required before lowering that

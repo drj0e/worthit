@@ -1,0 +1,58 @@
+{
+  "claims": [
+    {
+      "claim_id": "CLAIM-001",
+      "importance": "HIGH",
+      "rationale": "Directly testable by running the command in a clean Python environment and confirming the package installs and imports successfully.",
+      "source": "README.md",
+      "source_excerpt": "$ pip install starlette",
+      "testability": "HIGH",
+      "text": "Starlette can be installed via `pip install starlette`."
+    },
+    {
+      "claim_id": "CLAIM-002",
+      "importance": "HIGH",
+      "rationale": "Testable by inspecting starlette's package dependencies and confirming no ASGI server is included, and that `uvicorn main:app` is needed to serve the example app.",
+      "source": "README.md",
+      "source_excerpt": "You'll also want to install an ASGI server, such as [uvicorn](https://uvicorn.dev) or any of the [other ASGI server implementations]",
+      "testability": "HIGH",
+      "text": "Running a Starlette application requires a separate ASGI server (e.g. uvicorn), which is not bundled with the `starlette` package itself."
+    },
+    {
+      "claim_id": "CLAIM-003",
+      "importance": "HIGH",
+      "rationale": "Testable by inspecting the package's declared dependencies (e.g. via pip show or pyproject.toml) and by exercising each optional feature without the corresponding package installed to confirm it fails only for that feature.",
+      "source": "README.md",
+      "source_excerpt": "Starlette only requires `anyio`, and the following are optional:\n\n* [`httpx2`][httpx2] - Required if you want to use the `TestClient`.\n* [`jinja2`][jinja2] - Required if you want to use `Jinja2Templates`.\n* [`python-multipart`][python-multipart] - Required if you want to support form parsing, with `request.form()`.\n* [`itsdangerous`][itsdangerous] - Required for `SessionMiddleware` support.\n* [`pyyaml`][pyyaml] - Required for `SchemaGenerator` support.",
+      "testability": "HIGH",
+      "text": "`anyio` is the only hard runtime dependency of Starlette; `httpx2`, `jinja2`, `python-multipart`, `itsdangerous`, and `pyyaml` are optional and only required for specific features (TestClient, Jinja2Templates, form parsing, SessionMiddleware, and SchemaGenerator respectively)."
+    },
+    {
+      "claim_id": "CLAIM-004",
+      "importance": "MEDIUM",
+      "rationale": "Testable by installing the `full` extra in a clean environment and checking that all listed optional packages are present.",
+      "source": "README.md",
+      "source_excerpt": "You can install all of these with `pip install starlette[full]`.",
+      "testability": "HIGH",
+      "text": "Running `pip install starlette[full]` installs all of Starlette's optional dependencies (httpx2, jinja2, python-multipart, itsdangerous, pyyaml)."
+    },
+    {
+      "claim_id": "CLAIM-005",
+      "importance": "HIGH",
+      "rationale": "Directly testable by creating the file as shown, starting uvicorn, and requesting `/` to confirm the JSON body `{'hello': 'world'}` is returned.",
+      "source": "README.md",
+      "source_excerpt": "async def homepage(request):\n    return JSONResponse({'hello': 'world'})\n\nroutes = [\n    Route(\"/\", endpoint=homepage)\n]\n\napp = Starlette(debug=True, routes=routes)",
+      "testability": "HIGH",
+      "text": "The documented example, defining a homepage endpoint returning `JSONResponse({'hello': 'world'})` registered via `Route(\"/\", endpoint=homepage)` and wrapped in `Starlette(debug=True, routes=routes)`, runs successfully with `uvicorn main:app` and serves that JSON response at `/`."
+    },
+    {
+      "claim_id": "CLAIM-006",
+      "importance": "MEDIUM",
+      "rationale": "Testable by creating the minimal ASGI app as shown, running it with uvicorn, and confirming the response body and status.",
+      "source": "README.md",
+      "source_excerpt": "async def app(scope, receive, send):\n    assert scope['type'] == 'http'\n    response = PlainTextResponse('Hello, world!')\n    await response(scope, receive, send)",
+      "testability": "HIGH",
+      "text": "Starlette's `PlainTextResponse` component can be used independently as a raw ASGI callable (without the `Starlette` application class) to serve 'Hello, world!' when run with `uvicorn example:app`."
+    }
+  ]
+}

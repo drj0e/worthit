@@ -7,6 +7,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tarfile
 import tempfile
 import unittest
@@ -39,6 +40,7 @@ from worthit.pipeline import _load_state, evaluate_repository
 from worthit.planning import (
     _ensure_grounded_repair,
     _ensure_grounded_strings,
+    _validate_plan,
     model_cost,
     planning_documents,
 )
@@ -53,7 +55,9 @@ from worthit.runner import (
     DockerRunner,
     RunnerConfig,
     Sandbox,
+    SandboxUnavailable,
     _expand_argv,
+    _python_library_probe_argv,
     _stage_inert_file,
     _validate_requirements,
     execution_contract_sha256,
@@ -420,7 +424,7 @@ class CoreBoundaryTests(unittest.TestCase):
                 "HOLD_EDITORIAL_REVIEW",
             )
 
-    def test_detects_bounded_node_and_go_cli_tracks(self) -> None:
+    def test_detects_bounded_execution_tracks(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "cli.js").write_text("#!/usr/bin/env node\n")
@@ -441,6 +445,56 @@ class CoreBoundaryTests(unittest.TestCase):
             self.assertTrue(node["supported"])
             (root / "package.json").write_text(
                 json.dumps({"name": "tool", "bin": {"tool": "cli.js"}, "dependencies": {"x": "1"}})
+            )
+            self.assertFalse(detect_environment(root)["supported"])
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "pyproject.toml").write_text(
+                """[project]
+name = "click"
+version = "8.5.0.dev"
+
+[build-system]
+requires = ["flit_core>=3.11,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.flit.module]
+name = "click"
+"""
+            )
+            library = detect_environment(root)
+            self.assertEqual(library["track"], "python-library")
+            self.assertEqual(library["entrypoints"], {"click": "click"})
+            self.assertEqual(library["import_module"], "click")
+            self.assertTrue(library["supported"])
+            (root / "starlette").mkdir()
+            (root / "starlette" / "__init__.py").write_text('__version__ = "1.0"\n')
+            (root / "pyproject.toml").write_text(
+                """[project]
+name = "starlette"
+dynamic = ["version"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "starlette/__init__.py"
+"""
+            )
+            hatch_library = detect_environment(root)
+            self.assertEqual(hatch_library["entrypoints"], {"starlette": "starlette"})
+            self.assertTrue(hatch_library["supported"])
+            (root / "pyproject.toml").write_text(
+                """[project]
+name = "ambiguous-package"
+version = "1.0"
+
+[build-system]
+requires = ["flit_core>=3.11,<4"]
+build-backend = "flit_core.buildapi"
+"""
             )
             self.assertFalse(detect_environment(root)["supported"])
 
@@ -490,6 +544,36 @@ class CoreBoundaryTests(unittest.TestCase):
             self.assertTrue(go["supported"])
             (root / "go.sum").unlink()
             self.assertFalse(detect_environment(root)["supported"])
+
+    def test_python_library_plan_requires_sandboxed_user_scripts(self) -> None:
+        raw = copy.deepcopy(plan_raw())
+        raw["entrypoint"] = "click"
+        for test in raw["tests"]:  # type: ignore[index]
+            test["argv"] = ["{python}", "case.py"]
+            test["setup_files"] = {"case.py": "import click\nprint(click.__name__)\n"}
+        accepted = _validate_plan(raw, [claim()], {"click": "click"}, "python-library", "test")
+        self.assertTrue(all(test.argv[0] == "{python}" for test in accepted.tests))
+        raw["tests"][0]["argv"] = ["{entrypoint}", "--help"]  # type: ignore[index]
+        with self.assertRaisesRegex(ValueError, "python-library"):
+            _validate_plan(raw, [claim()], {"click": "click"}, "python-library", "test")
+        wrong_plan = TestPlan.from_dict(raw, [claim()], "cached")
+        with tempfile.TemporaryDirectory() as temporary:
+            runner = DockerRunner(
+                Path(temporary),
+                RunnerConfig(),
+                TrustClass.TRUSTED,
+                {"track": "python-library", "entrypoints": {"click": "click"}},
+            )
+            with self.assertRaisesRegex(SandboxUnavailable, "isolated Python"):
+                runner.execute_plan(Path(temporary), wrong_plan, Path(temporary), "final", {}, [])
+        wrong_distribution = subprocess.run(
+            _python_library_probe_argv(sys.executable, "worthit-lab", "json"),
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertNotEqual(wrong_distribution.returncode, 0)
+        self.assertIn("not owned by the installed distribution", wrong_distribution.stderr)
 
     def test_official_research_includes_bounded_docs_examples_changelog_and_release(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -872,7 +956,8 @@ The 4 GB model download is optional.
 
     def test_requirement_and_secret_boundaries(self) -> None:
         self.assertEqual(
-            _validate_requirements(["hatchling>=1.0", "packaging"]), ["hatchling>=1.0", "packaging"]
+            _validate_requirements(["hatchling>=1.0", "flit_core>=3.11,<4", "packaging"]),
+            ["flit_core>=3.11,<4", "hatchling>=1.0", "packaging"],
         )
         for unsafe in ("tool @ https://example.invalid/tool.whl", "../tool", "git+https://example.invalid/x"):
             with self.assertRaises(RuntimeError):
@@ -1086,6 +1171,20 @@ The 4 GB model download is optional.
             with self.assertRaisesRegex(ValueError, "invalid review artifact"):
                 build_site(root / "reviews", root / "site")
 
+    def test_schema_two_publication_rejects_wrong_track_plan(self) -> None:
+        template = ROOT / "reviews/encode/starlette/398e5a3430eb1ddd33e1d48d766efe41426e231f"
+        with tempfile.TemporaryDirectory() as temporary:
+            artifact = Path(temporary) / "reviews/encode/starlette" / template.name
+            shutil.copytree(template, artifact)
+            plan = json.loads((artifact / "test-plan.json").read_text())
+            plan["tests"][0]["argv"][0] = "{entrypoint}"
+            atomic_json(artifact / "test-plan.json", plan)
+            fact = json.loads((artifact / "fact-check.json").read_text())
+            fact["bundle_sha256"] = publication_bundle_sha256(artifact)
+            atomic_json(artifact / "fact-check.json", fact)
+            with self.assertRaisesRegex(ValueError, "invalid review artifact"):
+                build_site(Path(temporary) / "reviews", Path(temporary) / "site")
+
     def test_review_publication_is_atomic_and_never_repairs_history(self) -> None:
         template_path = next((ROOT / "reviews").rglob("review.json"))
         source = template_path.parent
@@ -1245,6 +1344,25 @@ The 4 GB model download is optional.
         )
         self.assertEqual(result[0].status.value, "PARTIAL")
 
+        extras_claim = Claim.from_dict(
+            {
+                "claim_id": "CLAIM-002",
+                "source": "README.md",
+                "source_excerpt": "pip install tool[full]",
+                "text": "Running pip install tool[full] installs every optional dependency.",
+                "importance": "MEDIUM",
+                "testability": "HIGH",
+                "rationale": "Observable.",
+            }
+        )
+        results = evaluate_claims(
+            [install_claim, extras_claim],
+            TestPlan.from_dict(plan_raw(), [install_claim, extras_claim], "test"),
+            execution,
+        )
+        self.assertEqual(results[1].status.value, "UNVERIFIED")
+        self.assertEqual(results[1].tested_fraction, 0.0)
+
     def test_version_probe_strips_output_label(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -1373,16 +1491,21 @@ The 4 GB model download is optional.
                     base_path="/worthit/",
                     site_url="https://drj0e.github.io",
                 ),
-                3,
+                sum(1 for _ in (ROOT / "reviews").glob("*/*/*/review.json")),
             )
             home = (site / "index.html").read_text()
+            self.assertIn("Python library · WORTH IT", home)
+            self.assertIn("Reproduce the README homepage example", home)
+            self.assertNotIn("Confirm the starlette package installed", home)
             self.assertIn("Make JSON greppable!", home)
             self.assertIn("What we proved it can do", home)
             self.assertIn("gron transforms a JSON file", home)
             self.assertIn("Worth installing for the tested workflow.", home)
             repo_label = "Reviewed repo: <code>tomnomnom/gron</code>"
             self.assertLess(home.index("Make JSON greppable!"), home.index(repo_label))
-            self.assertLess(home.index(repo_label), home.index("7/7 workflows passed"))
+            self.assertLess(
+                home.index(repo_label), home.index("7/7 accepted tests passed", home.index(repo_label))
+            )
             self.assertIn("uglifyjs reads JavaScript from STDIN", home)
             self.assertIn("isort . recursively sorts imports", home)
             review = next((site / "reviews" / "tomnomnom" / "gron").rglob("index.html")).read_text()
@@ -1464,7 +1587,7 @@ class DockerIsolationTests(unittest.TestCase):
             canary = "ghp_" + "z" * 40
             os.environ["WORTHIT_TEST_CANARY"] = canary
             try:
-                for track in ("python-cli", "node-cli", "go-cli"):
+                for track in ("python-cli", "python-library", "node-cli", "go-cli"):
                     with self.subTest(track=track):
                         run_dir = (Path(temporary) / track).resolve()
                         run_dir.mkdir()

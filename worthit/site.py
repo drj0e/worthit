@@ -14,10 +14,16 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, cast
 
-from . import __version__
 from .evaluate import compare_replays, evaluate_claims, score_run
-from .models import Claim, TestPlan, jsonable
-from .review import PUBLIC_REVIEW_FILES, _slug, publication_bundle_sha256, render_markdown
+from .models import Claim, jsonable
+from .planning import _validate_plan
+from .review import (
+    PUBLIC_REVIEW_FILES,
+    REVIEW_SCHEMA_VERSION,
+    _slug,
+    publication_bundle_sha256,
+    render_markdown,
+)
 from .runner import redact
 
 CSS = """*{box-sizing:border-box}body{margin:0;background:#f4f1e8;color:#171915;font:16px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}a{color:#174f3a}header,main,footer{max-width:1100px;margin:auto;padding:1rem 1.25rem}header{display:flex;gap:1rem;align-items:center;border-bottom:2px solid #171915}header nav{margin-left:auto;display:flex;gap:.9rem;flex-wrap:wrap}.brand{font-weight:900;text-decoration:none}.hero{padding:2.5rem 0 1.5rem;border-bottom:1px solid #777}.hero h1{font:800 clamp(2.2rem,6vw,4.75rem)/.95 Georgia,serif;max-width:850px;margin:.25rem 0}.kicker{text-transform:uppercase;letter-spacing:.12em}.lede,.tool-description{font:700 1.15rem/1.4 Georgia,serif}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem}.card,.panel{background:#fff;border:1px solid #171915;padding:1rem;box-shadow:4px 4px 0 #171915}.card h3{font-size:1.45rem;margin:.35rem 0}.glance{background:#f4f1e8;border-left:4px solid #174f3a;padding:.65rem .8rem}.glance p{margin:.2rem 0}.glance ul{margin:.4rem 0 0;padding-left:1.2rem}.glance li+li{margin-top:.35rem}.decision{border-top:1px solid #999;padding-top:.75rem}.score{font:800 2.5rem/1 Georgia,serif}.meta{color:#4e554d;font-size:.9rem}.badge{display:inline-block;border:1px solid;padding:.1rem .4rem;margin-right:.35rem}table{width:100%;border-collapse:collapse;background:#fff}th,td{text-align:left;vertical-align:top;border:1px solid #777;padding:.55rem;overflow-wrap:anywhere}h1,h2,h3{font-family:Georgia,serif}blockquote{margin-left:0;border-left:4px solid #174f3a;padding-left:1rem}code{overflow-wrap:anywhere}.pass{color:#12633f}.partial{color:#7a4f00}.fail{color:#9b1b1b}footer{margin-top:3rem;border-top:1px solid #777}.stack>*+*{margin-top:1.2rem}@media(max-width:700px){header{align-items:flex-start;flex-direction:column}header nav{margin:0}.hero{padding-top:1.25rem}table{display:block;overflow-x:auto;font-size:.85rem}th,td{min-width:6rem}}"""
@@ -26,6 +32,11 @@ PUBLIC_SUFFIXES = {".css", ".html", ".json", ".md", ".txt", ".xml"}
 HOST_PATH = re.compile(r"(?:/home/|/Users/)[^/\s<]+/")
 EXECUTABLE_TEXT = re.compile(r"<\s*/?\s*(?:html|script|iframe|object|embed|svg)\b", re.I)
 REVIEW_FILES = PUBLIC_REVIEW_FILES
+LEGACY_REVIEW_BUNDLES = {
+    "9b8fad80ba924a45d726672bd77b2c0492d9ee8db7b885c1dabd988e20d5f9d8",
+    "64b9e2e0cf11a183c657e96562588229ac05f69bd0107cefb50d1887a64f7fb0",
+    "a8fc81f9394ffee1bb47c4b5bc3bb3e4baeb0d7ab71a12a6e53c20031aaee67b",
+}
 
 
 def build_site(
@@ -406,7 +417,7 @@ def _review_page(review: dict[str, Any], base_path: str) -> str:
         if corrections
         else ""
     )
-    return f"""<p class="kicker">Execution-backed review</p><h1>{e(review["project"])}</h1><p class="lede">{e(_tool_description(review))}</p><p class="meta"><a href="{e(review["repository_url"], quote=True)}">{e(review["repository"])}</a> · <a href="{history}">version history</a> · commit <code>{e(review["commit_sha"])}</code> · tool version <a href="evidence/final/version/stdout.txt"><code>{e(str(review.get("version") or "UNVERIFIED"))}</code></a> · WorthIt <code>{e(review["worthit_version"])}</code> · tested {e(review["tested_at"][:10])}</p>{correction_notice}<section class="panel"><p class="kicker">WorthIt verdict</p><span class="score">{e(str(score["overall"]))}/100</span><p><span class="badge">{e(score["verdict"])}</span><span class="badge">{e(score["confidence"])} confidence</span><span class="badge">Bullshit Ratio {e(bullshit_ratio)}</span></p><p><strong>{e(_decision_summary(review))}</strong></p><p class="meta">{e(review["summary"])}</p></section><h2>What WorthIt actually exercised</h2><div class="panel"><p>{e(str(review.get("_core_workflow") or "The claim-linked CLI workflows listed below."))}</p></div><h2>What it claims, and what survived testing</h2><div class="stack">{claims}</div><h2>Test results</h2><table><thead><tr><th>Test</th><th>Result</th><th>Exit</th><th>Runtime</th><th>Evidence</th><th>Purpose</th></tr></thead><tbody>{tests}</tbody></table><h2>Setup and measurements</h2><div class="panel"><p>Setup: {e(review["setup"]["friction"])}. Install {review["setup"]["install_duration_ms"] / 1000:.2f}s; replay {review["setup"]["replay_install_duration_ms"] / 1000:.2f}s; interventions {e(str(review["setup"]["manual_interventions"]))}; candidate network {e(str(review["setup"]["candidate_network"]))}. <a href="evidence/final/install/stdout.txt">Install stdout</a> · <a href="evidence/final/install/stderr.txt">install stderr</a> · <a href="evidence/replay/install/stdout.txt">replay stdout</a>.</p><p>Slowest test {e(str(review["performance"]["slowest_test_ms"]))} ms; peak measured test RAM {e(peak_ram_text)}. No comparative baseline.</p><p>{e(review["setup"]["documented_vs_actual"])}</p><p>{e(review["setup"]["version_note"])}</p></div><h2>What broke</h2>{bullets(review["what_broke"])}<h2>Scorecard</h2><table><thead><tr><th>Dimension</th><th>Score</th><th>Reason</th></tr></thead><tbody>{dimensions}</tbody></table><h2>Who should use it</h2>{bullets(review["who_should_use_it"])}<h2>Who should skip it</h2>{bullets(review["who_should_skip_it"])}<h2>Limitations</h2>{bullets(review["limitations"])}<h2>Reproduction</h2><div class="panel"><p>Source SHA-256 <code>{e(str(review["reproduction"]["source_archive_sha256"]))}</code>. Candidate network: none. Clean replay matched: {e(str(review["reproduction"]["reproduced"]))}. Backend: {e(review["reproduction"]["runtime"])}</p><p><a href="risk.json">Risk assessment</a> · <a href="environment.json">Sandbox environment</a> · <a href="dependency-fetch.json">Dependency provenance</a> · <a href="checkout.json">Source acquisition</a> · <a href="reproducibility.json">Reproducibility</a> · <a href="fact-check.json">Fact check</a> · <a href="editorial-critique.json">Editorial critique</a></p></div>"""
+    return f"""<p class="kicker">Execution-backed review</p><h1>{e(review["project"])}</h1><p class="lede">{e(_tool_description(review))}</p><p class="meta"><a href="{e(review["repository_url"], quote=True)}">{e(review["repository"])}</a> · <a href="{history}">version history</a> · commit <code>{e(review["commit_sha"])}</code> · tool version <a href="evidence/final/version/stdout.txt"><code>{e(str(review.get("version") or "UNVERIFIED"))}</code></a> · WorthIt <code>{e(review["worthit_version"])}</code> · tested {e(review["tested_at"][:10])}</p>{correction_notice}<section class="panel"><p class="kicker">WorthIt verdict</p><span class="score">{e(str(score["overall"]))}/100</span><p><span class="badge">{e(score["verdict"])}</span><span class="badge">{e(score["confidence"])} confidence</span><span class="badge">Bullshit Ratio {e(bullshit_ratio)}</span></p><p><strong>{e(_decision_summary(review))}</strong></p><p class="meta">{e(review["summary"])}</p></section><h2>What WorthIt actually exercised</h2><div class="panel"><p>{e(str(review.get("_core_workflow") or "The claim-linked workflows listed below."))}</p></div><h2>What it claims, and what survived testing</h2><div class="stack">{claims}</div><h2>Test results</h2><table><thead><tr><th>Test</th><th>Result</th><th>Exit</th><th>Runtime</th><th>Evidence</th><th>Purpose</th></tr></thead><tbody>{tests}</tbody></table><h2>Setup and measurements</h2><div class="panel"><p>Setup: {e(review["setup"]["friction"])}. Install {review["setup"]["install_duration_ms"] / 1000:.2f}s; replay {review["setup"]["replay_install_duration_ms"] / 1000:.2f}s; interventions {e(str(review["setup"]["manual_interventions"]))}; candidate network {e(str(review["setup"]["candidate_network"]))}. <a href="evidence/final/install/stdout.txt">Install stdout</a> · <a href="evidence/final/install/stderr.txt">install stderr</a> · <a href="evidence/replay/install/stdout.txt">replay stdout</a>.</p><p>Slowest test {e(str(review["performance"]["slowest_test_ms"]))} ms; peak measured test RAM {e(peak_ram_text)}. No comparative baseline.</p><p>{e(review["setup"]["documented_vs_actual"])}</p><p>{e(review["setup"]["version_note"])}</p></div><h2>What broke</h2>{bullets(review["what_broke"])}<h2>Scorecard</h2><table><thead><tr><th>Dimension</th><th>Score</th><th>Reason</th></tr></thead><tbody>{dimensions}</tbody></table><h2>Who should use it</h2>{bullets(review["who_should_use_it"])}<h2>Who should skip it</h2>{bullets(review["who_should_skip_it"])}<h2>Limitations</h2>{bullets(review["limitations"])}<h2>Reproduction</h2><div class="panel"><p>Source SHA-256 <code>{e(str(review["reproduction"]["source_archive_sha256"]))}</code>. Candidate network: none. Clean replay matched: {e(str(review["reproduction"]["reproduced"]))}. Backend: {e(review["reproduction"]["runtime"])}</p><p><a href="risk.json">Risk assessment</a> · <a href="environment.json">Sandbox environment</a> · <a href="dependency-fetch.json">Dependency provenance</a> · <a href="checkout.json">Source acquisition</a> · <a href="reproducibility.json">Reproducibility</a> · <a href="fact-check.json">Fact check</a> · <a href="editorial-critique.json">Editorial critique</a></p></div>"""
 
 
 def _correction_page(correction: dict[str, Any], base_path: str) -> str:
@@ -450,17 +461,20 @@ def _tool_description(review: dict[str, Any]) -> str:
 
 
 def _proven_capabilities(review: dict[str, Any]) -> list[str]:
-    capabilities = []
+    capabilities: list[str] = []
+    import_checks: list[str] = []
     for test in review.get("tests") or []:
         if not isinstance(test, dict) or test.get("status") != "PASS" or test.get("edge_case"):
             continue
         purpose = " ".join(str(test.get("purpose") or "").split()).strip()
         purpose = re.sub(r"^Verify(?: that)?\s+", "", purpose, flags=re.IGNORECASE)
         if purpose:
-            capabilities.append(purpose)
+            if len(purpose) > 240:
+                purpose = purpose[:237].rsplit(" ", 1)[0] + "…"
+            (import_checks if "imports successfully" in purpose.casefold() else capabilities).append(purpose)
         if len(capabilities) == 3:
             break
-    return capabilities or ["No core capability reached a reproducible PASS."]
+    return (capabilities or import_checks)[:3] or ["No core capability reached a reproducible PASS."]
 
 
 def _decision_summary(review: dict[str, Any]) -> str:
@@ -480,7 +494,7 @@ def _decision_summary(review: dict[str, Any]) -> str:
         "INSUFFICIENT EVIDENCE": "No defensible recommendation yet.",
     }.get(verdict, f"Verdict: {verdict}.")
     gap_text = f" {gaps} of {len(claims)} claims have caveats or remain unverified." if gaps else ""
-    return f"{recommendation} {passed}/{len(tests)} workflows passed in both clean runs.{gap_text}"
+    return f"{recommendation} {passed}/{len(tests)} accepted tests passed in both clean runs.{gap_text}"
 
 
 def _leaderboard_table(
@@ -662,7 +676,11 @@ def _valid_review(review: dict[str, Any]) -> bool:
         "claim_matrix",
         "tests",
     }
-    if not required <= set(review) or any(str(name).startswith("_") for name in review):
+    if (
+        not required <= set(review)
+        or review.get("schema_version") not in {1, REVIEW_SCHEMA_VERSION}
+        or any(str(name).startswith("_") for name in review)
+    ):
         return False
     strings = (
         "worthit_version",
@@ -1048,10 +1066,12 @@ def _valid_review_bundle(root: Path, review: dict[str, Any]) -> bool:
         "ai_writing_tells",
         "unfair_conclusions",
     )
+    bundle_sha256 = publication_bundle_sha256(root)
     if (
         not isinstance(fact, dict)
         or fact.get("passed") is not True
-        or fact.get("bundle_sha256") != publication_bundle_sha256(root)
+        or fact.get("bundle_sha256") != bundle_sha256
+        or (review.get("schema_version") == 1 and bundle_sha256 not in LEGACY_REVIEW_BUNDLES)
         or not isinstance(editorial, dict)
         or editorial.get("approved") is not True
         or any(editorial.get(name) for name in editorial_findings)
@@ -1335,9 +1355,18 @@ def _review_matches_artifacts(
     try:
         if (root / "review.md").read_text(encoding="utf-8") != render_markdown(review):
             return False
-        if review.get("worthit_version") == __version__:
+        if review.get("schema_version") == REVIEW_SCHEMA_VERSION:
             claims = [Claim.from_dict(item) for item in raw_claims]
-            plan = TestPlan.from_dict(plan_raw, claims, str(plan_raw.get("designer") or "published"))
+            entrypoints = environment.get("entrypoints")
+            if not isinstance(entrypoints, dict):
+                return False
+            plan = _validate_plan(
+                plan_raw,
+                claims,
+                entrypoints,
+                str(environment.get("track") or ""),
+                str(plan_raw.get("designer") or "published"),
+            )
             evaluated = evaluate_claims(claims, plan, run)
             evaluated_by_id = {item.claim_id: jsonable(item) for item in evaluated}
             for item in claim_matrix:

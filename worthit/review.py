@@ -83,6 +83,7 @@ PUBLIC_REVIEW_FILES = (
     "fact-check.json",
     "editorial-critique.json",
 )
+REVIEW_SCHEMA_VERSION = 2
 
 
 class PublicationHold(ValueError):
@@ -122,8 +123,6 @@ def generate_review(
     environment = json.loads((run_dir / "environment.json").read_text(encoding="utf-8"))
     track = str(execution.get("track") or (repository.get("environment") or {}).get("track") or "")
     installation_method = str(execution.get("installation_method") or "offline source installation")
-    description = str(repository.get("description") or "the tested CLI described above").strip().rstrip(".")
-    description = description[:1].lower() + description[1:]
     current_limitations = [
         limitation
         for limitation in plan.limitations
@@ -162,11 +161,12 @@ def generate_review(
             if adjustments
             else "WorthIt used pip to install the exact staged commit offline; it did not run the README's registry command verbatim."
         ),
+        "python-library": "WorthIt used pip to install the exact staged library commit offline, then exercised its documented API through isolated user scripts; it did not run the project's own test suite.",
         "node-cli": "WorthIt used npm to install the exact staged commit globally with network and lifecycle scripts disabled; it did not run the README's registry command verbatim.",
         "go-cli": "WorthIt compiled the exact staged commit with go build against a local checksum-verified module proxy; it did not download a release binary or run the README's go install command verbatim.",
     }.get(track, installation_method)
     review = {
-        "schema_version": 1,
+        "schema_version": REVIEW_SCHEMA_VERSION,
         "worthit_version": __version__,
         "project": repository["name"],
         "repository": repository["repository"],
@@ -178,7 +178,7 @@ def generate_review(
         "tested_at": execution.get("completed_at")
         or repository.get("inspected_at")
         or datetime.now(UTC).isoformat(),
-        "category": "CLI utility",
+        "category": "Python library" if track == "python-library" else "CLI utility",
         "score": jsonable(score),
         "summary": (
             f"The exact commit completed {installation_method} in {install_ms / 1000:.2f} seconds with no manual intervention"
@@ -253,8 +253,8 @@ def generate_review(
             *risk_notes,
         ],
         "who_should_use_it": [
-            f"Developers evaluating {repository['name']} as {description}.",
-            "Teams that need the tested CLI workflow to run locally without candidate-time network access.",
+            f"Developers evaluating {repository['name']}'s tested {'Python library API' if track == 'python-library' else 'CLI workflow'}.",
+            "Teams that need the tested workflow to run locally without candidate-time network access.",
         ],
         "who_should_skip_it": [
             "This review is not enough if your decision requires full verification of: "

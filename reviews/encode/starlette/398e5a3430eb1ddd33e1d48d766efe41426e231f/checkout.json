@@ -1,0 +1,14 @@
+{
+  "archive_sha256": "e2c2c835e016a75faa5bcf1364a4bf2aa9f829de3f3f875d0a4132d754265168",
+  "bytes": 3943872,
+  "commit_sha": "398e5a3430eb1ddd33e1d48d766efe41426e231f",
+  "files": 135,
+  "git_parser_on_host": false,
+  "lfs_smudge": false,
+  "repository": "encode/starlette",
+  "repository_url": "https://github.com/encode/starlette",
+  "source_tree_sha256": "4bf05e22d13999b2b1a0ca03de45a6aab04fd56471b852eea178836211a57008",
+  "submodules": false,
+  "tags_fetched": false,
+  "transport": "GitHub REST commit tarball"
+}

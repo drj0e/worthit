@@ -1,0 +1,341 @@
+{
+  "candidate_network": "none",
+  "completed_at": "2026-08-14T12:36:36.636764+00:00",
+  "dependency_bundle_sha256": "7db5ba857a34e40ad5cc3f0af552239661fe73bb71cf37d4d02f70d28adfcb89",
+  "duration_ms": 34617,
+  "entrypoint": "starlette",
+  "entrypoint_installed": true,
+  "execution_contract_sha256": "eda542273d2a963c48f713e9478e58f58c58880407149fa2b0672b145bfbc820",
+  "install": {
+    "argv": [
+      "/work/venv/bin/python",
+      "-m",
+      "pip",
+      "install",
+      "--disable-pip-version-check",
+      "--no-index",
+      "--find-links",
+      "/work/deps",
+      "/work/repo"
+    ],
+    "cwd": "/work",
+    "duration_ms": 8046,
+    "exit_code": 0,
+    "failure_reason": null,
+    "max_cpu_percent": 102.21,
+    "output_limited": false,
+    "peak_ram_bytes": 94319411,
+    "stage": "install",
+    "status": "PASS",
+    "stderr_file": "evidence/replay/install/stderr.txt",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_file": "evidence/replay/install/stdout.txt",
+    "stdout_sha256": "e1e4ca22992a592588b01ebe66aedf10f031bdbe0e5a6bff6ae0253712c4de36",
+    "timed_out": false
+  },
+  "install_adjustments": [],
+  "install_controls": [
+    "no package-index access"
+  ],
+  "installation_method": "pip library source install from an offline wheelhouse",
+  "label": "replay",
+  "manual_interventions": 0,
+  "provision": {
+    "argv": [
+      "/usr/local/bin/python",
+      "-m",
+      "venv",
+      "/work/venv"
+    ],
+    "cwd": "/work",
+    "duration_ms": 7329,
+    "exit_code": 0,
+    "failure_reason": null,
+    "max_cpu_percent": 102.94,
+    "output_limited": false,
+    "peak_ram_bytes": 83907052,
+    "stage": "provision",
+    "status": "PASS",
+    "stderr_file": "evidence/replay/provision/stderr.txt",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_file": "evidence/replay/provision/stdout.txt",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "timed_out": false
+  },
+  "status": "COMPLETE",
+  "tests": [
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "result.txt exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "result.txt exactly matches expected text",
+          "observed": "IMPORT_OK\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-001"
+      ],
+      "duration_ms": 1767,
+      "evidence": [
+        "evidence/replay/T01/stdout.txt",
+        "evidence/replay/T01/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 23750246,
+      "status": "PASS",
+      "test_id": "T01"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "result.txt exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "result.txt exactly matches expected text",
+          "observed": "200\nOK\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-005"
+      ],
+      "duration_ms": 1362,
+      "evidence": [
+        "evidence/replay/T02/stdout.txt",
+        "evidence/replay/T02/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 46273659,
+      "status": "PASS",
+      "test_id": "T02"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "result.txt exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "result.txt exactly matches expected text",
+          "observed": "200\nHello, world!\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-006"
+      ],
+      "duration_ms": 1302,
+      "evidence": [
+        "evidence/replay/T03/stdout.txt",
+        "evidence/replay/T03/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 24463278,
+      "status": "PASS",
+      "test_id": "T03"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "result.txt exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "result.txt exactly matches expected text",
+          "observed": "HAS_UVICORN=False\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-002"
+      ],
+      "duration_ms": 1287,
+      "evidence": [
+        "evidence/replay/T04/stdout.txt",
+        "evidence/replay/T04/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 24264049,
+      "status": "PASS",
+      "test_id": "T04"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "result.txt exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "result.txt exactly matches expected text",
+          "observed": "ANYIO_HARD=True\nJINJA2_OPTIONAL=True\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-003"
+      ],
+      "duration_ms": 1286,
+      "evidence": [
+        "evidence/replay/T05/stdout.txt",
+        "evidence/replay/T05/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 24243077,
+      "status": "PASS",
+      "test_id": "T05"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [1]",
+          "observed": "1",
+          "passed": true
+        },
+        {
+          "assertion": "stderr contains 'AssertionError'",
+          "observed": "Traceback (most recent call last):\n  File \"/work/cases/T06/script.py\", line 20, in <module>\n    asyncio.run(main())\n  File \"/usr/local/lib/python3.12/asyncio/runners.py\", line 195, in run\n    return runner.run(main)\n           ^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/asyncio/runners.py\", line 118, in run\n    return self._loop.run_until_complete(task)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/asyncio/base_events.py\", line 691, in run_until_complete…",
+          "passed": true
+        },
+        {
+          "assertion": "result.txt exists=False",
+          "observed": "exists=False",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-006"
+      ],
+      "duration_ms": 1461,
+      "evidence": [
+        "evidence/replay/T06/stdout.txt",
+        "evidence/replay/T06/stderr.txt"
+      ],
+      "exit_code": 1,
+      "failure_reason": null,
+      "peak_ram_bytes": 41177580,
+      "status": "PASS",
+      "test_id": "T06"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "result.txt exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "result.txt exactly matches expected text",
+          "observed": "404\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-005"
+      ],
+      "duration_ms": 1412,
+      "evidence": [
+        "evidence/replay/T07/stdout.txt",
+        "evidence/replay/T07/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 42844815,
+      "status": "PASS",
+      "test_id": "T07"
+    }
+  ],
+  "toolchain": "Python 3.12.14",
+  "track": "python-library",
+  "venv": {
+    "argv": [
+      "/usr/local/bin/python",
+      "-m",
+      "venv",
+      "/work/venv"
+    ],
+    "cwd": "/work",
+    "duration_ms": 7329,
+    "exit_code": 0,
+    "failure_reason": null,
+    "max_cpu_percent": 102.94,
+    "output_limited": false,
+    "peak_ram_bytes": 83907052,
+    "stage": "provision",
+    "status": "PASS",
+    "stderr_file": "evidence/replay/provision/stderr.txt",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_file": "evidence/replay/provision/stdout.txt",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "timed_out": false
+  },
+  "version_probe": {
+    "argv": [
+      "/work/venv/bin/python",
+      "-I",
+      "-c",
+      "import importlib,importlib.metadata,importlib.util,pathlib,sys\ndist=importlib.metadata.distribution(sys.argv[1])\nprefix=pathlib.Path(sys.prefix).resolve()\nowned={pathlib.Path(dist.locate_file(path)).resolve() for path in (dist.files or ())}\nspec=importlib.util.find_spec(sys.argv[2])\norigin=pathlib.Path(spec.origin).resolve() if spec and spec.origin else None\nif origin is None or not origin.is_relative_to(prefix) or origin not in owned:\n    raise SystemExit('declared import is not owned by the installed distribution')\nloaded=importlib.import_module(sys.argv[2])\nloaded_path=pathlib.Path(getattr(loaded,'__file__','')).resolve()\nif loaded_path != origin or loaded_path not in owned:\n    raise SystemExit('loaded module is not owned by the installed distribution')\nprint(dist.version)\n",
+      "starlette",
+      "starlette"
+    ],
+    "cwd": "/work",
+    "duration_ms": 2009,
+    "exit_code": 0,
+    "failure_reason": null,
+    "max_cpu_percent": 5.74,
+    "output_limited": false,
+    "peak_ram_bytes": 23739761,
+    "stage": "verify-install",
+    "status": "PASS",
+    "stderr_file": "evidence/replay/version/stderr.txt",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_file": "evidence/replay/version/stdout.txt",
+    "stdout_sha256": "cb1d9a30bc4ab8a397f39b7d786bb82aca0b816077eefc35d7c822017d75f6a5",
+    "timed_out": false
+  },
+  "workspace_bytes": 18331472
+}

@@ -1,0 +1,39 @@
+{
+  "bullshit_denominator": 7.0,
+  "bullshit_numerator": 0.0,
+  "bullshit_ratio": 0,
+  "confidence": "MEDIUM",
+  "dimensions": {
+    "claim_verification": 70,
+    "documentation": 90,
+    "novelty": 50,
+    "performance_efficiency": 85,
+    "reliability": 95,
+    "safety_privacy": 90,
+    "setup_experience": 90,
+    "utility": 85
+  },
+  "overall": 81,
+  "reasons": {
+    "claim_verification": "Importance-weighted claim results; unverified claim portions reduce coverage rather than becoming failures.",
+    "documentation": "README-derived workflows worked without contract repair.",
+    "novelty": "Neutral score: WorthIt did not run a comparative novelty study.",
+    "performance_efficiency": "Slowest test was 1768 ms and measured peak RAM was 46546289 bytes; no comparative baseline was used.",
+    "reliability": "Two clean runs compared across 7 tests; reproduced=True.",
+    "safety_privacy": "Static screening recorded no findings; candidate execution had no network. Static review is not a safety guarantee.",
+    "setup_experience": "pip library source install from an offline wheelhouse took 8044 ms with 0 manual interventions and 0 automated setup adjustments.",
+    "utility": "5/5 core workflow tests (T01, T02, T03, T04, T05) passed."
+  },
+  "setup_friction": "EASY",
+  "verdict": "WORTH IT",
+  "weights": {
+    "claim_verification": 30,
+    "documentation": 5,
+    "novelty": 5,
+    "performance_efficiency": 10,
+    "reliability": 10,
+    "safety_privacy": 5,
+    "setup_experience": 15,
+    "utility": 20
+  }
+}

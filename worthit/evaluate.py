@@ -78,7 +78,7 @@ def evaluate_claims(claims: list[Claim], plan: TestPlan, execution: dict[str, An
         limitation_text = next((text for text in plan.limitations if claim.claim_id in text), None)
         limitation = limitation_text is not None
         evidence = [path for test in mapped for path in test.get("evidence", []) if isinstance(path, str)]
-        if _is_install_claim(claim) and execution.get("status") == "COMPLETE":
+        if mapped and _is_install_claim(claim) and execution.get("status") == "COMPLETE":
             method = str(execution.get("installation_method") or "offline staged-source installation")
             adjustment = (
                 " An automated VCS-version fallback was required."
@@ -404,4 +404,8 @@ def score_run(
 
 def _is_install_claim(claim: Claim) -> bool:
     text = claim.text.casefold()
-    return "install" in text and ("pip" in text or "npm" in text or "cargo" in text or "go install" in text)
+    return (
+        "[" not in text
+        and "install" in text
+        and ("pip" in text or "npm" in text or "cargo" in text or "go install" in text)
+    )

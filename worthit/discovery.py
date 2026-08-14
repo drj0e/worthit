@@ -376,6 +376,8 @@ def _candidate_from_api(
 
 
 def _category(candidate: dict[str, Any]) -> str:
+    if (candidate.get("environment") or {}).get("track") == "python-library":
+        return "developer library"
     text = " ".join(
         [
             str(candidate.get("name") or ""),
@@ -707,7 +709,7 @@ def _deep_qualify(
         "testability": {
             "passed": bool(environment.get("supported")),
             "reason": (
-                f"Detected {environment.get('track') or 'no V1 CLI track'}; "
+                f"Detected {environment.get('track') or 'no V1 execution track'}; "
                 f"supported={bool(environment.get('supported'))}."
             ),
         },

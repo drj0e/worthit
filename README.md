@@ -7,12 +7,14 @@ tools. It extracts documented claims, designs and critiques tests, installs an
 exact commit in a disposable environment, runs core and failure workflows,
 captures evidence, scores the result, and generates a static technical review.
 
-This repository implements deliberately narrow Python, Node, and Go CLI tracks.
-Python requires static PEP 517 metadata and wheel dependencies; Node requires a
-declared CLI with no runtime dependencies or lifecycle scripts; Go requires a
-root command with pinned modules. All three tracks have passed the clean-replay
-gate. Daily discovery now ranks a persistent backlog and selects at most five
-repositories that pass every gate. It is allowed to select none.
+This repository implements deliberately narrow Python CLI, Python library, Node
+CLI, and Go CLI tracks. Python requires static PEP 517 metadata and wheel
+dependencies; a library must also declare an unambiguous import package in Flit
+or Hatch metadata. Node requires a declared CLI with no runtime dependencies or
+lifecycle scripts; Go requires a root command with pinned modules. Every track
+has passed the clean-replay gate. Daily discovery ranks a persistent backlog and
+selects at most five repositories that pass every gate. It is allowed to select
+none.
 
 The generated publication is deployed at
 [drj0e.github.io/worthit](https://drj0e.github.io/worthit/).
@@ -76,6 +78,14 @@ The third proof evaluated tomnomnom/gron at commit
 offline and 7/7 JSON, stream, reverse-conversion, filtering, and invalid-input
 tests passed in both clean containers. The evidence-backed review is
 [`reviews/tomnomnom/gron/88a6234ea2d0c487090988182ad9a7cdf6def924/review.md`](reviews/tomnomnom/gron/88a6234ea2d0c487090988182ad9a7cdf6def924/review.md).
+
+The first non-CLI proof evaluated encode/starlette at commit
+`398e5a3430eb1ddd33e1d48d766efe41426e231f`. WorthIt installed the Python
+library from staged source, drove its documented ASGI applications directly,
+and reproduced 7/7 core and edge tests in two clean offline containers. It
+scored 81/100 with `MEDIUM` confidence; the `starlette[full]` registry-install
+claim remains `UNVERIFIED`. The review is
+[`reviews/encode/starlette/398e5a3430eb1ddd33e1d48d766efe41426e231f/review.md`](reviews/encode/starlette/398e5a3430eb1ddd33e1d48d766efe41426e231f/review.md).
 
 ## Checks
 
