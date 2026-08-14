@@ -69,6 +69,8 @@ from worthit.runner import (
 from worthit.site import _review_page, build_site
 
 ROOT = Path(__file__).resolve().parents[1]
+STARLETTE_BUNDLE = ROOT / "reviews/encode/starlette/398e5a3430eb1ddd33e1d48d766efe41426e231f"
+STARLETTE_REVIEW = STARLETTE_BUNDLE / "review.json"
 
 
 def claim() -> Claim:
@@ -1066,7 +1068,7 @@ The 4 GB model download is optional.
             self.assertIn("T01 exit_code differed", report["mismatches"])
 
     def test_publication_rejects_cross_artifact_tampering(self) -> None:
-        template_path = next((ROOT / "reviews").rglob("review.json"))
+        template_path = STARLETTE_REVIEW
         template_review = json.loads(template_path.read_text())
         owner, name = template_review["repository"].casefold().split("/", 1)
         with tempfile.TemporaryDirectory() as temporary:
@@ -1137,7 +1139,7 @@ The 4 GB model download is optional.
                 build_site(root / "reviews", root / "site")
 
     def test_publication_rejects_repository_relabeling(self) -> None:
-        template_path = next((ROOT / "reviews").rglob("review.json"))
+        template_path = STARLETTE_REVIEW
         review = json.loads(template_path.read_text())
         owner, name = review["repository"].casefold().split("/", 1)
         with tempfile.TemporaryDirectory() as temporary:
@@ -1172,7 +1174,7 @@ The 4 GB model download is optional.
                 build_site(root / "reviews", root / "site")
 
     def test_schema_two_publication_rejects_wrong_track_plan(self) -> None:
-        template = ROOT / "reviews/encode/starlette/398e5a3430eb1ddd33e1d48d766efe41426e231f"
+        template = STARLETTE_BUNDLE
         with tempfile.TemporaryDirectory() as temporary:
             artifact = Path(temporary) / "reviews/encode/starlette" / template.name
             shutil.copytree(template, artifact)
@@ -1186,7 +1188,7 @@ The 4 GB model download is optional.
                 build_site(Path(temporary) / "reviews", Path(temporary) / "site")
 
     def test_review_publication_is_atomic_and_never_repairs_history(self) -> None:
-        template_path = next((ROOT / "reviews").rglob("review.json"))
+        template_path = STARLETTE_REVIEW
         source = template_path.parent
         review = json.loads(template_path.read_text())
         claims = [
@@ -1294,7 +1296,7 @@ The 4 GB model download is optional.
             self.assertEqual(list(outside.iterdir()), [])
 
     def test_publication_requires_every_cited_evidence_file(self) -> None:
-        template_path = next((ROOT / "reviews").rglob("review.json"))
+        template_path = STARLETTE_REVIEW
         review = json.loads(template_path.read_text())
         owner, name = review["repository"].casefold().split("/", 1)
         with tempfile.TemporaryDirectory() as temporary:
@@ -1419,7 +1421,7 @@ The 4 GB model download is optional.
             )
 
     def test_static_site_escapes_stored_xss(self) -> None:
-        template_path = next((ROOT / "reviews").rglob("review.json"))
+        template_path = STARLETTE_REVIEW
         review = json.loads(template_path.read_text())
         original_score = review["score"]["overall"]
         attack = '</title><script>alert("x")</script><img src=x onerror=alert(1)>'
@@ -1521,7 +1523,7 @@ The 4 GB model download is optional.
             self.assertIn("Make JSON greppable!", feed)
 
     def test_correction_preserves_original_and_rejects_unsafe_evidence(self) -> None:
-        template_path = next((ROOT / "reviews").rglob("review.json"))
+        template_path = STARLETTE_REVIEW
         review = json.loads(template_path.read_text())
         owner, name = review["repository"].split("/")
         with tempfile.TemporaryDirectory() as temporary:
