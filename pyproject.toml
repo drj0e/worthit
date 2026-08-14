@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "worthit-lab"
+version = "0.1.0"
+description = "Execution-backed verification for open-source developer tools"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["mypy==1.17.1", "ruff==0.12.8"]
+
+[project.scripts]
+worthit = "worthit.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["worthit"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true

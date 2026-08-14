@@ -1,0 +1,333 @@
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+from .models import (
+    Claim,
+    ClaimResult,
+    Confidence,
+    Importance,
+    ResultState,
+    Scorecard,
+    TestPlan,
+    atomic_json,
+)
+
+WEIGHTS = {
+    "claim_verification": 30,
+    "utility": 20,
+    "setup_experience": 15,
+    "reliability": 10,
+    "performance_efficiency": 10,
+    "documentation": 5,
+    "safety_privacy": 5,
+    "novelty": 5,
+}
+IMPORTANCE_WEIGHT = {Importance.HIGH: 3, Importance.MEDIUM: 2, Importance.LOW: 1}
+
+
+def evaluate_run(
+    repository: dict[str, Any],
+    claims: list[Claim],
+    plan: TestPlan,
+    final_run: dict[str, Any],
+    replay_run: dict[str, Any],
+    risk: dict[str, Any],
+    run_dir: Path,
+    *,
+    repaired: bool,
+) -> tuple[list[ClaimResult], Scorecard, dict[str, Any]]:
+    reproducibility = compare_replays(final_run, replay_run)
+    claim_results = evaluate_claims(claims, plan, final_run)
+    score = score_run(claims, claim_results, plan, final_run, risk, reproducibility, repaired=repaired)
+    result = {
+        "repository": repository["repository"],
+        "commit_sha": repository["commit_sha"],
+        "claim_results": claim_results,
+        "score": score,
+        "reproducibility": reproducibility,
+    }
+    atomic_json(run_dir / "claims-evaluated.json", {"claims": claim_results})
+    atomic_json(run_dir / "reproducibility.json", reproducibility)
+    atomic_json(run_dir / "score.json", score)
+    atomic_json(run_dir / "evaluation.json", result)
+    return claim_results, score, reproducibility
+
+
+def evaluate_claims(claims: list[Claim], plan: TestPlan, execution: dict[str, Any]) -> list[ClaimResult]:
+    tests = {str(test.get("test_id")): test for test in execution.get("tests", []) if isinstance(test, dict)}
+    results: list[ClaimResult] = []
+    for claim in claims:
+        mapped = [
+            test
+            for spec in plan.tests
+            if claim.claim_id in spec.claim_ids
+            if (test := tests.get(spec.test_id))
+        ]
+        limitation_text = next((text for text in plan.limitations if claim.claim_id in text), None)
+        limitation = limitation_text is not None
+        evidence = [path for test in mapped for path in test.get("evidence", []) if isinstance(path, str)]
+        if _is_install_claim(claim) and execution.get("status") == "COMPLETE":
+            adjustment = (
+                " An automated VCS-version fallback was required."
+                if execution.get("install_adjustments")
+                else ""
+            )
+            results.append(
+                ClaimResult(
+                    claim.claim_id,
+                    ResultState.PARTIAL,
+                    [str(test["test_id"]) for test in mapped],
+                    ["final.json#install", *evidence],
+                    "The exact commit installed successfully with pip from staged source, but the registry command was not run verbatim."
+                    + adjustment,
+                    0.5,
+                    0.0,
+                )
+            )
+            continue
+        if not mapped:
+            results.append(
+                ClaimResult(
+                    claim.claim_id,
+                    ResultState.UNVERIFIED,
+                    [],
+                    [],
+                    "No accepted test exercised this claim.",
+                    0.0,
+                    0.0,
+                )
+            )
+            continue
+        statuses = [ResultState(test["status"]) for test in mapped]
+        tested_ids = [str(test["test_id"]) for test in mapped]
+        if all(status is ResultState.PASS for status in statuses):
+            status = ResultState.PARTIAL if limitation else ResultState.PASS
+            explanation = (
+                f"Tests {', '.join(tested_ids)} passed in both clean replays. Remaining gap: {limitation_text}"
+                if limitation
+                else "All mapped tests passed in both clean replays."
+            )
+            results.append(
+                ClaimResult(
+                    claim.claim_id, status, tested_ids, evidence, explanation, 0.5 if limitation else 1.0, 0.0
+                )
+            )
+        elif any(status is ResultState.FAIL for status in statuses):
+            partial = any(status is ResultState.PASS for status in statuses)
+            results.append(
+                ClaimResult(
+                    claim.claim_id,
+                    ResultState.PARTIAL if partial else ResultState.FAIL,
+                    tested_ids,
+                    evidence,
+                    "At least one mapped clean-replay assertion failed."
+                    if partial
+                    else "The mapped clean-replay tests failed.",
+                    1.0,
+                    0.5 if partial else 1.0,
+                )
+            )
+        else:
+            results.append(
+                ClaimResult(
+                    claim.claim_id,
+                    ResultState.UNVERIFIED,
+                    tested_ids,
+                    evidence,
+                    "Mapped tests were blocked or otherwise produced insufficient evidence.",
+                    0.0,
+                    0.0,
+                )
+            )
+    return results
+
+
+def compare_replays(first: dict[str, Any], second: dict[str, Any]) -> dict[str, Any]:
+    mismatches: list[str] = []
+    if first.get("status") != "COMPLETE" or second.get("status") != "COMPLETE":
+        mismatches.append("one or both clean runs did not complete")
+    left = {str(test.get("test_id")): test for test in first.get("tests", []) if isinstance(test, dict)}
+    right = {str(test.get("test_id")): test for test in second.get("tests", []) if isinstance(test, dict)}
+    if set(left) != set(right):
+        mismatches.append("clean runs executed different test sets")
+    for test_id in sorted(set(left) & set(right)):
+        for field in ("status", "exit_code"):
+            if left[test_id].get(field) != right[test_id].get(field):
+                mismatches.append(f"{test_id} {field} differed")
+        left_assertions = [
+            (item.get("assertion"), item.get("passed")) for item in left[test_id].get("assertions", [])
+        ]
+        right_assertions = [
+            (item.get("assertion"), item.get("passed")) for item in right[test_id].get("assertions", [])
+        ]
+        if left_assertions != right_assertions:
+            mismatches.append(f"{test_id} assertions differed")
+    return {
+        "reproduced": not mismatches,
+        "first_label": first.get("label"),
+        "second_label": second.get("label"),
+        "tests_compared": len(set(left) & set(right)),
+        "mismatches": mismatches,
+    }
+
+
+def score_run(
+    claims: list[Claim],
+    claim_results: list[ClaimResult],
+    plan: TestPlan,
+    execution: dict[str, Any],
+    risk: dict[str, Any],
+    reproducibility: dict[str, Any],
+    *,
+    repaired: bool,
+) -> Scorecard:
+    by_id = {result.claim_id: result for result in claim_results}
+    points = {ResultState.PASS: 100, ResultState.PARTIAL: 70, ResultState.FAIL: 0}
+    scored = [
+        (IMPORTANCE_WEIGHT[claim.importance], by_id[claim.claim_id])
+        for claim in claims
+        if by_id[claim.claim_id].status in points
+    ]
+    functionality = (
+        round(
+            sum(weight * points[result.status] for weight, result in scored)
+            / sum(weight for weight, _ in scored)
+        )
+        if scored
+        else 0
+    )
+
+    tests = execution.get("tests", [])
+    core = [
+        test
+        for test in tests
+        if not next(spec.edge_case for spec in plan.tests if spec.test_id == test.get("test_id"))
+    ]
+    core_ratio = (
+        sum(test.get("status") == ResultState.PASS.value for test in core) / len(core) if core else 0.0
+    )
+    utility = 85 if core_ratio == 1 else 70 if core_ratio >= 0.75 else 40 if core_ratio else 0
+
+    install = execution.get("install") or {}
+    setup = 90 if execution.get("status") == "COMPLETE" else 0
+    if int(install.get("duration_ms") or 0) > 60_000:
+        setup -= 10
+    setup -= min(40, int(execution.get("manual_interventions") or 0) * 10)
+    adjustments = execution.get("install_adjustments") or []
+    if adjustments:
+        setup -= 15
+
+    all_passed = bool(tests) and all(test.get("status") == ResultState.PASS.value for test in tests)
+    reliability = (
+        95
+        if reproducibility.get("reproduced") and all_passed
+        else 75
+        if reproducibility.get("reproduced")
+        else 40
+    )
+    peak_ram = max((int(test.get("peak_ram_bytes") or 0) for test in tests), default=0)
+    slowest = max((int(test.get("duration_ms") or 0) for test in tests), default=0)
+    performance = (
+        85
+        if peak_ram <= 256 * 1024 * 1024 and slowest <= 10_000
+        else 70
+        if peak_ram <= 1024 * 1024 * 1024 and slowest <= 30_000
+        else 50
+    )
+    documentation = 80 if repaired else 90
+    safety = (
+        90
+        if risk.get("classification") == "TRUSTED_ENOUGH_TO_TEST"
+        and execution.get("candidate_network") == "none"
+        else 60
+    )
+    dimensions = {
+        "claim_verification": functionality,
+        "utility": utility,
+        "setup_experience": max(0, setup),
+        "reliability": reliability,
+        "performance_efficiency": performance,
+        "documentation": documentation,
+        "safety_privacy": safety,
+        "novelty": 50,
+    }
+    overall = round(sum(dimensions[name] * weight for name, weight in WEIGHTS.items()) / 100)
+
+    denominator = sum(
+        IMPORTANCE_WEIGHT[claim.importance] * by_id[claim.claim_id].tested_fraction for claim in claims
+    )
+    numerator = sum(
+        IMPORTANCE_WEIGHT[claim.importance] * by_id[claim.claim_id].unsupported_fraction for claim in claims
+    )
+    bullshit_ratio = round(100 * numerator / denominator) if denominator else None
+    important = [claim for claim in claims if claim.importance is Importance.HIGH]
+    coverage = (
+        sum(
+            IMPORTANCE_WEIGHT[claim.importance] * by_id[claim.claim_id].tested_fraction for claim in important
+        )
+        / sum(IMPORTANCE_WEIGHT[claim.importance] for claim in important)
+        if important
+        else 0.0
+    )
+    if reproducibility.get("reproduced") and coverage >= 0.8 and all_passed:
+        confidence = Confidence.HIGH
+    elif reproducibility.get("reproduced") and coverage >= 0.5 and tests:
+        confidence = Confidence.MEDIUM
+    elif tests:
+        confidence = Confidence.LOW
+    else:
+        confidence = Confidence.INSUFFICIENT
+    if execution.get("status") != "COMPLETE":
+        verdict = "BROKEN"
+    elif confidence is Confidence.INSUFFICIENT:
+        verdict = "INSUFFICIENT EVIDENCE"
+    elif overall >= 90 and confidence is Confidence.HIGH:
+        verdict = "MUST TRY"
+    elif overall >= 75:
+        verdict = "WORTH IT"
+    elif overall >= 60:
+        verdict = "PROMISING"
+    elif overall >= 45:
+        verdict = "NICHE"
+    else:
+        verdict = "NOT WORTH IT"
+    friction = (
+        "BROKEN"
+        if execution.get("status") != "COMPLETE"
+        else "EASY"
+        if setup >= 80
+        else "MODERATE"
+        if setup >= 60
+        else "PAINFUL"
+    )
+    reasons = {
+        "claim_verification": "Importance-weighted claim results; unverified claim portions reduce coverage rather than becoming failures.",
+        "utility": f"{sum(test.get('status') == ResultState.PASS.value for test in core)}/{len(core)} core workflow tests ({', '.join(str(test.get('test_id')) for test in core)}) passed.",
+        "setup_experience": f"Offline source installation took {int(install.get('duration_ms') or 0)} ms with {int(execution.get('manual_interventions') or 0)} manual interventions and {len(adjustments)} automated setup {'adjustment' if len(adjustments) == 1 else 'adjustments'}.",
+        "reliability": f"Two clean runs compared across {reproducibility.get('tests_compared', 0)} tests; reproduced={bool(reproducibility.get('reproduced'))}.",
+        "performance_efficiency": f"Slowest test was {slowest} ms and measured peak RAM was {peak_ram} bytes; no comparative baseline was used.",
+        "documentation": "README-derived workflows worked; diagnostic execution was needed to correct undocumented exit/format details."
+        if repaired
+        else "README-derived workflows worked without contract repair.",
+        "safety_privacy": "Static screening found no high-risk behavior and candidate execution had no network; static review is not a safety guarantee.",
+        "novelty": "Neutral score: WorthIt did not run a comparative novelty study.",
+    }
+    return Scorecard(
+        WEIGHTS,
+        dimensions,
+        reasons,
+        overall,
+        confidence,
+        verdict,
+        bullshit_ratio,
+        numerator,
+        denominator,
+        friction,
+    )
+
+
+def _is_install_claim(claim: Claim) -> bool:
+    text = claim.text.casefold()
+    return "install" in text and ("pip" in text or "npm" in text or "cargo" in text or "go install" in text)

@@ -38,7 +38,9 @@ attempt a container escape.
 
 V1 controls:
 
-- exact source commit and archive hash recorded;
+- exact source commit, archive hash, and extracted-tree hash recorded;
+- GitHub commit archives replace host-side Git parsing; candidate `.git` data is
+  neither fetched nor staged;
 - static source/install/CI scan before execution;
 - candidate runs as a numeric non-root user;
 - no host bind mounts and no Docker socket;
@@ -64,6 +66,12 @@ The install-time network problem is avoided rather than waved away: dependency
 wheels are prefetched by a separate container that never receives candidate
 source. Candidate build hooks execute only in the offline evaluator.
 
+Commit archives can omit metadata required by VCS-based build backends. The
+Python track detects declared `hatch-vcs`/`setuptools-scm` versioning and supplies
+a deterministic `0+worthit.<commit>` build version only inside the evaluator.
+This automated deviation is recorded, reduces the setup score, and keeps a
+documented registry-install claim at `PARTIAL`.
+
 ## Execution contract
 
 One immutable JSON run owns:
@@ -86,6 +94,12 @@ when their input digest still matches. Evidence files are content-hashed. A cold
 replay creates a new disposable container and must pass the accepted contract;
 warm repair evidence alone cannot support publication.
 
+Warm plan repair is mechanically bounded. It cannot change commands, inputs,
+setup files, timeouts, claim mappings, or edge labels. Exit-code corrections
+must equal the diagnostic exit; output and file assertions cannot be removed or
+replaced unless the replacement exists in captured warm evidence. A second model
+critiques the repair before either cold run.
+
 ## Decision rules
 
 - Models propose claims/tests and critique prose; code validates schemas, runs
@@ -95,9 +109,11 @@ warm repair evidence alone cannot support publication.
 - Expected non-zero behavior can produce a PASS when the test explicitly probes
   failure handling.
 - `BLOCKED` and `UNVERIFIED` never become FAIL or zero without evidence.
-- Bullshit Ratio is the importance-weighted share of tested claims that are
-  unsupported, counting `FAIL` as 1 and `PARTIAL` as 0.5; blocked and untested
-  claims are excluded. The numerator and denominator are stored.
+- Bullshit Ratio is the importance-weighted share of tested claim mass that
+  execution contradicted or materially overstated. Each claim stores its tested
+  and unsupported fractions. Unknown portions of `PARTIAL`, blocked, and
+  untested claims are excluded rather than counted as false. The exact numerator
+  and denominator are stored.
 - A review cannot publish without an exact commit, completed risk gate, at least
   one successful core execution and one edge/failure test, evidence hashes,
   deterministic scoring, sufficient confidence, fact-check PASS, and editorial
@@ -134,3 +150,24 @@ warm repair evidence alone cannot support publication.
 - cross-project performance claims without a comparable baseline.
 
 These return only after the three-repository clean-replay gate.
+
+## Iteration status and next gate
+
+Completed on 2026-08-14:
+
+- prior-art and license research;
+- static GitHub inspection, Python CLI detection, claims, plan, independent
+  critique, and objective provenance/risk gate;
+- offline wheel preparation separated from candidate source;
+- hardened disposable runner with clean replay, measurements, redaction, and
+  teardown;
+- deterministic claim matrix, scoring, confidence, Bullshit Ratio, review,
+  fact check, editorial critique, and escaped static publication;
+- first real isort evaluation with 7/7 accepted tests reproduced twice.
+
+Daily mode stays disabled. The remaining three-repository-gate work is a
+Node/TypeScript CLI track, a Rust or Go compiled-utility track, one real review
+from each, comparison of their actual bootstrap failure modes, and a clean rerun
+of all three. Stronger-than-runc isolation remains required before lowering the
+current established-project trust threshold or enabling broader unattended
+execution.
