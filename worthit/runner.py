@@ -17,7 +17,7 @@ from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import BinaryIO, cast
 
-from .inspect import clean_text, source_tree_report
+from .inspect import clean_text, parse_repo_url, source_tree_report
 from .models import (
     AssertionResult,
     CommandTrace,
@@ -87,8 +87,15 @@ class RunnerConfig:
 def verify_source_snapshot(source: Path, archive: Path, repository: dict[str, object]) -> dict[str, object]:
     expected_archive = repository.get("archive_sha256")
     expected_tree = repository.get("source_tree_sha256")
+    repository_slug = repository.get("repository")
+    repository_url = repository.get("url")
     if not isinstance(expected_archive, str) or not isinstance(expected_tree, str):
         raise ValueError("source snapshot provenance is incomplete")
+    if not isinstance(repository_slug, str) or not isinstance(repository_url, str):
+        raise ValueError("source snapshot repository identity is incomplete")
+    ref = parse_repo_url(repository_url)
+    if repository_url != ref.url or repository_slug != ref.slug:
+        raise ValueError("source snapshot repository identity is inconsistent")
     if not archive.is_file() or archive.is_symlink() or _sha256(archive) != expected_archive:
         raise ValueError("cached GitHub source archive changed")
     tree = source_tree_report(source)
@@ -98,6 +105,8 @@ def verify_source_snapshot(source: Path, archive: Path, repository: dict[str, ob
         raise ValueError("cached source inventory changed")
     return {
         "transport": "GitHub REST commit tarball",
+        "repository": repository_slug,
+        "repository_url": repository_url,
         "commit_sha": repository.get("commit_sha"),
         "archive_sha256": expected_archive,
         "source_tree_sha256": expected_tree,

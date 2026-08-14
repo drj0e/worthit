@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -158,6 +159,48 @@ def compare_replays(first: dict[str, Any], second: dict[str, Any]) -> dict[str, 
     mismatches: list[str] = []
     if first.get("status") != "COMPLETE" or second.get("status") != "COMPLETE":
         mismatches.append("one or both clean runs did not complete")
+    provenance_fields = (
+        "execution_contract_sha256",
+        "dependency_bundle_sha256",
+        "candidate_network",
+        "track",
+        "toolchain",
+        "entrypoint",
+        "entrypoint_installed",
+        "installation_method",
+        "install_controls",
+        "install_adjustments",
+        "manual_interventions",
+    )
+    for field in provenance_fields:
+        if first.get(field) != second.get(field):
+            mismatches.append(f"clean run {field} differed")
+    for field in ("execution_contract_sha256", "dependency_bundle_sha256"):
+        if any(re.fullmatch(r"[0-9a-f]{64}", str(run.get(field) or "")) is None for run in (first, second)):
+            mismatches.append(f"clean run {field} was missing or invalid")
+    for field in ("track", "toolchain", "entrypoint", "installation_method"):
+        if any(not isinstance(run.get(field), str) or not run[field].strip() for run in (first, second)):
+            mismatches.append(f"clean run {field} was missing or invalid")
+    if any(
+        not isinstance(run.get("install_controls"), list)
+        or not run["install_controls"]
+        or any(not isinstance(value, str) or not value.strip() for value in run["install_controls"])
+        for run in (first, second)
+    ):
+        mismatches.append("clean run install_controls were missing or invalid")
+    if any(not isinstance(run.get("install_adjustments"), list) for run in (first, second)):
+        mismatches.append("clean run install_adjustments were missing or invalid")
+    if first.get("candidate_network") != "none" or second.get("candidate_network") != "none":
+        mismatches.append("candidate network was not disabled in both clean runs")
+    if first.get("entrypoint_installed") is not True or second.get("entrypoint_installed") is not True:
+        mismatches.append("entrypoint was not installed in both clean runs")
+    if any(
+        isinstance(run.get("manual_interventions"), bool)
+        or not isinstance(run.get("manual_interventions"), int)
+        or run["manual_interventions"] < 0
+        for run in (first, second)
+    ):
+        mismatches.append("clean run manual_interventions were missing or invalid")
     left = {str(test.get("test_id")): test for test in first.get("tests", []) if isinstance(test, dict)}
     right = {str(test.get("test_id")): test for test in second.get("tests", []) if isinstance(test, dict)}
     if set(left) != set(right):

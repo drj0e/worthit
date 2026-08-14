@@ -5,6 +5,8 @@
   "files": 70,
   "git_parser_on_host": false,
   "lfs_smudge": false,
+  "repository": "tomnomnom/gron",
+  "repository_url": "https://github.com/tomnomnom/gron",
   "source_tree_sha256": "644f0ff3f52f71f4fb215ef045b0b9295ea405e51fc8df71236e8038cac00bc1",
   "submodules": false,
   "tags_fetched": false,

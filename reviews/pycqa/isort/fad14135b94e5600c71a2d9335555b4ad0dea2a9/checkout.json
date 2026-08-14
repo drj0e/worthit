@@ -5,6 +5,8 @@
   "files": 191,
   "git_parser_on_host": false,
   "lfs_smudge": false,
+  "repository": "PyCQA/isort",
+  "repository_url": "https://github.com/PyCQA/isort",
   "source_tree_sha256": "cffa06c09bc86b17e60ff26d8d0eece88695018f35bdb1012513ed28f4bea9b0",
   "submodules": false,
   "tags_fetched": false,

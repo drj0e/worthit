@@ -5,6 +5,8 @@
   "files": 283,
   "git_parser_on_host": false,
   "lfs_smudge": false,
+  "repository": "mishoo/UglifyJS",
+  "repository_url": "https://github.com/mishoo/UglifyJS",
   "source_tree_sha256": "37a64debe777e32df7faa28313dda80e2e5b9695c60ebfebacdda1ad60edfe22",
   "submodules": false,
   "tags_fetched": false,
