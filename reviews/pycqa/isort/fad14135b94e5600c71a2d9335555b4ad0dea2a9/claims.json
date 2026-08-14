@@ -1,0 +1,76 @@
+{
+  "claims": [
+    {
+      "claim_id": "CLAIM-001",
+      "importance": "HIGH",
+      "rationale": "Directly testable by running the documented install command and checking it succeeds and the isort CLI becomes available.",
+      "source": "README.md",
+      "source_excerpt": "pip install isort",
+      "testability": "HIGH",
+      "text": "Running `pip install isort` installs the isort package."
+    },
+    {
+      "claim_id": "CLAIM-002",
+      "importance": "HIGH",
+      "rationale": "Core CLI usage claim; verifiable by creating sample files with unsorted imports and checking isort modifies them as described.",
+      "source": "README.md",
+      "source_excerpt": "isort mypythonfile.py mypythonfile2.py",
+      "testability": "HIGH",
+      "text": "Running `isort mypythonfile.py mypythonfile2.py` sorts the imports in those specific files."
+    },
+    {
+      "claim_id": "CLAIM-003",
+      "importance": "HIGH",
+      "rationale": "Documented recursive usage pattern that can be verified against a directory tree of Python files.",
+      "source": "README.md",
+      "source_excerpt": "isort .",
+      "testability": "HIGH",
+      "text": "Running `isort .` applies isort recursively to the current directory."
+    },
+    {
+      "claim_id": "CLAIM-004",
+      "importance": "MEDIUM",
+      "rationale": "Verifiable by running the command and checking the file is unmodified while a diff is printed to output.",
+      "source": "README.md",
+      "source_excerpt": "isort mypythonfile.py --diff",
+      "testability": "HIGH",
+      "text": "Running `isort mypythonfile.py --diff` shows proposed changes without applying them to the file."
+    },
+    {
+      "claim_id": "CLAIM-005",
+      "importance": "MEDIUM",
+      "rationale": "Behavior is specific and testable (e.g., feeding a file with a syntax error and confirming no changes are applied), though triggering the failure condition requires crafted input.",
+      "source": "README.md",
+      "source_excerpt": "isort --atomic .",
+      "testability": "MEDIUM",
+      "text": "Running `isort --atomic .` runs isort against a project and only applies changes if they don't introduce syntax errors."
+    },
+    {
+      "claim_id": "CLAIM-006",
+      "importance": "HIGH",
+      "rationale": "Verifiable by running isort -c against a file with unsorted imports and confirming stderr output and no file modification.",
+      "source": "README.md",
+      "source_excerpt": "isort can also be used to verify that code is correctly formatted\nby running it with `-c`. Any files that contain incorrectly sorted\nand/or formatted imports will be outputted to `stderr`.",
+      "testability": "HIGH",
+      "text": "Running isort with `-c` (check-only) verifies formatting and outputs incorrectly sorted files to stderr rather than modifying them."
+    },
+    {
+      "claim_id": "CLAIM-007",
+      "importance": "HIGH",
+      "rationale": "Directly testable by attempting installation/execution under Python versions below and at/above 3.10 and observing whether it is accepted, consistent with the README's stated 'Python 3.10+' requirement.",
+      "source": "pyproject.toml",
+      "source_excerpt": "requires-python = \">=3.10.0\"",
+      "testability": "HIGH",
+      "text": "isort requires Python 3.10 or higher to run."
+    },
+    {
+      "claim_id": "CLAIM-008",
+      "importance": "MEDIUM",
+      "rationale": "Verifiable by installing the package and confirming the `isort` executable is created on PATH and invokes isort.main.main.",
+      "source": "pyproject.toml",
+      "source_excerpt": "isort = \"isort.main:main\"",
+      "testability": "HIGH",
+      "text": "Installing the isort package registers an `isort` command-line script entry point mapped to isort.main:main."
+    }
+  ]
+}

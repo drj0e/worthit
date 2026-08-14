@@ -1,0 +1,16 @@
+{
+  "checks": {
+    "commit": true,
+    "install_duration": true,
+    "pass_count": true,
+    "prose_lint": true,
+    "replay_duration": true,
+    "reproduced": true,
+    "score": true,
+    "test_count": true,
+    "tested_at": true,
+    "version": true
+  },
+  "failures": [],
+  "passed": true
+}

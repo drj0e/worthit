@@ -1,0 +1,16 @@
+Looking in links: /work/deps, /work/deps
+Processing ./repo
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: isort
+  Building wheel for isort (pyproject.toml): started
+  Building wheel for isort (pyproject.toml): finished with status 'done'
+  Created wheel for isort: filename=isort-0+worthit.fad14135b94e-py3-none-any.whl size=102671 sha256=4bd5b3c00519ca2b369873fc76f9970eaf84c8996bd5eae72f39755caefa9f3c
+  Stored in directory: /tmp/pip-ephem-wheel-cache-p3x64t7y/wheels/3a/4a/18/2e0c658c99e17426cd11b3c369a39c9159b7d6a4981ab576c1
+Successfully built isort
+Installing collected packages: isort
+Successfully installed isort-0+worthit.fad14135b94e

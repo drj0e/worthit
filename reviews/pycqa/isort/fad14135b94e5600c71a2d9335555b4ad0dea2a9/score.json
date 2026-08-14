@@ -1,0 +1,39 @@
+{
+  "bullshit_denominator": 17.0,
+  "bullshit_numerator": 0.0,
+  "bullshit_ratio": 0,
+  "confidence": "HIGH",
+  "dimensions": {
+    "claim_verification": 89,
+    "documentation": 80,
+    "novelty": 50,
+    "performance_efficiency": 85,
+    "reliability": 95,
+    "safety_privacy": 90,
+    "setup_experience": 75,
+    "utility": 85
+  },
+  "overall": 84,
+  "reasons": {
+    "claim_verification": "Importance-weighted claim results; unverified claim portions reduce coverage rather than becoming failures.",
+    "documentation": "README-derived workflows worked; diagnostic execution was needed to correct undocumented exit/format details.",
+    "novelty": "Neutral score: WorthIt did not run a comparative novelty study.",
+    "performance_efficiency": "Slowest test was 1781 ms and measured peak RAM was 38660997 bytes; no comparative baseline was used.",
+    "reliability": "Two clean runs compared across 7 tests; reproduced=True.",
+    "safety_privacy": "Static screening found no high-risk behavior and candidate execution had no network; static review is not a safety guarantee.",
+    "setup_experience": "Offline source installation took 10063 ms with 0 manual interventions and 1 automated setup adjustment.",
+    "utility": "6/6 core workflow tests (T01, T02, T03, T04, T05, T07) passed."
+  },
+  "setup_friction": "MODERATE",
+  "verdict": "WORTH IT",
+  "weights": {
+    "claim_verification": 30,
+    "documentation": 5,
+    "novelty": 5,
+    "performance_efficiency": 10,
+    "reliability": 10,
+    "safety_privacy": 5,
+    "setup_experience": 15,
+    "utility": 20
+  }
+}

@@ -1,0 +1,358 @@
+{
+  "category": "CLI utility",
+  "claim_matrix": [
+    {
+      "claim": "Running `pip install isort` installs the isort package.",
+      "claim_id": "CLAIM-001",
+      "evidence": [
+        "final.json#install",
+        "evidence/final/T01/stdout.txt",
+        "evidence/final/T01/stderr.txt"
+      ],
+      "explanation": "The exact commit installed successfully with pip from staged source, but the registry command was not run verbatim. An automated VCS-version fallback was required.",
+      "importance": "HIGH",
+      "source": "README.md",
+      "status": "PARTIAL",
+      "test_ids": [
+        "T01"
+      ]
+    },
+    {
+      "claim": "Running `isort mypythonfile.py mypythonfile2.py` sorts the imports in those specific files.",
+      "claim_id": "CLAIM-002",
+      "evidence": [
+        "evidence/final/T01/stdout.txt",
+        "evidence/final/T01/stderr.txt"
+      ],
+      "explanation": "All mapped tests passed in both clean replays.",
+      "importance": "HIGH",
+      "source": "README.md",
+      "status": "PASS",
+      "test_ids": [
+        "T01"
+      ]
+    },
+    {
+      "claim": "Running `isort .` applies isort recursively to the current directory.",
+      "claim_id": "CLAIM-003",
+      "evidence": [
+        "evidence/final/T02/stdout.txt",
+        "evidence/final/T02/stderr.txt"
+      ],
+      "explanation": "All mapped tests passed in both clean replays.",
+      "importance": "HIGH",
+      "source": "README.md",
+      "status": "PASS",
+      "test_ids": [
+        "T02"
+      ]
+    },
+    {
+      "claim": "Running `isort mypythonfile.py --diff` shows proposed changes without applying them to the file.",
+      "claim_id": "CLAIM-004",
+      "evidence": [
+        "evidence/final/T03/stdout.txt",
+        "evidence/final/T03/stderr.txt"
+      ],
+      "explanation": "All mapped tests passed in both clean replays.",
+      "importance": "MEDIUM",
+      "source": "README.md",
+      "status": "PASS",
+      "test_ids": [
+        "T03"
+      ]
+    },
+    {
+      "claim": "Running `isort --atomic .` runs isort against a project and only applies changes if they don't introduce syntax errors.",
+      "claim_id": "CLAIM-005",
+      "evidence": [
+        "evidence/final/T06/stdout.txt",
+        "evidence/final/T06/stderr.txt"
+      ],
+      "explanation": "Tests T06 passed in both clean replays. Remaining gap: T06 was corrected from the original plan: warm evidence showed isort --atomic exits 0 (not 1) when the target file has a syntax error, while still leaving the file byte-for-byte unchanged and emitting a UserWarning on stderr ('unable to sort due to existing syntax errors'). The expected exit code was ungrounded speculation in the original plan and is now corrected to match repeatable observed behavior; the file-unchanged and stderr-warning assertions remain load-bearing and directly test the CLAIM-005 no-changes-on-syntax-error behavior, so the assertion was not weakened, only the incorrect exit-code expectation was fixed.",
+      "importance": "MEDIUM",
+      "source": "README.md",
+      "status": "PARTIAL",
+      "test_ids": [
+        "T06"
+      ]
+    },
+    {
+      "claim": "Running isort with `-c` (check-only) verifies formatting and outputs incorrectly sorted files to stderr rather than modifying them.",
+      "claim_id": "CLAIM-006",
+      "evidence": [
+        "evidence/final/T04/stdout.txt",
+        "evidence/final/T04/stderr.txt",
+        "evidence/final/T05/stdout.txt",
+        "evidence/final/T05/stderr.txt"
+      ],
+      "explanation": "All mapped tests passed in both clean replays.",
+      "importance": "HIGH",
+      "source": "README.md",
+      "status": "PASS",
+      "test_ids": [
+        "T04",
+        "T05"
+      ]
+    },
+    {
+      "claim": "isort requires Python 3.10 or higher to run.",
+      "claim_id": "CLAIM-007",
+      "evidence": [
+        "evidence/final/T07/stdout.txt",
+        "evidence/final/T07/stderr.txt"
+      ],
+      "explanation": "Tests T07 passed in both clean replays. Remaining gap: CLAIM-007 (Python 3.10+ requirement) is covered only indirectly via installed package metadata (T07); the test runner executes in a single fixed Python environment, so actually attempting installation/execution under Python <3.10 to confirm rejection is not feasible here.",
+      "importance": "HIGH",
+      "source": "pyproject.toml",
+      "status": "PARTIAL",
+      "test_ids": [
+        "T07"
+      ]
+    },
+    {
+      "claim": "Installing the isort package registers an `isort` command-line script entry point mapped to isort.main:main.",
+      "claim_id": "CLAIM-008",
+      "evidence": [
+        "evidence/final/T01/stdout.txt",
+        "evidence/final/T01/stderr.txt"
+      ],
+      "explanation": "All mapped tests passed in both clean replays.",
+      "importance": "MEDIUM",
+      "source": "pyproject.toml",
+      "status": "PASS",
+      "test_ids": [
+        "T01"
+      ]
+    }
+  ],
+  "commit_sha": "fad14135b94e5600c71a2d9335555b4ad0dea2a9",
+  "description": "A Python utility / library to sort imports.",
+  "limitations": [
+    "T04's expected exit code of 1 for isort -c on an unsorted file is confirmed by warm evidence (observed exit 1) and matches isort's documented check-mode convention.",
+    "Only the `isort` entrypoint was tested per plan scope; `isort-identify-imports` is left untested since no claim describes its distinct behavior.",
+    "Tests assume no ambient isort configuration (pyproject.toml/setup.cfg/.isort.cfg) exists in the fresh case directory, so default settings govern sorting behavior.",
+    "Tests rely on isort's default alphabetical stdlib sorting behavior (os before sys, abc before json) rather than asserting against every possible profile/config combination.",
+    "No test was added for non-atomic in-place behavior on a file with a syntax error, since no claim documents that specific behavior; adding it would be unclaimed speculation.",
+    "The commit archive lacked VCS metadata required by the build backend, so WorthIt injected the deterministic build version 0+worthit.fad14135b94e. GitHub's latest-release metadata was 8.0.1; the commit SHA, not the synthetic version, identifies the tested artifact."
+  ],
+  "performance": {
+    "baseline": null,
+    "peak_ram_bytes": 38660997,
+    "slowest_test_ms": 1781,
+    "workspace_bytes": 15002898
+  },
+  "project": "isort",
+  "release_at_inspection": {
+    "name": "8.0.1",
+    "prerelease": false,
+    "published_at": "2026-02-28T10:07:58Z",
+    "tag": "8.0.1"
+  },
+  "repository": "PyCQA/isort",
+  "repository_url": "https://github.com/PyCQA/isort",
+  "reproduction": {
+    "candidate_network": "none",
+    "image": "sha256:85f704ab57caf35404761e57e8257758ffd92dfb15e75754de8856eba2b20ab3",
+    "reproduced": true,
+    "risk_classification": "TRUSTED_ENOUGH_TO_TEST",
+    "runtime": "Docker/runc with seccomp and AppArmor; runc shares the host kernel.",
+    "source_archive_sha256": "e7f87f6d691fd9656d746a2e8f68a4ea72e0e7ba71e609866277ad896bac852a",
+    "tests_compared": 7
+  },
+  "result_counts": {
+    "passed": 7,
+    "total": 7
+  },
+  "schema_version": 1,
+  "score": {
+    "bullshit_denominator": 17.0,
+    "bullshit_numerator": 0.0,
+    "bullshit_ratio": 0,
+    "confidence": "HIGH",
+    "dimensions": {
+      "claim_verification": 89,
+      "documentation": 80,
+      "novelty": 50,
+      "performance_efficiency": 85,
+      "reliability": 95,
+      "safety_privacy": 90,
+      "setup_experience": 75,
+      "utility": 85
+    },
+    "overall": 84,
+    "reasons": {
+      "claim_verification": "Importance-weighted claim results; unverified claim portions reduce coverage rather than becoming failures.",
+      "documentation": "README-derived workflows worked; diagnostic execution was needed to correct undocumented exit/format details.",
+      "novelty": "Neutral score: WorthIt did not run a comparative novelty study.",
+      "performance_efficiency": "Slowest test was 1781 ms and measured peak RAM was 38660997 bytes; no comparative baseline was used.",
+      "reliability": "Two clean runs compared across 7 tests; reproduced=True.",
+      "safety_privacy": "Static screening found no high-risk behavior and candidate execution had no network; static review is not a safety guarantee.",
+      "setup_experience": "Offline source installation took 10063 ms with 0 manual interventions and 1 automated setup adjustment.",
+      "utility": "6/6 core workflow tests (T01, T02, T03, T04, T05, T07) passed."
+    },
+    "setup_friction": "MODERATE",
+    "verdict": "WORTH IT",
+    "weights": {
+      "claim_verification": 30,
+      "documentation": 5,
+      "novelty": 5,
+      "performance_efficiency": 10,
+      "reliability": 10,
+      "safety_privacy": 5,
+      "setup_experience": 15,
+      "utility": 20
+    }
+  },
+  "setup": {
+    "automated_adjustments": [
+      {
+        "environment_variable": "SETUPTOOLS_SCM_PRETEND_VERSION,SETUPTOOLS_SCM_PRETEND_VERSION_FOR_ISORT",
+        "kind": "vcs_version_fallback",
+        "reason": "GitHub commit archives omit .git metadata required by the declared VCS version backend.",
+        "value": "0+worthit.fad14135b94e"
+      }
+    ],
+    "candidate_network": "none",
+    "documented_vs_actual": "WorthIt used pip to install the exact staged commit offline and injected a deterministic VCS-version fallback because GitHub's commit archive has no .git metadata; it did not run the README's registry command verbatim.",
+    "friction": "MODERATE",
+    "install_duration_ms": 10063,
+    "manual_interventions": 0,
+    "replay_install_duration_ms": 8049,
+    "version_note": "The commit archive lacked VCS metadata required by the build backend, so WorthIt injected the deterministic build version 0+worthit.fad14135b94e. GitHub's latest-release metadata was 8.0.1; the commit SHA, not the synthetic version, identifies the tested artifact."
+  },
+  "summary": "The exact commit installed from source in 10.06 seconds with no manual intervention and 1 automated VCS-version adjustment. 7 of 7 accepted tests passed with the same results in a second clean, offline container. 3 claims remain only partially verified. Evidence confidence is high.",
+  "tested_at": "2026-08-14T02:51:25.064460+00:00",
+  "tests": [
+    {
+      "claim_ids": [
+        "CLAIM-002",
+        "CLAIM-001",
+        "CLAIM-008"
+      ],
+      "duration_ms": 1781,
+      "edge_case": false,
+      "evidence": [
+        "T01/stdout.txt",
+        "T01/stderr.txt"
+      ],
+      "exit_code": 0,
+      "peak_ram_bytes": 20615004,
+      "purpose": "Verify isort sorts imports in two specific files passed as separate positional arguments, using distinct import sets per file so the test can detect if isort mixes up, skips, or cross-applies results between files.",
+      "status": "PASS",
+      "test_id": "T01"
+    },
+    {
+      "claim_ids": [
+        "CLAIM-003"
+      ],
+      "duration_ms": 1288,
+      "edge_case": false,
+      "evidence": [
+        "T02/stdout.txt",
+        "T02/stderr.txt"
+      ],
+      "exit_code": 0,
+      "peak_ram_bytes": 20929577,
+      "purpose": "Verify `isort .` recursively finds and sorts imports in Python files inside subdirectories of the current directory.",
+      "status": "PASS",
+      "test_id": "T02"
+    },
+    {
+      "claim_ids": [
+        "CLAIM-004"
+      ],
+      "duration_ms": 1287,
+      "edge_case": false,
+      "evidence": [
+        "T03/stdout.txt",
+        "T03/stderr.txt"
+      ],
+      "exit_code": 0,
+      "peak_ram_bytes": 20499661,
+      "purpose": "Verify `isort file.py --diff` prints a unified diff of the proposed change to stdout while leaving the file untouched.",
+      "status": "PASS",
+      "test_id": "T03"
+    },
+    {
+      "claim_ids": [
+        "CLAIM-006"
+      ],
+      "duration_ms": 1289,
+      "edge_case": false,
+      "evidence": [
+        "T04/stdout.txt",
+        "T04/stderr.txt"
+      ],
+      "exit_code": 1,
+      "peak_ram_bytes": 20384317,
+      "purpose": "Verify `isort -c` on a file with incorrectly sorted imports reports the problem on stderr, exits nonzero, and leaves the file unmodified.",
+      "status": "PASS",
+      "test_id": "T04"
+    },
+    {
+      "claim_ids": [
+        "CLAIM-006"
+      ],
+      "duration_ms": 1310,
+      "edge_case": false,
+      "evidence": [
+        "T05/stdout.txt",
+        "T05/stderr.txt"
+      ],
+      "exit_code": 0,
+      "peak_ram_bytes": 38660997,
+      "purpose": "Verify `isort -c` on an already correctly sorted file succeeds with exit code 0 and does not modify the file, complementing the failure case in T04.",
+      "status": "PASS",
+      "test_id": "T05"
+    },
+    {
+      "claim_ids": [
+        "CLAIM-005"
+      ],
+      "duration_ms": 1287,
+      "edge_case": true,
+      "evidence": [
+        "T06/stdout.txt",
+        "T06/stderr.txt"
+      ],
+      "exit_code": 0,
+      "peak_ram_bytes": 20698890,
+      "purpose": "Invalid-input/failure case: run `isort --atomic` on a file containing a Python syntax error and confirm isort refuses to apply changes (leaves the file byte-for-byte unchanged) and warns that sorting was skipped due to the syntax error, since applying changes could not be verified to preserve valid syntax.",
+      "status": "PASS",
+      "test_id": "T06"
+    },
+    {
+      "claim_ids": [
+        "CLAIM-007"
+      ],
+      "duration_ms": 1282,
+      "edge_case": false,
+      "evidence": [
+        "T07/stdout.txt",
+        "T07/stderr.txt"
+      ],
+      "exit_code": 0,
+      "peak_ram_bytes": 20929577,
+      "purpose": "Give CLAIM-007 (Python 3.10+ requirement) indirect coverage by inspecting the installed isort package's published Requires-Python metadata, confirming the >=3.10.0 constraint declared in pyproject.toml is actually shipped in the installed distribution.",
+      "status": "PASS",
+      "test_id": "T07"
+    }
+  ],
+  "version": "0+worthit.fad14135b94e",
+  "what_broke": [
+    "No accepted final or replay test failed.",
+    "Source installation required the recorded VCS-version fallback because the commit archive contained no .git metadata.",
+    "Diagnostic expectations were repaired, independently criticized, and then run twice from clean containers.",
+    "Not fully verified: CLAIM-001, Running `pip install isort` installs the isort package.",
+    "Not fully verified: CLAIM-005, Running `isort --atomic .` runs isort against a project and only applies changes if they don't introduce syntax errors.",
+    "Not fully verified: CLAIM-007, isort requires Python 3.10 or higher to run."
+  ],
+  "who_should_skip_it": [
+    "This review is not enough if your decision requires full verification of: CLAIM-001: Running `pip install isort` installs the isort package; CLAIM-005: Running `isort --atomic .` runs isort against a project and only applies changes if they don't introduce syntax errors; CLAIM-007: isort requires Python 3.10 or higher to run."
+  ],
+  "who_should_use_it": [
+    "Developers evaluating isort as a Python utility / library to sort imports.",
+    "Teams that need the tested CLI workflow to run locally without candidate-time network access."
+  ]
+}

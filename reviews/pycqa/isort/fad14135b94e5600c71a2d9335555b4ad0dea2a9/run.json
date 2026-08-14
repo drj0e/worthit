@@ -1,0 +1,347 @@
+{
+  "candidate_network": "none",
+  "completed_at": "2026-08-14T02:51:25.064460+00:00",
+  "duration_ms": 36364,
+  "entrypoint": "isort",
+  "entrypoint_installed": true,
+  "execution_contract_sha256": "b8ad7cc0d5dd03204674dcb78d915e36d6e65addf63d9cfd44f0ae41da7c25b8",
+  "install": {
+    "argv": [
+      "/work/venv/bin/python",
+      "-m",
+      "pip",
+      "install",
+      "--disable-pip-version-check",
+      "--no-index",
+      "--find-links",
+      "/work/deps",
+      "/work/repo"
+    ],
+    "cwd": "/work",
+    "duration_ms": 10063,
+    "exit_code": 0,
+    "failure_reason": null,
+    "max_cpu_percent": 102.63,
+    "output_limited": false,
+    "peak_ram_bytes": 90848625,
+    "stage": "install",
+    "status": "PASS",
+    "stderr_file": "evidence/final/install/stderr.txt",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_file": "evidence/final/install/stdout.txt",
+    "stdout_sha256": "b0f631472bb6447f3cffa301a17b01481b001e81cbc28a4da04480d18b402208",
+    "timed_out": false
+  },
+  "install_adjustments": [
+    {
+      "environment_variable": "SETUPTOOLS_SCM_PRETEND_VERSION,SETUPTOOLS_SCM_PRETEND_VERSION_FOR_ISORT",
+      "kind": "vcs_version_fallback",
+      "reason": "GitHub commit archives omit .git metadata required by the declared VCS version backend.",
+      "value": "0+worthit.fad14135b94e"
+    }
+  ],
+  "label": "final",
+  "manual_interventions": 0,
+  "status": "COMPLETE",
+  "tests": [
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "file1.py exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "file1.py exactly matches expected text",
+          "observed": "import os\nimport sys\n",
+          "passed": true
+        },
+        {
+          "assertion": "file2.py exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "file2.py exactly matches expected text",
+          "observed": "import abc\nimport json\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-002",
+        "CLAIM-001",
+        "CLAIM-008"
+      ],
+      "duration_ms": 1781,
+      "evidence": [
+        "evidence/final/T01/stdout.txt",
+        "evidence/final/T01/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 20615004,
+      "status": "PASS",
+      "test_id": "T01"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "sub/mod.py exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "sub/mod.py exactly matches expected text",
+          "observed": "import os\nimport sys\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-003"
+      ],
+      "duration_ms": 1288,
+      "evidence": [
+        "evidence/final/T02/stdout.txt",
+        "evidence/final/T02/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 20929577,
+      "status": "PASS",
+      "test_id": "T02"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains '---'",
+          "observed": "--- /work/cases/T03/diff_test.py:before\t2026-08-14 02:51:14.709583\n+++ /work/cases/T03/diff_test.py:after\t2026-08-14 02:51:16.185284\n@@ -1,2 +1,2 @@\n+import os\n import sys\n-import os\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains '+++'",
+          "observed": "--- /work/cases/T03/diff_test.py:before\t2026-08-14 02:51:14.709583\n+++ /work/cases/T03/diff_test.py:after\t2026-08-14 02:51:16.185284\n@@ -1,2 +1,2 @@\n+import os\n import sys\n-import os\n",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains '@@'",
+          "observed": "--- /work/cases/T03/diff_test.py:before\t2026-08-14 02:51:14.709583\n+++ /work/cases/T03/diff_test.py:after\t2026-08-14 02:51:16.185284\n@@ -1,2 +1,2 @@\n+import os\n import sys\n-import os\n",
+          "passed": true
+        },
+        {
+          "assertion": "diff_test.py exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "diff_test.py exactly matches expected text",
+          "observed": "import sys\nimport os\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-004"
+      ],
+      "duration_ms": 1287,
+      "evidence": [
+        "evidence/final/T03/stdout.txt",
+        "evidence/final/T03/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 20499661,
+      "status": "PASS",
+      "test_id": "T03"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [1]",
+          "observed": "1",
+          "passed": true
+        },
+        {
+          "assertion": "stderr contains 'unsorted.py'",
+          "observed": "ERROR: /work/cases/T04/unsorted.py Imports are incorrectly sorted and/or formatted.\n",
+          "passed": true
+        },
+        {
+          "assertion": "unsorted.py exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "unsorted.py exactly matches expected text",
+          "observed": "import sys\nimport os\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-006"
+      ],
+      "duration_ms": 1289,
+      "evidence": [
+        "evidence/final/T04/stdout.txt",
+        "evidence/final/T04/stderr.txt"
+      ],
+      "exit_code": 1,
+      "failure_reason": null,
+      "peak_ram_bytes": 20384317,
+      "status": "PASS",
+      "test_id": "T04"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "sorted.py exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "sorted.py exactly matches expected text",
+          "observed": "import os\nimport sys\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-006"
+      ],
+      "duration_ms": 1310,
+      "evidence": [
+        "evidence/final/T05/stdout.txt",
+        "evidence/final/T05/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 38660997,
+      "status": "PASS",
+      "test_id": "T05"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "stderr contains 'unable to sort due to existing syntax errors'",
+          "observed": "/work/venv/lib/python3.12/site-packages/isort/main.py:68: UserWarning: /work/cases/T06/atomic_bad.py unable to sort due to existing syntax errors\n  incorrectly_sorted = not api.sort_file(\n",
+          "passed": true
+        },
+        {
+          "assertion": "atomic_bad.py exists=True",
+          "observed": "exists=True",
+          "passed": true
+        },
+        {
+          "assertion": "atomic_bad.py exactly matches expected text",
+          "observed": "import sys\nimport os\ndef broken(\n",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-005"
+      ],
+      "duration_ms": 1287,
+      "evidence": [
+        "evidence/final/T06/stdout.txt",
+        "evidence/final/T06/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 20698890,
+      "status": "PASS",
+      "test_id": "T06"
+    },
+    {
+      "assertions": [
+        {
+          "assertion": "exit code is one of [0]",
+          "observed": "0",
+          "passed": true
+        },
+        {
+          "assertion": "stdout contains '>=3.10.0'",
+          "observed": ">=3.10.0",
+          "passed": true
+        }
+      ],
+      "claim_ids": [
+        "CLAIM-007"
+      ],
+      "duration_ms": 1282,
+      "evidence": [
+        "evidence/final/T07/stdout.txt",
+        "evidence/final/T07/stderr.txt"
+      ],
+      "exit_code": 0,
+      "failure_reason": null,
+      "peak_ram_bytes": 20929577,
+      "status": "PASS",
+      "test_id": "T07"
+    }
+  ],
+  "venv": {
+    "argv": [
+      "/usr/local/bin/python",
+      "-m",
+      "venv",
+      "/work/venv"
+    ],
+    "cwd": "/work",
+    "duration_ms": 7322,
+    "exit_code": 0,
+    "failure_reason": null,
+    "max_cpu_percent": 102.14,
+    "output_limited": false,
+    "peak_ram_bytes": 104857600,
+    "stage": "provision",
+    "status": "PASS",
+    "stderr_file": "evidence/final/venv/stderr.txt",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_file": "evidence/final/venv/stdout.txt",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "timed_out": false
+  },
+  "version_probe": {
+    "argv": [
+      "/work/venv/bin/isort",
+      "--version"
+    ],
+    "cwd": "/work",
+    "duration_ms": 1692,
+    "exit_code": 0,
+    "failure_reason": null,
+    "max_cpu_percent": 70.56,
+    "output_limited": false,
+    "peak_ram_bytes": 20709376,
+    "stage": "verify-install",
+    "status": "PASS",
+    "stderr_file": "evidence/final/version/stderr.txt",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_file": "evidence/final/version/stdout.txt",
+    "stdout_sha256": "2ddf0daa6c2f326799c23c66094890aecbfee47c8f6169e6edae3d115ec280a5",
+    "timed_out": false
+  },
+  "workspace_bytes": 15002898
+}

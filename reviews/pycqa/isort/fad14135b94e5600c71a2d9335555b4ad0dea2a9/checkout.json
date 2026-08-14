@@ -1,0 +1,12 @@
+{
+  "archive_sha256": "e7f87f6d691fd9656d746a2e8f68a4ea72e0e7ba71e609866277ad896bac852a",
+  "bytes": 1851242,
+  "commit_sha": "fad14135b94e5600c71a2d9335555b4ad0dea2a9",
+  "files": 191,
+  "git_parser_on_host": false,
+  "lfs_smudge": false,
+  "source_tree_sha256": "cffa06c09bc86b17e60ff26d8d0eece88695018f35bdb1012513ed28f4bea9b0",
+  "submodules": false,
+  "tags_fetched": false,
+  "transport": "GitHub REST commit tarball"
+}

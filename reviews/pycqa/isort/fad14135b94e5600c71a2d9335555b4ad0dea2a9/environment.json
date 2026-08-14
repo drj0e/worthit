@@ -1,0 +1,30 @@
+{
+  "backend": "docker",
+  "candidate_network": "none",
+  "cgroup_version": "2",
+  "docker_socket_exposed": false,
+  "host_mounts": [],
+  "image": "worthit-python:0.2",
+  "image_digests": [
+    "worthit-python@sha256:85f704ab57caf35404761e57e8257758ffd92dfb15e75754de8856eba2b20ab3"
+  ],
+  "image_id": "sha256:85f704ab57caf35404761e57e8257758ffd92dfb15e75754de8856eba2b20ab3",
+  "inherited_environment": [],
+  "limits": {
+    "cpus": "2",
+    "install_timeout": 600,
+    "memory": "2g",
+    "output_bytes": 262144,
+    "pids": 256,
+    "test_timeout": 120,
+    "workspace": "1g"
+  },
+  "residual_risk": "gVisor is preferred; runc shares the host kernel and is restricted to TRUSTED_ENOUGH_TO_TEST.",
+  "rootless": false,
+  "runtime": "runc",
+  "security_options": [
+    "name=apparmor",
+    "name=seccomp,profile=builtin",
+    "name=cgroupns"
+  ]
+}
