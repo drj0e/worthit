@@ -189,20 +189,22 @@ until a VM-grade backend replaces runc.
 
 Discovery responses are cached for six hours with a bounded stale fallback.
 Priority stores its weighted components and repository-specific reasons. Exact
-commit failures are not re-qualified until the commit or qualification rules
-change; evaluation retries stop at two. A detector-revision change rehashes the
-cached source, refreshes derived inspection data, and moves stale private run
-state aside before resuming. One operating date is carried across workflow jobs,
-so a midnight queue delay cannot create a second daily selection.
+commit gate failures are not re-qualified until the commit or qualification
+rules change; transient inspection errors retry after a six-hour backoff, and
+evaluation retries stop at two. A detector-revision change rehashes the cached
+source, refreshes derived inspection data, and moves stale private run state
+aside before resuming. One operating date and its exact URL/SHA selection
+manifest are carried across workflow jobs, so a midnight queue delay cannot
+change the repositories selected by discovery.
 
 GitHub-hosted runs retain only a sanitized, private resume cache: stage status,
-structured model output, and its full-prompt fingerprint. Parsed claims and
-plans are deliberately rebuilt and revalidated, so mutable release notes cannot
-reuse stale decisions for the same commit. The cache excludes source, dependency
-bundles, raw evidence, reviews, site output, credentials, and Claude session
-state. Entries are bounded to 14 days, 20 commits, 50 MiB, 750 files, and 5 MiB
-per file; every restored path and schema is validated before it reaches
-`.worthit/runs`.
+structured model output, its full-prompt fingerprint, and a bounded cost ledger.
+Parsed claims and plans are deliberately rebuilt and revalidated, so mutable
+release notes cannot reuse stale decisions for the same commit. The cache
+excludes source, dependency bundles, raw evidence, reviews, site output,
+credentials, and Claude session state. Entries are bounded to 14 days, 20
+commits, 50 MiB, 750 files, and 5 MiB per file; every restored path and schema is
+validated before it reaches `.worthit/runs`.
 
 Defaults ask the Claude CLI to cap model use at $5 per repository and reserve no
 more than $25 per UTC day. WorthIt rejects a response that reports an overage,

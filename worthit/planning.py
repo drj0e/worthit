@@ -598,20 +598,29 @@ def call_claude(
     ).hexdigest()
     response_path = artifact_dir / "response.json"
     fingerprint_path = artifact_dir / "request.sha256"
+    try:
+        repository_budget = float(os.environ.get("WORTHIT_MAX_LLM_COST_PER_REPO", "5"))
+    except ValueError as error:
+        raise ValueError("WORTHIT_MAX_LLM_COST_PER_REPO must be a number") from error
+    spent = model_cost(artifact_dir.parent)
+    if not math.isfinite(repository_budget) or repository_budget <= 0 or spent > repository_budget + 0.001:
+        raise RuntimeError("repository LLM cost limit reached")
     if (
         response_path.exists()
         and fingerprint_path.exists()
         and fingerprint_path.read_text().strip() == fingerprint
     ):
         return _structured_response(json.loads(response_path.read_text(encoding="utf-8")))
-    try:
-        repository_budget = float(os.environ.get("WORTHIT_MAX_LLM_COST_PER_REPO", "5"))
-    except ValueError as error:
-        raise ValueError("WORTHIT_MAX_LLM_COST_PER_REPO must be a number") from error
-    remaining = repository_budget - model_cost(artifact_dir.parent)
-    if not math.isfinite(repository_budget) or repository_budget <= 0 or remaining <= 0:
+    remaining = repository_budget - spent
+    if remaining <= 0:
         raise RuntimeError("repository LLM cost limit reached")
     call_budget = min(budget_usd, remaining)
+    cost_path = artifact_dir / "cost.json"
+    prior_charge = _ledger_cost(cost_path) if cost_path.exists() else 0.0
+    if prior_charge is None:
+        raise RuntimeError("repository LLM cost ledger is invalid")
+    reserved_total = prior_charge + call_budget
+    _record_model_cost(cost_path, reserved_total, reserved_total, "RESERVED")
     command = [
         executable,
         "-p",
@@ -656,29 +665,52 @@ def call_claude(
             command, text=True, capture_output=True, timeout=360, check=False, env=environment
         )
     except subprocess.TimeoutExpired as error:
+        _record_model_cost(cost_path, reserved_total, reserved_total, "TIMEOUT")
         (artifact_dir / "stderr.txt").write_text("planning timed out after 360 seconds\n", encoding="utf-8")
-        raise RuntimeError("Claude planning timed out after 360 seconds") from error
+        raise TimeoutError("Claude planning timed out after 360 seconds") from error
     if len(completed.stdout) > 5_000_000 or len(completed.stderr) > 1_000_000:
+        _record_model_cost(cost_path, reserved_total, reserved_total, "OUTPUT_LIMIT")
         raise RuntimeError("Claude response exceeded the planning output cap")
     (artifact_dir / "stderr.txt").write_text(completed.stderr, encoding="utf-8")
+    try:
+        parsed = json.loads(completed.stdout)
+        envelope = parsed if isinstance(parsed, dict) else None
+    except json.JSONDecodeError:
+        envelope = None
+    charged = _envelope_cost(envelope, call_budget)
     if completed.returncode != 0:
+        _record_model_cost(cost_path, reserved_total, prior_charge + charged, "FAILED")
         raise RuntimeError(
             f"Claude planning failed with exit code {completed.returncode}: {completed.stderr[-1000:]}"
         )
+    if envelope is None:
+        _record_model_cost(cost_path, reserved_total, prior_charge + charged, "INVALID_RESPONSE")
+        raise RuntimeError("Claude returned invalid response JSON")
     try:
-        envelope = json.loads(completed.stdout)
-    except json.JSONDecodeError as error:
-        raise RuntimeError("Claude returned invalid response JSON") from error
-    atomic_json(response_path, envelope)
-    fingerprint_path.write_text(fingerprint + "\n", encoding="utf-8")
+        structured = _structured_response(envelope)
+    except (json.JSONDecodeError, RuntimeError):
+        _record_model_cost(cost_path, reserved_total, prior_charge + charged, "INVALID_RESPONSE")
+        raise
+    _record_model_cost(cost_path, reserved_total, prior_charge + charged, "COMPLETE")
     if model_cost(artifact_dir.parent) > repository_budget + 0.001:
         raise RuntimeError("repository LLM cost limit exceeded")
-    return _structured_response(envelope)
+    atomic_json(response_path, envelope)
+    fingerprint_path.write_text(fingerprint + "\n", encoding="utf-8")
+    return structured
 
 
 def model_cost(run_dir: Path) -> float:
     total = 0.0
+    recorded: set[Path] = set()
+    for path in run_dir.glob("*/cost.json"):
+        cost = _ledger_cost(path)
+        if cost is None:
+            return 1_000_000.0
+        total += cost
+        recorded.add(path.parent)
     for path in run_dir.glob("*/response.json"):
+        if path.parent in recorded:
+            continue
         try:
             value = json.loads(path.read_text(encoding="utf-8")).get("total_cost_usd", 0)
             cost = float(value)
@@ -687,6 +719,49 @@ def model_cost(run_dir: Path) -> float:
         if math.isfinite(cost) and cost > 0:
             total += cost
     return round(total, 6)
+
+
+def _ledger_cost(path: Path) -> float | None:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+        reserved = float(value["reserved_usd"])
+        charged = float(value["charged_usd"])
+        status = str(value["status"])
+        if (
+            status not in {"RESERVED", "COMPLETE", "TIMEOUT", "OUTPUT_LIMIT", "FAILED", "INVALID_RESPONSE"}
+            or not math.isfinite(reserved)
+            or not math.isfinite(charged)
+            or reserved < 0
+            or charged < 0
+        ):
+            return None
+    except (KeyError, OSError, TypeError, ValueError, json.JSONDecodeError):
+        return None
+    return charged if status == "COMPLETE" else max(reserved, charged)
+
+
+def _envelope_cost(envelope: object, fallback: float) -> float:
+    if not isinstance(envelope, dict):
+        return fallback
+    value = envelope.get("total_cost_usd")
+    if isinstance(value, bool) or not isinstance(value, int | float | str):
+        return fallback
+    try:
+        cost = float(value)
+    except (TypeError, ValueError):
+        return fallback
+    return cost if math.isfinite(cost) and cost >= 0 else fallback
+
+
+def _record_model_cost(path: Path, reserved: float, charged: float, status: str) -> None:
+    atomic_json(
+        path,
+        {
+            "reserved_usd": round(reserved, 6),
+            "charged_usd": round(charged, 6),
+            "status": status,
+        },
+    )
 
 
 def _structured_response(envelope: dict[str, Any]) -> dict[str, Any]:

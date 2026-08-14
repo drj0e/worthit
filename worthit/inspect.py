@@ -26,7 +26,8 @@ BIDI = dict.fromkeys(map(ord, "\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\
 MAX_ARCHIVE_BYTES = 100 * 1024 * 1024
 MAX_EXTRACT_BYTES = 250 * 1024 * 1024
 MAX_FILES = 30_000
-INSPECTION_REVISION = 2
+INSPECTION_REVISION = 3
+V1_REQUIREMENTS_REVISION = 2
 OPEN_SOURCE_SPDX = {
     "0BSD",
     "AGPL-3.0",
@@ -688,7 +689,8 @@ _OPTIONAL_API = re.compile(
 )
 _OPTIONAL_GPU = re.compile(
     r"(?:\b(?:gpu|cuda|nvidia)\b.{0,60}\b(?:optional|not\s+required)\b|\bno\s+(?:gpu|cuda|nvidia)\b|"
-    r"\b(?:optional|without\s+an?|does\s+not\s+require)\b.{0,60}\b(?:gpu|cuda|nvidia)\b)",
+    r"\b(?:optional|without\s+an?|does\s+not\s+require)\b.{0,60}\b(?:gpu|cuda|nvidia)\b|"
+    r"\b(?:install|use|enable)\b.{0,40}\b(?:gpu|cuda|nvidia)\b.{0,40}\bif\s+needed\b)",
     re.I,
 )
 _OPTIONAL_SERVICE = re.compile(
@@ -709,6 +711,7 @@ _CORE_MODEL_DOWNLOAD = re.compile(
     r"^\s*(?:[-*]\s*|\d+[.)]\s*)?download\b)",
     re.I,
 )
+_REQUIREMENT_CLAUSE_BREAK = re.compile(r"\s*;\s*|(?<=[.!?])\s+")
 
 
 def assess_v1_requirements(repository: dict[str, Any]) -> dict[str, Any]:
@@ -751,38 +754,39 @@ def assess_v1_requirements(repository: dict[str, Any]) -> dict[str, Any]:
 
     for source, text in documents.items():
         for raw_line in text.splitlines():
-            line = clean_text(raw_line, 1_000)
-            if not line.strip():
-                continue
-            if _REQUIRED_CREDENTIAL.search(line) and not _OPTIONAL_API.search(line):
-                record("external_api_credential", source, line)
-            elif _API_KEY_VARIABLE.search(line) and not _OPTIONAL_API.search(line):
-                record("external_api_credential", source, line, "INSUFFICIENT_INFORMATION")
-            if _REQUIRED_GPU.search(line) and not _OPTIONAL_GPU.search(line):
-                record("gpu", source, line)
-            if (
-                _REQUIRED_SERVICE.search(line) or _REQUIRED_REMOTE.search(line)
-            ) and not _OPTIONAL_SERVICE.search(line):
-                record("core_external_service", source, line)
-            if (
-                "download" in line.casefold()
-                and re.search(r"\b(?:model|weights?)\b", line, re.I)
-                and not _OPTIONAL_MODEL.search(line)
-                and _CORE_MODEL_DOWNLOAD.search(line)
-            ):
-                sizes = _MODEL_SIZE.findall(line)
-                parameters = [float(size) for size in _MODEL_PARAMETERS.findall(line)]
-                if any(
-                    unit.casefold().startswith("t")
-                    or unit.casefold().startswith("g")
-                    and float(size) >= 1
-                    or unit.casefold().startswith("m")
-                    and float(size) >= 1_024
-                    for size, unit in sizes
-                ) or any(size >= 3 for size in parameters):
-                    record("large_model_download", source, line)
-                elif not sizes and not parameters:
-                    record("model_download_size", source, line, "INSUFFICIENT_INFORMATION")
+            cleaned_line = clean_text(raw_line, 1_000)
+            for line in _REQUIREMENT_CLAUSE_BREAK.split(cleaned_line):
+                if not line.strip():
+                    continue
+                if _REQUIRED_CREDENTIAL.search(line) and not _OPTIONAL_API.search(line):
+                    record("external_api_credential", source, line)
+                elif _API_KEY_VARIABLE.search(line) and not _OPTIONAL_API.search(line):
+                    record("external_api_credential", source, line, "INSUFFICIENT_INFORMATION")
+                if _REQUIRED_GPU.search(line) and not _OPTIONAL_GPU.search(line):
+                    record("gpu", source, line)
+                if (
+                    _REQUIRED_SERVICE.search(line) or _REQUIRED_REMOTE.search(line)
+                ) and not _OPTIONAL_SERVICE.search(line):
+                    record("core_external_service", source, line)
+                if (
+                    "download" in line.casefold()
+                    and re.search(r"\b(?:model|weights?)\b", line, re.I)
+                    and not _OPTIONAL_MODEL.search(line)
+                    and _CORE_MODEL_DOWNLOAD.search(line)
+                ):
+                    sizes = _MODEL_SIZE.findall(line)
+                    parameters = [float(size) for size in _MODEL_PARAMETERS.findall(line)]
+                    if any(
+                        unit.casefold().startswith("t")
+                        or unit.casefold().startswith("g")
+                        and float(size) >= 1
+                        or unit.casefold().startswith("m")
+                        and float(size) >= 1_024
+                        for size, unit in sizes
+                    ) or any(size >= 3 for size in parameters):
+                        record("large_model_download", source, line)
+                    elif not sizes and not parameters:
+                        record("model_download_size", source, line, "INSUFFICIENT_INFORMATION")
 
     if not documents:
         classification = "INSUFFICIENT_INFORMATION"
@@ -798,7 +802,7 @@ def assess_v1_requirements(repository: dict[str, Any]) -> dict[str, Any]:
             f"requirement was found in {len(documents)} bounded official document(s)."
         ]
     return {
-        "revision": 1,
+        "revision": V1_REQUIREMENTS_REVISION,
         "classification": classification,
         "passed": classification == "V1_ELIGIBLE",
         "reasons": reasons,
@@ -839,6 +843,49 @@ RISK_PATTERNS: list[tuple[str, str, re.Pattern[str]]] = [
         "encoded_execution",
         re.compile(r"\bbase64\s+(?:-d|--decode)[^\n|]{0,300}\|\s*(?:sh|bash|python)\b"),
     ),
+    (
+        "HIGH",
+        "host_process_probe",
+        re.compile(r"/proc/(?:self|\d+)/(?:environ|cmdline|maps|mountinfo|root)(?:\b|/)", re.I),
+    ),
+    (
+        "HIGH",
+        "shell_profile_modification",
+        re.compile(
+            r"(?:>>?|\btee\s+(?:-[A-Za-z]*a[A-Za-z]*\s+)?|\bsed\s+-i\b|\b(?:cp|mv|install)\b)"
+            r"[^\n]{0,160}(?:~/\.(?:bashrc|bash_profile|profile|zshrc)|/etc/(?:profile|bash\.bashrc))",
+            re.I,
+        ),
+    ),
+    (
+        "MEDIUM",
+        "shell_profile_probe",
+        re.compile(
+            r"(?:\b(?:cat|grep|source)\b|(?:^|[;&|]\s*)\.\s+|\btest\s+-[A-Za-z]+\b|\bopen\s*\()"
+            r"[^\n]{0,120}(?:~/\.(?:bashrc|bash_profile|profile|zshrc)|/etc/(?:profile|bash\.bashrc))",
+            re.I | re.M,
+        ),
+    ),
+    (
+        "MEDIUM",
+        "telemetry",
+        re.compile(
+            r"\b(?:sentry_sdk\.init|posthog\.(?:capture|identify)|analytics\.(?:track|identify)|"
+            r"telemetry\.(?:send|record|emit)|OTEL_EXPORTER_OTLP_ENDPOINT)\b",
+            re.I,
+        ),
+    ),
+    (
+        "MEDIUM",
+        "outbound_endpoint",
+        re.compile(
+            r"(?:\b(?:curl|wget)\b[^\n]{0,300}?|"
+            r"\b(?:requests|httpx)\.(?:get|post|put|patch|delete)\s*\(\s*|"
+            r"\b(?:fetch|axios\.(?:get|post|put|patch|delete))\s*\(\s*)"
+            r"[\"']?https?://[^\s\"'`|;]+",
+            re.I,
+        ),
+    ),
 ]
 
 LICENSE_RESTRICTION = re.compile(
@@ -864,6 +911,28 @@ EXECUTION_RELEVANT = {
     ".ini",
 }
 
+EXTENSIONLESS_SCRIPT_NAMES = {
+    "bootstrap",
+    "build",
+    "configure",
+    "entrypoint",
+    "install",
+    "setup",
+}
+
+
+def _looks_like_text(raw: bytes) -> bool:
+    """Conservatively distinguish bounded text input from binary data."""
+    sample = raw[:8_192]
+    if b"\x00" in sample:
+        return False
+    try:
+        raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return False
+    controls = sum(byte < 9 or 13 < byte < 32 or byte == 127 for byte in sample)
+    return controls <= max(1, len(sample) // 50)
+
 
 def assess_risk(source_dir: Path, repository: dict[str, Any]) -> RiskReport:
     findings: list[RiskFinding] = []
@@ -875,10 +944,13 @@ def assess_risk(source_dir: Path, repository: dict[str, Any]) -> RiskReport:
             continue
         rel = path.relative_to(source_dir).as_posix()
         try:
-            head = path.read_bytes()[:4]
+            with path.open("rb") as source:
+                prefix = source.read(8_192)
+            mode = path.stat().st_mode
         except OSError:
             continue
-        if head == b"\x7fELF" or head[:2] == b"MZ":
+        executable = bool(mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH))
+        if prefix.startswith(b"\x7fELF") or prefix.startswith(b"MZ"):
             findings.append(
                 RiskFinding(
                     "HIGH", "opaque_executable", rel, None, "compiled executable stored in source tree"
@@ -886,6 +958,9 @@ def assess_risk(source_dir: Path, repository: dict[str, Any]) -> RiskReport:
             )
             continue
         license_document = path.name.casefold().startswith(("license", "copying", "readme"))
+        extensionless_script = not path.suffix and (
+            executable or prefix.startswith(b"#!") or path.name.casefold() in EXTENSIONLESS_SCRIPT_NAMES
+        )
         if (
             path.suffix.lower() not in EXECUTION_RELEVANT
             and path.name
@@ -896,13 +971,27 @@ def assess_risk(source_dir: Path, repository: dict[str, Any]) -> RiskReport:
                 "package.json",
             }
             and not license_document
+            and not extensionless_script
         ):
             continue
         try:
-            raw = path.read_bytes()[:1_000_000]
+            with path.open("rb") as source:
+                raw = source.read(1_000_000)
         except OSError:
             continue
-        text = raw.decode("utf-8", errors="replace")
+        if not _looks_like_text(raw):
+            if executable:
+                findings.append(
+                    RiskFinding(
+                        "HIGH",
+                        "opaque_executable",
+                        rel,
+                        None,
+                        "executable file could not be safely inspected as text",
+                    )
+                )
+            continue
+        text = raw.decode("utf-8")
         if license_document:
             match = LICENSE_RESTRICTION.search(text)
             if match:
@@ -918,8 +1007,6 @@ def assess_risk(source_dir: Path, repository: dict[str, Any]) -> RiskReport:
                 )
         files_scanned += 1
         bytes_scanned += len(raw)
-        if b"\x00" in raw:
-            continue
         for severity, category, pattern in RISK_PATTERNS:
             for match in pattern.finditer(text):
                 line = text.count("\n", 0, match.start()) + 1

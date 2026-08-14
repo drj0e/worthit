@@ -96,7 +96,7 @@ jobs:
           test -z "$(find "$root" ! -type d ! -type f -print -quit)"
           while IFS= read -r -d '' file; do
             relative=${file#"$root/"}
-            [[ "$relative" =~ ^runs/[^/]+/[0-9a-f]{40}/(state\.json|[^/]*-model[^/]*/(response\.json|request\.sha256))$ ]]
+            [[ "$relative" =~ ^runs/[^/]+/[0-9a-f]{40}/(state\.json|[^/]*-model[^/]*/(response\.json|request\.sha256|cost\.json))$ ]]
             test "$(stat -c %s "$file")" -le 5000000
             case "$relative" in
               */state.json)
@@ -106,6 +106,9 @@ jobs:
                 ;;
               */response.json)
                 jq -e 'keys == ["structured_output", "total_cost_usd"] and (.structured_output | type) == "object" and (.total_cost_usd | type) == "number"' "$file" >/dev/null
+                ;;
+              */cost.json)
+                jq -e 'keys == ["charged_usd", "reserved_usd", "status"] and ([.reserved_usd, .charged_usd] | all(.[]; type == "number" and isfinite and . >= 0)) and (.status | IN("RESERVED", "COMPLETE", "TIMEOUT", "OUTPUT_LIMIT", "FAILED", "INVALID_RESPONSE"))' "$file" >/dev/null
                 ;;
               */request.sha256)
                 test "$(wc -l < "$file")" -eq 1
@@ -145,13 +148,16 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Execute selected repositories
         if: steps.auth.outputs.enabled == 'true'
-        run: worthit daily --run-date "${{ needs.discover.outputs.run_date }}" --execute --allow-runc --base-path /worthit/ --site-url https://drj0e.github.io
+        run: worthit daily --run-date "${{ needs.discover.outputs.run_date }}" --selection-manifest "hunts/${{ needs.discover.outputs.run_date }}.json" --execute --allow-runc --base-path /worthit/ --site-url https://drj0e.github.io
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
           MAX_LLM_COST_PER_REPO: "5"
           MAX_TOTAL_DAILY_LLM_COST: "25"
+      - name: Record selected repositories blocked by missing evaluator authentication
+        if: steps.auth.outputs.enabled != 'true'
+        run: worthit daily --run-date "${{ needs.discover.outputs.run_date }}" --selection-manifest "hunts/${{ needs.discover.outputs.run_date }}.json" --missing-evaluator-credential --base-path /worthit/ --site-url https://drj0e.github.io
       - name: Stage bounded evaluator state
         id: stage-resume
         if: always()
@@ -183,16 +189,19 @@ jobs:
             jq '{repository_url, commit_sha, inspection_revision, stages: (.stages | map_values({status, updated_at}))}' "$state" > "$destination/state.json"
             while IFS= read -r -d '' file; do
               model_file=${file#"$run_dir/"}
-              [[ "$model_file" =~ ^[^/]*-model[^/]*/(response\.json|request\.sha256)$ ]] || continue
+              [[ "$model_file" =~ ^[^/]*-model[^/]*/(response\.json|request\.sha256|cost\.json)$ ]] || continue
               test "$(stat -c %s "$file")" -le 5000000 || continue
               mkdir -p "$destination/${model_file%/*}"
               if [[ "$model_file" == */response.json ]]; then
                 jq -e '(.structured_output | type) == "object" and (.total_cost_usd | type) == "number"' "$file" >/dev/null || continue
                 jq '{structured_output, total_cost_usd}' "$file" > "$destination/$model_file"
+              elif [[ "$model_file" == */cost.json ]]; then
+                jq -e 'keys == ["charged_usd", "reserved_usd", "status"] and ([.reserved_usd, .charged_usd] | all(.[]; type == "number" and isfinite and . >= 0)) and (.status | IN("RESERVED", "COMPLETE", "TIMEOUT", "OUTPUT_LIMIT", "FAILED", "INVALID_RESPONSE"))' "$file" >/dev/null || continue
+                jq '{reserved_usd, charged_usd, status}' "$file" > "$destination/$model_file"
               elif grep -Eq '^[0-9a-f]{64}$' "$file"; then
                 install -m 600 "$file" "$destination/$model_file"
               fi
-            done < <(find "$run_dir" -mindepth 2 -maxdepth 2 -type f \( -name response.json -o -name request.sha256 \) -print0)
+            done < <(find "$run_dir" -mindepth 2 -maxdepth 2 -type f \( -name response.json -o -name request.sha256 -o -name cost.json \) -print0)
             if test "$(du -sb "$root" | cut -f1)" -gt 52428800; then
               rm -rf -- "$destination"
               continue

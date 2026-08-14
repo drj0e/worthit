@@ -10,7 +10,7 @@ import subprocess
 import tarfile
 import tempfile
 import unittest
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -317,6 +317,44 @@ class CoreBoundaryTests(unittest.TestCase):
             backlog = json.loads((root / "data" / "candidates.json").read_text())
             self.assertEqual(backlog["candidates"][0]["evaluation_attempts"], 2)
             self.assertTrue(backlog["candidates"][0]["retry_exhausted"])
+
+    def test_transient_qualification_failure_retries_after_backoff(self) -> None:
+        now = datetime(2026, 8, 14, tzinfo=UTC)
+        value = daily_candidate(
+            "good/tool",
+            ["github-trending:overall", "github-search:artificial-intelligence"],
+            "AI developer CLI for testing code",
+        )
+
+        class FakeProvider:
+            name = "fixture"
+            errors: list[str] = []
+
+            def discover(self, *, now: datetime, limit: int) -> list[dict[str, object]]:
+                return copy.deepcopy([value])
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            arguments = {
+                "provider": FakeProvider(),
+                "backlog_path": root / "data" / "candidates.json",
+                "hunts_root": root / "hunts",
+                "work_root": root / "work",
+                "reviews_root": root / "reviews",
+                "site_dir": root / "site",
+                "discovery_limit": 1,
+                "qualify_limit": 1,
+                "daily_limit": 1,
+            }
+            with patch("worthit.discovery._deep_qualify", side_effect=OSError("temporary outage")) as qualify:
+                run_daily(**arguments, now=now)
+                run_daily(**arguments, now=now + timedelta(hours=1))
+                run_daily(**arguments, now=now + timedelta(hours=7))
+            self.assertEqual(qualify.call_count, 2)
+            backlog = json.loads((root / "data" / "candidates.json").read_text())
+            qualification = backlog["candidates"][0]["qualification"]
+            self.assertTrue(qualification["retryable_error"])
+            self.assertEqual(qualification["retry_after"], (now + timedelta(hours=13)).isoformat())
 
     def test_daily_failure_outcomes_preserve_stage_meaning(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -747,10 +785,12 @@ The 4 GB model download is optional.
                     "contributors_sample": 10,
                 },
             )
-            pipe_findings = [
-                finding for finding in report.findings if finding.category == "pipe_to_shell"
-            ]
+            pipe_findings = [finding for finding in report.findings if finding.category == "pipe_to_shell"]
             self.assertEqual([finding.path for finding in pipe_findings], ["install"])
+            self.assertIn(
+                ("outbound_endpoint", "install"),
+                {(finding.category, finding.path) for finding in report.findings},
+            )
             self.assertIn(
                 ("opaque_executable", "payload"),
                 {(finding.category, finding.path) for finding in report.findings},

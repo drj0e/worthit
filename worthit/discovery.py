@@ -100,7 +100,7 @@ PRIORITY_WEIGHTS = {
     "novelty": 5,
     "coverage_gap": 5,
 }
-QUALIFICATION_REVISION = 4
+QUALIFICATION_REVISION = 5
 DISCOVERY_QUERY_REVISION = 2
 
 
@@ -820,11 +820,7 @@ def run_daily(
             if candidate.get("metadata_qualified")
             and candidate.get("candidate_status") != "ALREADY_TESTED"
             and not candidate.get("retry_exhausted")
-            and not (
-                (candidate.get("qualification") or {}).get("revision") == QUALIFICATION_REVISION
-                and (candidate.get("qualification") or {}).get("inspection_revision") == INSPECTION_REVISION
-                and (candidate.get("qualification") or {}).get("passed") is False
-            )
+            and not _qualification_blocks_retry(candidate, now)
         ),
         key=lambda item: int((item.get("priority") or {}).get("total") or 0),
         reverse=True,
@@ -846,12 +842,14 @@ def run_daily(
             _deep_qualify(candidate, work_root=work_root, reviewed_commits=reviewed_commits, now=now)
             score_candidate(candidate, covered_categories, now=now)
         except (OSError, RuntimeError, ValueError) as error:
-            candidate["candidate_status"] = "BLOCKED"
+            candidate["candidate_status"] = "BLOCKED_TRANSIENT_QUALIFICATION"
             candidate["qualification"] = {
                 "revision": QUALIFICATION_REVISION,
                 "inspection_revision": INSPECTION_REVISION,
                 "inspected_at": now.isoformat(),
                 "passed": False,
+                "retryable_error": True,
+                "retry_after": (now + timedelta(hours=6)).isoformat(),
                 "error": redact(clean_text(str(error), 1_000)),
             }
         deep_checked.append(candidate)
@@ -893,93 +891,30 @@ def run_daily(
     atomic_json(backlog_path, backlog)
     report_path = hunts_root / f"{date_text}.json"
     previous_report = _safe_json(report_path)
-    prior_costs: dict[tuple[str, str], float] = {}
-    for outcome in (previous_report or {}).get("outcomes", []):
-        if not isinstance(outcome, dict):
-            continue
-        try:
-            cost = float(outcome.get("llm_cost_usd") or 0)
-        except (TypeError, ValueError):
-            continue
-        if math.isfinite(cost) and cost >= 0:
-            prior_costs[(str(outcome.get("repository")), str(outcome.get("commit_sha")))] = cost
-    outcomes: list[dict[str, Any]] = []
-    if execute:
-        for candidate in selected:
-            if sum(prior_costs.values()) + max_llm_cost_per_repo > max_total_daily_llm_cost + 0.001:
-                candidate["candidate_status"] = "BLOCKED_RESOURCE_LIMIT"
-                outcomes.append(
-                    {
-                        "repository": candidate["repository"],
-                        "commit_sha": candidate["current_commit_sha"],
-                        "status": "BLOCKED_RESOURCE_LIMIT",
-                        "reason": "Daily LLM cost ceiling reserved insufficient budget for another repository.",
-                        "llm_cost_usd": 0,
-                    }
-                )
-                atomic_json(backlog_path, backlog)
-                continue
-            candidate["candidate_status"] = "EVALUATING"
-            candidate["evaluation_attempts"] = int(candidate.get("evaluation_attempts") or 0) + 1
-            candidate["retry_exhausted"] = candidate["evaluation_attempts"] >= max_retries
-            atomic_json(backlog_path, backlog)
-            previous_repo_limit = os.environ.get("WORTHIT_MAX_LLM_COST_PER_REPO")
-            os.environ["WORTHIT_MAX_LLM_COST_PER_REPO"] = str(max_llm_cost_per_repo)
-            try:
-                result = evaluate_repository(
-                    str(candidate["url"]),
-                    commit=str(candidate["current_commit_sha"]),
-                    work_root=work_root,
-                    reviews_root=reviews_root,
-                    site_dir=site_dir,
-                    allow_runc=allow_runc,
-                    base_path=base_path,
-                    site_url=site_url,
-                )
-                candidate["candidate_status"] = "PUBLISHED"
-                outcomes.append(
-                    {
-                        "repository": candidate["repository"],
-                        "commit_sha": candidate["current_commit_sha"],
-                        "status": "PUBLISHED",
-                        "attempt": candidate["evaluation_attempts"],
-                        "score": result["score"],
-                        "confidence": result["confidence"],
-                        "verdict": result["verdict"],
-                        "llm_cost_usd": result["llm_cost_usd"],
-                    }
-                )
-            except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired) as error:
-                ref = parse_repo_url(str(candidate["url"]))
-                run_dir = (
-                    work_root / "runs" / f"{ref.owner}--{ref.name}" / str(candidate["current_commit_sha"])
-                )
-                status = _evaluation_failure_status(error, run_dir)
-                candidate["candidate_status"] = status
-                outcomes.append(
-                    {
-                        "repository": candidate["repository"],
-                        "commit_sha": candidate["current_commit_sha"],
-                        "status": status,
-                        "attempt": candidate["evaluation_attempts"],
-                        "reason": redact(clean_text(str(error), 1_000)),
-                        "llm_cost_usd": model_cost(run_dir),
-                    }
-                )
-            finally:
-                if previous_repo_limit is None:
-                    os.environ.pop("WORTHIT_MAX_LLM_COST_PER_REPO", None)
-                else:
-                    os.environ["WORTHIT_MAX_LLM_COST_PER_REPO"] = previous_repo_limit
-            outcome = outcomes[-1]
-            prior_costs[(str(outcome["repository"]), str(outcome["commit_sha"]))] = float(
-                outcome.get("llm_cost_usd") or 0
-            )
-            atomic_json(backlog_path, backlog)
+    outcomes = (
+        _execute_candidates(
+            selected,
+            backlog=backlog,
+            backlog_path=backlog_path,
+            previous_report=previous_report,
+            work_root=work_root,
+            reviews_root=reviews_root,
+            site_dir=site_dir,
+            max_retries=max_retries,
+            max_llm_cost_per_repo=max_llm_cost_per_repo,
+            max_total_daily_llm_cost=max_total_daily_llm_cost,
+            allow_runc=allow_runc,
+            base_path=base_path,
+            site_url=site_url,
+        )
+        if execute
+        else []
+    )
 
     report = _daily_report(
         now,
-        provider,
+        provider.name,
+        provider.errors,
         candidates,
         outcomes,
         execute,
@@ -997,9 +932,308 @@ def run_daily(
     return report
 
 
+def _qualification_blocks_retry(candidate: dict[str, Any], now: datetime) -> bool:
+    qualification = candidate.get("qualification") or {}
+    if not (
+        qualification.get("revision") == QUALIFICATION_REVISION
+        and qualification.get("inspection_revision") == INSPECTION_REVISION
+        and qualification.get("passed") is False
+    ):
+        return False
+    return (
+        not qualification.get("retryable_error")
+        or str(qualification.get("retry_after") or "") > now.isoformat()
+    )
+
+
+def run_selected(
+    *,
+    manifest_path: Path,
+    backlog_path: Path,
+    work_root: Path,
+    reviews_root: Path,
+    site_dir: Path,
+    max_retries: int = 2,
+    max_llm_cost_per_repo: float = 5.0,
+    max_total_daily_llm_cost: float = 25.0,
+    execute: bool = False,
+    missing_evaluator_credential: bool = False,
+    allow_runc: bool = False,
+    base_path: str = "/",
+    site_url: str = "http://localhost:8000",
+    now: datetime | None = None,
+    run_date: date | None = None,
+) -> dict[str, Any]:
+    """Execute only the exact commit-keyed selection recorded by discovery."""
+    now = (now or datetime.now(UTC)).astimezone(UTC)
+    operating_date = run_date or now.date()
+    if abs((operating_date - now.date()).days) > 1:
+        raise ValueError("daily operating date must be today or an adjacent UTC date")
+    if execute == missing_evaluator_credential:
+        raise ValueError("selected execution requires exactly one evaluator availability mode")
+    if execute and not allow_runc:
+        raise ValueError("--execute requires --allow-runc to acknowledge the documented residual risk")
+    if not 1 <= max_retries <= 10:
+        raise ValueError("maximum retries must be between 1 and 10")
+    if (
+        not math.isfinite(max_llm_cost_per_repo)
+        or not math.isfinite(max_total_daily_llm_cost)
+        or max_llm_cost_per_repo <= 0
+        or max_total_daily_llm_cost < max_llm_cost_per_repo
+    ):
+        raise ValueError("LLM cost limits must be positive and the daily limit must cover one repository")
+
+    manifest, backlog, selected = _load_selected_manifest(manifest_path, backlog_path, operating_date)
+    completed = {
+        (str(outcome.get("repository")), str(outcome.get("commit_sha")))
+        for outcome in manifest.get("outcomes", [])
+        if isinstance(outcome, dict) and outcome.get("status") == "PUBLISHED"
+    }
+    pending = [
+        candidate
+        for candidate in selected
+        if (str(candidate["repository"]), str(candidate["current_commit_sha"])) not in completed
+        and not candidate.get("retry_exhausted")
+    ]
+    if missing_evaluator_credential:
+        outcomes = []
+        for candidate in pending:
+            candidate["candidate_status"] = "BLOCKED_MISSING_EVALUATOR_CREDENTIAL"
+            outcomes.append(
+                {
+                    "repository": candidate["repository"],
+                    "commit_sha": candidate["current_commit_sha"],
+                    "status": "BLOCKED",
+                    "reason_code": "BLOCKED_MISSING_EVALUATOR_CREDENTIAL",
+                    "reason": "No evaluator credential was configured; candidate execution did not start.",
+                    "llm_cost_usd": 0,
+                }
+            )
+    else:
+        outcomes = _execute_candidates(
+            pending,
+            backlog=backlog,
+            backlog_path=backlog_path,
+            previous_report=manifest,
+            work_root=work_root,
+            reviews_root=reviews_root,
+            site_dir=site_dir,
+            max_retries=max_retries,
+            max_llm_cost_per_repo=max_llm_cost_per_repo,
+            max_total_daily_llm_cost=max_total_daily_llm_cost,
+            allow_runc=allow_runc,
+            base_path=base_path,
+            site_url=site_url,
+        )
+
+    candidates = backlog["candidates"]
+    backlog.update({"updated_at": now.isoformat(), "candidates": candidates})
+    atomic_json(backlog_path, backlog)
+    report = _daily_report(
+        now,
+        str(manifest["provider"]),
+        [],
+        candidates,
+        outcomes,
+        execute,
+        manifest,
+        operating_date,
+    )
+    report["selected"] = [_candidate_summary(candidate) for candidate in selected]
+    atomic_json(manifest_path, report)
+    build_site(
+        reviews_root,
+        site_dir,
+        hunts_root=manifest_path.parent,
+        base_path=base_path,
+        site_url=site_url,
+    )
+    return report
+
+
+def _load_selected_manifest(
+    manifest_path: Path, backlog_path: Path, operating_date: date
+) -> tuple[dict[str, Any], dict[str, Any], list[dict[str, Any]]]:
+    manifest = _safe_json(manifest_path)
+    date_text = operating_date.isoformat()
+    if manifest is None or manifest.get("schema_version") != 1:
+        raise ValueError("unsupported selection manifest schema")
+    if manifest.get("date") != date_text:
+        raise ValueError("selection manifest date does not match the operating date")
+    if not isinstance(manifest.get("provider"), str) or not isinstance(manifest.get("outcomes"), list):
+        raise ValueError("selection manifest metadata is invalid")
+    raw_selected = manifest.get("selected")
+    counts = manifest.get("counts")
+    if not isinstance(raw_selected, list) or len(raw_selected) > 5:
+        raise ValueError("selection manifest must contain at most five candidates")
+    if not isinstance(counts, dict) or counts.get("selected") != len(raw_selected):
+        raise ValueError("selection manifest count does not match its candidates")
+
+    backlog = _load_backlog(backlog_path)
+    by_identity = {
+        (
+            str(candidate["repository"]),
+            str(candidate["url"]),
+            str(candidate["current_commit_sha"]),
+        ): candidate
+        for candidate in backlog["candidates"]
+    }
+    selected: list[dict[str, Any]] = []
+    manifest_identities: list[tuple[str, str, str]] = []
+    for item in raw_selected:
+        if not isinstance(item, dict):
+            raise ValueError("selection manifest candidates must be objects")
+        repository = item.get("repository")
+        url = item.get("url")
+        commit = item.get("commit_sha")
+        if not all(isinstance(value, str) for value in (repository, url, commit)):
+            raise ValueError("selection manifest candidate identity is invalid")
+        ref = parse_repo_url(str(url))
+        if repository != ref.slug or url != ref.url or re.fullmatch(r"[0-9a-f]{40}", str(commit)) is None:
+            raise ValueError("selection manifest candidate identity is not canonical")
+        identity = (str(repository), str(url), str(commit))
+        if identity in manifest_identities:
+            raise ValueError("selection manifest contains a duplicate candidate")
+        candidate = by_identity.get(identity)
+        if candidate is None:
+            raise ValueError("selection manifest candidate does not match the backlog")
+        qualification = candidate.get("qualification")
+        gates = qualification.get("gates") if isinstance(qualification, dict) else None
+        if (
+            candidate.get("metadata_qualified") is not True
+            or not isinstance(qualification, dict)
+            or qualification.get("revision") != QUALIFICATION_REVISION
+            or qualification.get("inspection_revision") != INSPECTION_REVISION
+            or qualification.get("passed") is not True
+            or not isinstance(gates, dict)
+            or not gates
+            or any(not isinstance(gate, dict) or gate.get("passed") is not True for gate in gates.values())
+        ):
+            raise ValueError("selection manifest candidate lacks a current passed qualification")
+        if _selection_date(candidate) != date_text:
+            raise ValueError("selection manifest candidate was not selected for the operating date")
+        manifest_identities.append(identity)
+        selected.append(candidate)
+
+    backlog_identities = [
+        (
+            str(candidate["repository"]),
+            str(candidate["url"]),
+            str(candidate["current_commit_sha"]),
+        )
+        for candidate in backlog["candidates"]
+        if _selection_date(candidate) == date_text
+    ]
+    if len(backlog_identities) != len(manifest_identities) or set(backlog_identities) != set(
+        manifest_identities
+    ):
+        raise ValueError("selection manifest does not match the backlog selection")
+    return manifest, backlog, selected
+
+
+def _execute_candidates(
+    selected: list[dict[str, Any]],
+    *,
+    backlog: dict[str, Any],
+    backlog_path: Path,
+    previous_report: dict[str, Any] | None,
+    work_root: Path,
+    reviews_root: Path,
+    site_dir: Path,
+    max_retries: int,
+    max_llm_cost_per_repo: float,
+    max_total_daily_llm_cost: float,
+    allow_runc: bool,
+    base_path: str,
+    site_url: str,
+) -> list[dict[str, Any]]:
+    prior_costs: dict[tuple[str, str], float] = {}
+    for outcome in (previous_report or {}).get("outcomes", []):
+        if not isinstance(outcome, dict):
+            continue
+        try:
+            cost = float(outcome.get("llm_cost_usd") or 0)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(cost) and cost >= 0:
+            prior_costs[(str(outcome.get("repository")), str(outcome.get("commit_sha")))] = cost
+    outcomes: list[dict[str, Any]] = []
+    for candidate in selected:
+        if sum(prior_costs.values()) + max_llm_cost_per_repo > max_total_daily_llm_cost + 0.001:
+            candidate["candidate_status"] = "BLOCKED_RESOURCE_LIMIT"
+            outcomes.append(
+                {
+                    "repository": candidate["repository"],
+                    "commit_sha": candidate["current_commit_sha"],
+                    "status": "BLOCKED_RESOURCE_LIMIT",
+                    "reason": "Daily LLM cost ceiling reserved insufficient budget for another repository.",
+                    "llm_cost_usd": 0,
+                }
+            )
+            atomic_json(backlog_path, backlog)
+            continue
+        candidate["candidate_status"] = "EVALUATING"
+        candidate["evaluation_attempts"] = int(candidate.get("evaluation_attempts") or 0) + 1
+        candidate["retry_exhausted"] = candidate["evaluation_attempts"] >= max_retries
+        atomic_json(backlog_path, backlog)
+        previous_repo_limit = os.environ.get("WORTHIT_MAX_LLM_COST_PER_REPO")
+        os.environ["WORTHIT_MAX_LLM_COST_PER_REPO"] = str(max_llm_cost_per_repo)
+        try:
+            result = evaluate_repository(
+                str(candidate["url"]),
+                commit=str(candidate["current_commit_sha"]),
+                work_root=work_root,
+                reviews_root=reviews_root,
+                site_dir=site_dir,
+                allow_runc=allow_runc,
+                base_path=base_path,
+                site_url=site_url,
+            )
+            candidate["candidate_status"] = "PUBLISHED"
+            outcomes.append(
+                {
+                    "repository": candidate["repository"],
+                    "commit_sha": candidate["current_commit_sha"],
+                    "status": "PUBLISHED",
+                    "attempt": candidate["evaluation_attempts"],
+                    "score": result["score"],
+                    "confidence": result["confidence"],
+                    "verdict": result["verdict"],
+                    "llm_cost_usd": result["llm_cost_usd"],
+                }
+            )
+        except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired) as error:
+            ref = parse_repo_url(str(candidate["url"]))
+            run_dir = work_root / "runs" / f"{ref.owner}--{ref.name}" / str(candidate["current_commit_sha"])
+            status = _evaluation_failure_status(error, run_dir)
+            candidate["candidate_status"] = status
+            outcomes.append(
+                {
+                    "repository": candidate["repository"],
+                    "commit_sha": candidate["current_commit_sha"],
+                    "status": status,
+                    "attempt": candidate["evaluation_attempts"],
+                    "reason": redact(clean_text(str(error), 1_000)),
+                    "llm_cost_usd": model_cost(run_dir),
+                }
+            )
+        finally:
+            if previous_repo_limit is None:
+                os.environ.pop("WORTHIT_MAX_LLM_COST_PER_REPO", None)
+            else:
+                os.environ["WORTHIT_MAX_LLM_COST_PER_REPO"] = previous_repo_limit
+        outcome = outcomes[-1]
+        prior_costs[(str(outcome["repository"]), str(outcome["commit_sha"]))] = float(
+            outcome.get("llm_cost_usd") or 0
+        )
+        atomic_json(backlog_path, backlog)
+    return outcomes
+
+
 def _daily_report(
     now: datetime,
-    provider: DiscoveryProvider,
+    provider_name: str,
+    new_provider_errors: list[str],
     candidates: list[dict[str, Any]],
     outcomes: list[dict[str, Any]],
     execute: bool,
@@ -1066,7 +1300,7 @@ def _daily_report(
         dict.fromkeys(
             [
                 *(error for error in (previous or {}).get("provider_errors", []) if isinstance(error, str)),
-                *provider.errors,
+                *new_provider_errors,
             ]
         )
     )
@@ -1074,7 +1308,7 @@ def _daily_report(
         "schema_version": 1,
         "date": date_text,
         "generated_at": now.isoformat(),
-        "provider": provider.name,
+        "provider": provider_name,
         "provider_errors": provider_errors,
         "execution_enabled": execute or bool((previous or {}).get("execution_enabled")),
         "counts": {

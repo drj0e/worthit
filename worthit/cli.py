@@ -7,7 +7,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from .discovery import default_provider, run_daily
+from .discovery import default_provider, run_daily, run_selected
 from .pipeline import evaluate_repository
 from .site import build_site, verify_site
 
@@ -77,6 +77,16 @@ def main(argv: list[str] | None = None) -> int:
         help="run selected candidates; without this flag the command stops after selection",
     )
     daily.add_argument(
+        "--selection-manifest",
+        type=Path,
+        help="consume an existing daily hunt selection without running discovery again",
+    )
+    daily.add_argument(
+        "--missing-evaluator-credential",
+        action="store_true",
+        help="record selected candidates as blocked without starting evaluation",
+    )
+    daily.add_argument(
         "--allow-runc",
         action="store_true",
         help="acknowledge the documented runc residual risk when --execute is used",
@@ -116,25 +126,47 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "verify-site":
             print(json.dumps(verify_site(args.site_dir, base_path=args.base_path), indent=2))
         else:
-            report = run_daily(
-                provider=default_provider(args.work_root),
-                backlog_path=args.backlog,
-                hunts_root=args.hunts_root,
-                work_root=args.work_root,
-                reviews_root=args.reviews_root,
-                site_dir=args.site_dir,
-                discovery_limit=args.discovery_limit,
-                qualify_limit=args.qualify_limit,
-                daily_limit=args.daily_limit,
-                max_retries=args.max_retries,
-                max_llm_cost_per_repo=args.max_llm_cost_per_repo,
-                max_total_daily_llm_cost=args.max_total_daily_llm_cost,
-                execute=args.execute,
-                allow_runc=args.allow_runc,
-                base_path=args.base_path,
-                site_url=args.site_url,
-                run_date=args.run_date,
-            )
+            if args.selection_manifest is not None:
+                if args.run_date is None:
+                    raise ValueError("--selection-manifest requires --run-date")
+                report = run_selected(
+                    manifest_path=args.selection_manifest,
+                    backlog_path=args.backlog,
+                    work_root=args.work_root,
+                    reviews_root=args.reviews_root,
+                    site_dir=args.site_dir,
+                    max_retries=args.max_retries,
+                    max_llm_cost_per_repo=args.max_llm_cost_per_repo,
+                    max_total_daily_llm_cost=args.max_total_daily_llm_cost,
+                    execute=args.execute,
+                    missing_evaluator_credential=args.missing_evaluator_credential,
+                    allow_runc=args.allow_runc,
+                    base_path=args.base_path,
+                    site_url=args.site_url,
+                    run_date=args.run_date,
+                )
+            else:
+                if args.missing_evaluator_credential:
+                    raise ValueError("--missing-evaluator-credential requires --selection-manifest")
+                report = run_daily(
+                    provider=default_provider(args.work_root),
+                    backlog_path=args.backlog,
+                    hunts_root=args.hunts_root,
+                    work_root=args.work_root,
+                    reviews_root=args.reviews_root,
+                    site_dir=args.site_dir,
+                    discovery_limit=args.discovery_limit,
+                    qualify_limit=args.qualify_limit,
+                    daily_limit=args.daily_limit,
+                    max_retries=args.max_retries,
+                    max_llm_cost_per_repo=args.max_llm_cost_per_repo,
+                    max_total_daily_llm_cost=args.max_total_daily_llm_cost,
+                    execute=args.execute,
+                    allow_runc=args.allow_runc,
+                    base_path=args.base_path,
+                    site_url=args.site_url,
+                    run_date=args.run_date,
+                )
             print(
                 json.dumps(
                     {
