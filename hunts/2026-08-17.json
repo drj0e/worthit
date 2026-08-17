@@ -1,0 +1,2538 @@
+{
+  "best_tool": null,
+  "biggest_disappointment": null,
+  "counts": {
+    "backlog": 160,
+    "blocked_or_failed": 0,
+    "completed": 0,
+    "deep_inspected": 10,
+    "discovered": 80,
+    "metadata_qualified": 18,
+    "qualified": 0,
+    "selected": 0,
+    "tested": 0
+  },
+  "date": "2026-08-17",
+  "execution_enabled": false,
+  "generated_at": "2026-08-17T05:29:28.219436+00:00",
+  "interesting_not_tested": [
+    {
+      "category": "MCP tool/server",
+      "commit_sha": "06c5e118c4d3e6c3b7f9445f973a2194c82de193",
+      "description": "The agent harness performance optimization system. Skills, instincts, memory, security, and research-first development for Claude Code, Codex, Opencode, Cursor and beyond.",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 60,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 100,
+          "trending_velocity": 0,
+          "utility": 100
+        },
+        "interestingness": 72,
+        "reasons": [
+          "It appeared in 3 GitHub discovery feeds/searches.",
+          "Metadata contains 5 AI and 3 developer-tool signals; interest score 72/100.",
+          "Classified as MCP tool/server; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 76,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "repository": "affaan-m/ECC",
+      "status": "SKIPPED",
+      "url": "https://github.com/affaan-m/ECC"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "9beeb721c2af551bacaab827a76bddaecaa0ca5e",
+      "description": "The 500 AI Agents Projects is a curated collection of AI agent use cases across various industries. It showcases practical applications and provides links to open-source projects for implementation, illustrating how AI agents are transforming sectors such as healthcare, finance, education, retail, and more.",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 40,
+          "novelty": 40,
+          "recency": 80,
+          "relevance": 65,
+          "testability": 0,
+          "trending_velocity": 70,
+          "utility": 90
+        },
+        "interestingness": 80,
+        "reasons": [
+          "GitHub Trending reported 49 stars today.",
+          "Its mature public footprint is 36543 stars and 6521 forks over 604 days.",
+          "Metadata contains 3 AI and 0 developer-tool signals; interest score 80/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 61,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "repository": "ashishpatel26/500-AI-Agents-Projects",
+      "status": "SKIPPED",
+      "url": "https://github.com/ashishpatel26/500-AI-Agents-Projects"
+    },
+    {
+      "category": "MCP tool/server",
+      "commit_sha": "b9e565f3ba44cef54800bfd962fcea2f9b6d2671",
+      "description": "AI Agent Assistant & development framework that integrates lots of IM platforms, LLMs, plugins and AI feature, and can be your openclaw alternative. ✨",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 60,
+          "novelty": 15,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 60,
+          "trending_velocity": 0,
+          "utility": 100
+        },
+        "interestingness": 66,
+        "reasons": [
+          "It appeared in 2 GitHub discovery feeds/searches.",
+          "Metadata contains 5 AI and 1 developer-tool signals; interest score 66/100.",
+          "Classified as MCP tool/server; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 68,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "repository": "AstrBotDevs/AstrBot",
+      "status": "DISCOVERED",
+      "url": "https://github.com/AstrBotDevs/AstrBot"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "c152cc4d9821a002285f85aaf58876c6d60541fe",
+      "description": "14MB foundation model for tiny devices; phones, wearables, smart home, and robots.",
+      "priority": {
+        "components": {
+          "community_interest": 84,
+          "coverage_gap": 40,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 65,
+          "testability": 100,
+          "trending_velocity": 100,
+          "utility": 90
+        },
+        "interestingness": 91,
+        "reasons": [
+          "GitHub Trending reported 443 stars today.",
+          "It appeared in 2 GitHub discovery feeds/searches.",
+          "Metadata contains 3 AI and 0 developer-tool signals; interest score 91/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 84,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "repository": "cactus-compute/needle",
+      "status": "SKIPPED",
+      "url": "https://github.com/cactus-compute/needle"
+    },
+    {
+      "category": "coding agent",
+      "commit_sha": "f9767805f911240e001d508d3ddf60b9ee6426a1",
+      "description": "Chrome DevTools for coding agents",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 60,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 0,
+          "trending_velocity": 83,
+          "utility": 100
+        },
+        "interestingness": 93,
+        "reasons": [
+          "GitHub Trending reported 69 stars today.",
+          "It appeared in 2 GitHub discovery feeds/searches.",
+          "Metadata contains 3 AI and 1 developer-tool signals; interest score 93/100.",
+          "Classified as coding agent; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 78,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "repository": "ChromeDevTools/chrome-devtools-mcp",
+      "status": "SKIPPED",
+      "url": "https://github.com/ChromeDevTools/chrome-devtools-mcp"
+    },
+    {
+      "category": "developer productivity",
+      "commit_sha": "2ed6c52c9d7e5e56942508591085fd45dea277d3",
+      "description": "Makes your AI agent think like the laziest senior dev in the room. The best code is the code you never wrote.",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 60,
+          "novelty": 100,
+          "recency": 80,
+          "relevance": 100,
+          "testability": 0,
+          "trending_velocity": 0,
+          "utility": 100
+        },
+        "interestingness": 71,
+        "reasons": [
+          "It appeared in 2 GitHub discovery feeds/searches.",
+          "Metadata contains 4 AI and 2 developer-tool signals; interest score 71/100.",
+          "Classified as developer productivity; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 61,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "repository": "DietrichGebert/ponytail",
+      "status": "SKIPPED",
+      "url": "https://github.com/DietrichGebert/ponytail"
+    },
+    {
+      "category": "coding agent",
+      "commit_sha": "086c32e74530564922d011ade23ff582c9d63116",
+      "description": "AI agent toolkit: unified LLM API, agent loop, TUI, coding agent CLI",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 60,
+          "novelty": 40,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 0,
+          "trending_velocity": 100,
+          "utility": 100
+        },
+        "interestingness": 94,
+        "reasons": [
+          "GitHub Trending reported 518 stars today.",
+          "Its mature public footprint is 91005 stars and 11292 forks over 372 days.",
+          "Metadata contains 4 AI and 1 developer-tool signals; interest score 94/100.",
+          "Classified as coding agent; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 80,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "repository": "earendil-works/pi",
+      "status": "SKIPPED",
+      "url": "https://github.com/earendil-works/pi"
+    },
+    {
+      "category": "MCP tool/server",
+      "commit_sha": "19d7a4cbbfd62a61a45c31dda2f7cd35f18e6c3f",
+      "description": "📻Terminal/ssh/sftp/ftp/telnet/serialport/RDP/VNC/Spice client(Linux, Mac, Windows, Android, HarmonyOS)",
+      "priority": {
+        "components": {
+          "community_interest": 92,
+          "coverage_gap": 60,
+          "novelty": 15,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 0,
+          "trending_velocity": 63,
+          "utility": 100
+        },
+        "interestingness": 81,
+        "reasons": [
+          "GitHub Trending reported 40 stars today.",
+          "Its mature public footprint is 14846 stars and 1199 forks over 3235 days.",
+          "Metadata contains 2 AI and 2 developer-tool signals; interest score 81/100.",
+          "Classified as MCP tool/server; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 71,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "repository": "electerm/electerm",
+      "status": "SKIPPED",
+      "url": "https://github.com/electerm/electerm"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "c350936d2888ef16ff4f5549684fd8db54935a89",
+      "description": "Full-stack web application template with FastAPI, React, SQLModel, PostgreSQL, Vite, Tailwind CSS, shadcn/ui, FastAPI Cloud, and Docker Compose.",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 40,
+          "novelty": 15,
+          "recency": 100,
+          "relevance": 55,
+          "testability": 60,
+          "trending_velocity": 71,
+          "utility": 70
+        },
+        "interestingness": 77,
+        "reasons": [
+          "GitHub Trending reported 51 stars today.",
+          "Its mature public footprint is 44847 stars and 8926 forks over 2731 days.",
+          "Metadata contains 0 AI and 1 developer-tool signals; interest score 77/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 67,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "repository": "fastapi/full-stack-fastapi-template",
+      "status": "DISCOVERED",
+      "url": "https://github.com/fastapi/full-stack-fastapi-template"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "bf88c9f9a82fa370c7a7257aa2b3cf10b457b65c",
+      "description": "💫 Toolkit to help you get started with Spec-Driven Development",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 40,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 65,
+          "testability": 100,
+          "trending_velocity": 100,
+          "utility": 70
+        },
+        "interestingness": 90,
+        "reasons": [
+          "GitHub Trending reported 892 stars today.",
+          "It appeared in 2 GitHub discovery feeds/searches.",
+          "Metadata contains 1 AI and 0 developer-tool signals; interest score 90/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 84,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "repository": "github/spec-kit",
+      "status": "SKIPPED",
+      "url": "https://github.com/github/spec-kit"
+    }
+  ],
+  "llm_cost_usd": 0,
+  "outcomes": [],
+  "provider": "github",
+  "provider_errors": [],
+  "schema_version": 1,
+  "selected": [],
+  "skipped": [
+    {
+      "category": "developer productivity",
+      "commit_sha": "b7520c48b2bb46d5a0d3257e80ca1a59670d5e37",
+      "description": "extract all your personal data history from cursor, codex, claude-code, windsurf, and trae",
+      "priority": {
+        "components": {
+          "community_interest": 67,
+          "coverage_gap": 60,
+          "novelty": 70,
+          "recency": 30,
+          "relevance": 100,
+          "testability": 60,
+          "trending_velocity": 71,
+          "utility": 80
+        },
+        "interestingness": 64,
+        "reasons": [
+          "GitHub Trending reported 51 stars today.",
+          "Metadata contains 1 AI and 1 developer-tool signals; interest score 64/100.",
+          "Classified as developer productivity; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 72,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "interestingness: score 64/100 across 1 discovery signals; corroborated=False, low-value-pattern=False; novelty is a metadata heuristic, not a code-originality finding.",
+        "license: GitHub detected no recognized license; checked-in terms are inspected before execution."
+      ],
+      "repository": "0xSero/ai-data-extraction",
+      "status": "DISCOVERED",
+      "url": "https://github.com/0xSero/ai-data-extraction"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "2dae0a74b24d5028970c128814f5f14b7a8dd5dc",
+      "description": "Animation engine for explanatory math videos",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 40,
+          "novelty": 15,
+          "recency": 100,
+          "relevance": 20,
+          "testability": 60,
+          "trending_velocity": 100,
+          "utility": 60
+        },
+        "interestingness": 82,
+        "reasons": [
+          "GitHub Trending reported 176 stars today.",
+          "It appeared in 2 GitHub discovery feeds/searches.",
+          "Metadata contains 0 AI and 0 developer-tool signals; interest score 82/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 63,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "relevance: 0 AI and 0 developer-tool signals; score 20/100."
+      ],
+      "repository": "3b1b/manim",
+      "status": "DISCOVERED",
+      "url": "https://github.com/3b1b/manim"
+    },
+    {
+      "category": "MCP tool/server",
+      "commit_sha": "06c5e118c4d3e6c3b7f9445f973a2194c82de193",
+      "description": "The agent harness performance optimization system. Skills, instincts, memory, security, and research-first development for Claude Code, Codex, Opencode, Cursor and beyond.",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 60,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 100,
+          "trending_velocity": 0,
+          "utility": 100
+        },
+        "interestingness": 72,
+        "reasons": [
+          "It appeared in 3 GitHub discovery feeds/searches.",
+          "Metadata contains 5 AI and 3 developer-tool signals; interest score 72/100.",
+          "Classified as MCP tool/server; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 76,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "risk: Static screening found high-risk behavior requiring human review.",
+        "v1_requirements: gpu in README.md: If you need GPU capacity, [Itô](https://compute.itomarkets.com) is ECC's preferred compute sponsor; external_api_credential in README.md: Login never inherits `ITO_API_KEY`; gpu in GitHub release notes v2.1.0: If you need GPU capacity, [Itô](https://compute.itomarkets.com) is ECC's preferred compute sponsor.; external_api_credential in docs/architecture/platform-value-loop.md: - any workflow requiring `ITO_API_KEY`.; external_api_credential in docs/ATLAS-CLOUD-GUIDE.md: ATLAS_API_KEY=<your-atlascloud-api-key>; external_api_credential in docs/design/ecc-ito-compute-integration.md: `ITO_API_KEY`."
+      ],
+      "repository": "affaan-m/ECC",
+      "status": "SKIPPED",
+      "url": "https://github.com/affaan-m/ECC"
+    },
+    {
+      "category": "MCP tool/server",
+      "commit_sha": "6e007596736d7dac880766ac5cb98b747c89068b",
+      "description": "GOWA - WhatsApp REST API with support for UI, Multi Account, Webhooks, and MCP, and Chatwoot. Built with Golang for efficient memory use. ",
+      "priority": {
+        "components": {
+          "community_interest": 81,
+          "coverage_gap": 60,
+          "novelty": 15,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 60,
+          "trending_velocity": 48,
+          "utility": 80
+        },
+        "interestingness": 70,
+        "reasons": [
+          "GitHub Trending reported 23 stars today.",
+          "Metadata contains 1 AI and 1 developer-tool signals; interest score 70/100.",
+          "Classified as MCP tool/server; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 73,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "interestingness: score 70/100 across 1 discovery signals; corroborated=False, low-value-pattern=False; novelty is a metadata heuristic, not a code-originality finding."
+      ],
+      "repository": "aldinokemal/go-whatsapp-web-multidevice",
+      "status": "DISCOVERED",
+      "url": "https://github.com/aldinokemal/go-whatsapp-web-multidevice"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "a9ac7ed91c1729cd93944bc1338e8313daaba8fa",
+      "description": "Hundreds of models & providers. One command to find what runs on your hardware.",
+      "priority": {
+        "components": {
+          "community_interest": 99,
+          "coverage_gap": 40,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 45,
+          "testability": 0,
+          "trending_velocity": 100,
+          "utility": 80
+        },
+        "interestingness": 92,
+        "reasons": [
+          "GitHub Trending reported 187 stars today.",
+          "Metadata contains 2 AI and 0 developer-tool signals; interest score 92/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 65,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "interestingness: score 92/100 across 1 discovery signals; corroborated=False, low-value-pattern=False; novelty is a metadata heuristic, not a code-originality finding.",
+        "relevance: 2 AI and 0 developer-tool signals; score 45/100.",
+        "testability: Rust is outside a current CLI track; manifests still require inspection."
+      ],
+      "repository": "AlexsJones/llmfit",
+      "status": "DISCOVERED",
+      "url": "https://github.com/AlexsJones/llmfit"
+    },
+    {
+      "category": "STT",
+      "commit_sha": "ac9b3ad3cef4a669bf8a1345f313bbc57e5b1442",
+      "description": "Fastest and only macOS Dictation app with on-device STT and custom trained AI enhancement model. A local Wispr Flow alternative. DM us on X for an easter egg 😉 - https://x.com/fluidvoiceapp",
+      "priority": {
+        "components": {
+          "community_interest": 88,
+          "coverage_gap": 60,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 45,
+          "testability": 0,
+          "trending_velocity": 100,
+          "utility": 90
+        },
+        "interestingness": 92,
+        "reasons": [
+          "GitHub Trending reported 104 stars today.",
+          "Metadata contains 3 AI and 0 developer-tool signals; interest score 92/100.",
+          "Classified as STT; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 66,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "interestingness: score 92/100 across 1 discovery signals; corroborated=False, low-value-pattern=False; novelty is a metadata heuristic, not a code-originality finding.",
+        "relevance: 3 AI and 0 developer-tool signals; score 45/100.",
+        "testability: Swift is outside a current CLI track; manifests still require inspection."
+      ],
+      "repository": "altic-dev/FluidVoice",
+      "status": "DISCOVERED",
+      "url": "https://github.com/altic-dev/FluidVoice"
+    },
+    {
+      "category": "coding agent",
+      "commit_sha": "4643e65ad6334de3e4e68dedc201d5fbb828c9fe",
+      "description": "The open source coding agent.",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 60,
+          "novelty": 40,
+          "recency": 100,
+          "relevance": 65,
+          "testability": 60,
+          "trending_velocity": 100,
+          "utility": 80
+        },
+        "interestingness": 89,
+        "reasons": [
+          "GitHub Trending reported 496 stars today.",
+          "Its mature public footprint is 197567 stars and 25423 forks over 473 days.",
+          "Metadata contains 2 AI and 0 developer-tool signals; interest score 89/100.",
+          "Classified as coding agent; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 78,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "resource_feasibility: GitHub reports 460328 KiB; the metadata screen accepts 20-102400 KiB before measuring the archive."
+      ],
+      "repository": "anomalyco/opencode",
+      "status": "DISCOVERED",
+      "url": "https://github.com/anomalyco/opencode"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "f6656c1256d5a8adfa37db9110046ef20bac644c",
+      "description": "Public repository for Agent Skills",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 40,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 65,
+          "testability": 60,
+          "trending_velocity": 100,
+          "utility": 70
+        },
+        "interestingness": 90,
+        "reasons": [
+          "GitHub Trending reported 312 stars today.",
+          "It appeared in 2 GitHub discovery feeds/searches.",
+          "Metadata contains 1 AI and 0 developer-tool signals; interest score 90/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 78,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "license: GitHub detected no recognized license; checked-in terms are inspected before execution."
+      ],
+      "repository": "anthropics/skills",
+      "status": "DISCOVERED",
+      "url": "https://github.com/anthropics/skills"
+    },
+    {
+      "category": "MCP tool/server",
+      "commit_sha": "e03c9d89cbbbca25b80f1e7d282e9ddc92d906bc",
+      "description": "The Apify MCP server enables your AI agents to extract data from social media, search engines, maps, e-commerce sites, or any other website using thousands of ready-made scrapers, crawlers, and automation tools available on the Apify Store.",
+      "priority": {
+        "components": {
+          "community_interest": 78,
+          "coverage_gap": 60,
+          "novelty": 40,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 60,
+          "trending_velocity": 100,
+          "utility": 100
+        },
+        "interestingness": 90,
+        "reasons": [
+          "GitHub Trending reported 136 stars today.",
+          "Metadata contains 3 AI and 2 developer-tool signals; interest score 90/100.",
+          "Classified as MCP tool/server; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 87,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "interestingness: score 90/100 across 1 discovery signals; corroborated=False, low-value-pattern=False; novelty is a metadata heuristic, not a code-originality finding."
+      ],
+      "repository": "apify/apify-mcp-server",
+      "status": "DISCOVERED",
+      "url": "https://github.com/apify/apify-mcp-server"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "9beeb721c2af551bacaab827a76bddaecaa0ca5e",
+      "description": "The 500 AI Agents Projects is a curated collection of AI agent use cases across various industries. It showcases practical applications and provides links to open-source projects for implementation, illustrating how AI agents are transforming sectors such as healthcare, finance, education, retail, and more.",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 40,
+          "novelty": 40,
+          "recency": 80,
+          "relevance": 65,
+          "testability": 0,
+          "trending_velocity": 70,
+          "utility": 90
+        },
+        "interestingness": 80,
+        "reasons": [
+          "GitHub Trending reported 49 stars today.",
+          "Its mature public footprint is 36543 stars and 6521 forks over 604 days.",
+          "Metadata contains 3 AI and 0 developer-tool signals; interest score 80/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 61,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "testability: Detected no V1 execution track; supported=False."
+      ],
+      "repository": "ashishpatel26/500-AI-Agents-Projects",
+      "status": "SKIPPED",
+      "url": "https://github.com/ashishpatel26/500-AI-Agents-Projects"
+    },
+    {
+      "category": "infrastructure/runtime",
+      "commit_sha": "1abd8c0ee9fc91aa5479afa9fc01d39b3c08edbe",
+      "description": "TokenHub gives enterprises a private gateway to unify AI model access and governance, making every request controllable, traceable, and attributable.",
+      "priority": {
+        "components": {
+          "community_interest": 67,
+          "coverage_gap": 60,
+          "novelty": 100,
+          "recency": 100,
+          "relevance": 65,
+          "testability": 60,
+          "trending_velocity": 75,
+          "utility": 80
+        },
+        "interestingness": 82,
+        "reasons": [
+          "GitHub Trending reported 56 stars today.",
+          "Metadata contains 2 AI and 0 developer-tool signals; interest score 82/100.",
+          "Classified as infrastructure/runtime; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 73,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "interestingness: score 82/100 across 1 discovery signals; corroborated=False, low-value-pattern=False; novelty is a metadata heuristic, not a code-originality finding."
+      ],
+      "repository": "astaxie/TokenHub",
+      "status": "DISCOVERED",
+      "url": "https://github.com/astaxie/TokenHub"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "202f6ad98ee0da165c35cdb2afbc5b13d6ab81a1",
+      "description": "✨ Making your shell magical",
+      "priority": {
+        "components": {
+          "community_interest": 99,
+          "coverage_gap": 40,
+          "novelty": 15,
+          "recency": 100,
+          "relevance": 0,
+          "testability": 0,
+          "trending_velocity": 63,
+          "utility": 60
+        },
+        "interestingness": 72,
+        "reasons": [
+          "GitHub Trending reported 40 stars today.",
+          "Its mature public footprint is 31285 stars and 938 forks over 2142 days.",
+          "Metadata contains 0 AI and 0 developer-tool signals; interest score 72/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 41,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "relevance: 0 AI and 0 developer-tool signals; score 0/100.",
+        "testability: Rust is outside a current CLI track; manifests still require inspection."
+      ],
+      "repository": "atuinsh/atuin",
+      "status": "DISCOVERED",
+      "url": "https://github.com/atuinsh/atuin"
+    },
+    {
+      "category": "developer productivity",
+      "commit_sha": "3bec2dbe7328c60a931161148cf861e32efff173",
+      "description": "Offline, privacy-first grammar checker. Fast, open-source, Rust-powered",
+      "priority": {
+        "components": {
+          "community_interest": 92,
+          "coverage_gap": 60,
+          "novelty": 40,
+          "recency": 100,
+          "relevance": 35,
+          "testability": 0,
+          "trending_velocity": 63,
+          "utility": 70
+        },
+        "interestingness": 76,
+        "reasons": [
+          "GitHub Trending reported 40 stars today.",
+          "It appeared in 2 GitHub discovery feeds/searches.",
+          "Metadata contains 0 AI and 1 developer-tool signals; interest score 76/100.",
+          "Classified as developer productivity; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 53,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "relevance: 0 AI and 1 developer-tool signals; score 35/100.",
+        "testability: Rust is outside a current CLI track; manifests still require inspection."
+      ],
+      "repository": "Automattic/harper",
+      "status": "DISCOVERED",
+      "url": "https://github.com/Automattic/harper"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "30f7a06090dc20dd1a4a8d0c99bfb8e2370df2ec",
+      "description": "Beautiful, Modern & Opinionated Linux",
+      "priority": {
+        "components": {
+          "community_interest": 97,
+          "coverage_gap": 40,
+          "novelty": 40,
+          "recency": 100,
+          "relevance": 0,
+          "testability": 0,
+          "trending_velocity": 100,
+          "utility": 60
+        },
+        "interestingness": 83,
+        "reasons": [
+          "GitHub Trending reported 270 stars today.",
+          "Its mature public footprint is 25565 stars and 2607 forks over 441 days.",
+          "Metadata contains 0 AI and 0 developer-tool signals; interest score 83/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 50,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "relevance: 0 AI and 0 developer-tool signals; score 0/100.",
+        "resource_feasibility: GitHub reports 185106 KiB; the metadata screen accepts 20-102400 KiB before measuring the archive.",
+        "testability: Shell is outside a current CLI track; manifests still require inspection."
+      ],
+      "repository": "basecamp/omarchy",
+      "status": "DISCOVERED",
+      "url": "https://github.com/basecamp/omarchy"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "f76223892a7c30cbadaeb57a96f27880456eca24",
+      "description": "Breakthrough Method for Agile Ai Driven Development",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 40,
+          "novelty": 40,
+          "recency": 100,
+          "relevance": 65,
+          "testability": 60,
+          "trending_velocity": 69,
+          "utility": 70
+        },
+        "interestingness": 79,
+        "reasons": [
+          "GitHub Trending reported 47 stars today.",
+          "Its mature public footprint is 51921 stars and 5937 forks over 490 days.",
+          "Metadata contains 1 AI and 0 developer-tool signals; interest score 79/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 70,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "license: GitHub detected NOASSERTION; checked-in terms are inspected before execution."
+      ],
+      "repository": "bmad-code-org/BMAD-METHOD",
+      "status": "DISCOVERED",
+      "url": "https://github.com/bmad-code-org/BMAD-METHOD"
+    },
+    {
+      "category": "MCP tool/server",
+      "commit_sha": "34ae130657e1ec5c85359f6bfb5c8a284066c545",
+      "description": "《深入理解 AI Agent：设计原理与工程实践》（李博杰 著）开源主仓库：全书正文、编译版 PDF 与按章配套代码",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 60,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 60,
+          "trending_velocity": 0,
+          "utility": 100
+        },
+        "interestingness": 72,
+        "reasons": [
+          "It appeared in 2 GitHub discovery feeds/searches.",
+          "Metadata contains 7 AI and 1 developer-tool signals; interest score 72/100.",
+          "Classified as MCP tool/server; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 70,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "resource_feasibility: GitHub reports 753183 KiB; the metadata screen accepts 20-102400 KiB before measuring the archive."
+      ],
+      "repository": "bojieli/ai-agent-book",
+      "status": "DISCOVERED",
+      "url": "https://github.com/bojieli/ai-agent-book"
+    },
+    {
+      "category": "infrastructure/runtime",
+      "commit_sha": "bc2f967927f9f0e839095a752bf554c4a09fdd13",
+      "description": "A lightweight WebAssembly runtime that is fast, secure, and standards-compliant",
+      "priority": {
+        "components": {
+          "community_interest": 94,
+          "coverage_gap": 60,
+          "novelty": 15,
+          "recency": 100,
+          "relevance": 35,
+          "testability": 0,
+          "trending_velocity": 28,
+          "utility": 70
+        },
+        "interestingness": 65,
+        "reasons": [
+          "GitHub Trending reported 8 stars today.",
+          "Its mature public footprint is 18527 stars and 1800 forks over 3274 days.",
+          "Metadata contains 0 AI and 1 developer-tool signals; interest score 65/100.",
+          "Classified as infrastructure/runtime; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 44,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "relevance: 0 AI and 1 developer-tool signals; score 35/100.",
+        "resource_feasibility: GitHub reports 160327 KiB; the metadata screen accepts 20-102400 KiB before measuring the archive.",
+        "testability: Rust is outside a current CLI track; manifests still require inspection."
+      ],
+      "repository": "bytecodealliance/wasmtime",
+      "status": "DISCOVERED",
+      "url": "https://github.com/bytecodealliance/wasmtime"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "c152cc4d9821a002285f85aaf58876c6d60541fe",
+      "description": "14MB foundation model for tiny devices; phones, wearables, smart home, and robots.",
+      "priority": {
+        "components": {
+          "community_interest": 84,
+          "coverage_gap": 40,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 65,
+          "testability": 100,
+          "trending_velocity": 100,
+          "utility": 90
+        },
+        "interestingness": 91,
+        "reasons": [
+          "GitHub Trending reported 443 stars today.",
+          "It appeared in 2 GitHub discovery feeds/searches.",
+          "Metadata contains 3 AI and 0 developer-tool signals; interest score 91/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 84,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "risk: Static screening found high-risk behavior requiring human review.",
+        "v1_requirements: external_api_credential in README.md: export OPENROUTER_API_KEY=sk-or-...; external_api_credential in doc/finetuning.md: To grow a small hand written set, seed the generator with it (needs `OPENROUTER_API_KEY`"
+      ],
+      "repository": "cactus-compute/needle",
+      "status": "SKIPPED",
+      "url": "https://github.com/cactus-compute/needle"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "176037d0afbe572f870a3c702985e7cd83fe6c0c",
+      "description": "Scheduling infrastructure for absolutely everyone.",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 40,
+          "novelty": 15,
+          "recency": 80,
+          "relevance": 20,
+          "testability": 60,
+          "trending_velocity": 62,
+          "utility": 60
+        },
+        "interestingness": 68,
+        "reasons": [
+          "GitHub Trending reported 38 stars today.",
+          "Its mature public footprint is 47647 stars and 14795 forks over 1973 days.",
+          "Metadata contains 0 AI and 0 developer-tool signals; interest score 68/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 53,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "relevance: 0 AI and 0 developer-tool signals; score 20/100.",
+        "resource_feasibility: GitHub reports 1146727 KiB; the metadata screen accepts 20-102400 KiB before measuring the archive."
+      ],
+      "repository": "calcom/cal.diy",
+      "status": "DISCOVERED",
+      "url": "https://github.com/calcom/cal.diy"
+    },
+    {
+      "category": "coding agent",
+      "commit_sha": "ffd53ff92a6f575d499730475a73460dd7cc2eea",
+      "description": "⌥  AI Coding agent for the terminal — hash-anchored edits, optimized tool harness, LSP, Python, browser, subagents, and more",
+      "priority": {
+        "components": {
+          "community_interest": 97,
+          "coverage_gap": 60,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 60,
+          "trending_velocity": 100,
+          "utility": 100
+        },
+        "interestingness": 96,
+        "reasons": [
+          "GitHub Trending reported 291 stars today.",
+          "Metadata contains 5 AI and 4 developer-tool signals; interest score 96/100.",
+          "Classified as coding agent; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 90,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "interestingness: score 96/100 across 1 discovery signals; corroborated=False, low-value-pattern=False; novelty is a metadata heuristic, not a code-originality finding.",
+        "resource_feasibility: GitHub reports 507640 KiB; the metadata screen accepts 20-102400 KiB before measuring the archive."
+      ],
+      "repository": "can1357/oh-my-pi",
+      "status": "DISCOVERED",
+      "url": "https://github.com/can1357/oh-my-pi"
+    },
+    {
+      "category": "developer productivity",
+      "commit_sha": "09df49d8d1a1c7fb2efdfcdc7a2a0713534350a6",
+      "description": "29 editorial diagram types for Claude Code. Self-contained HTML + SVG. No shadows, no Mermaid-slop.",
+      "priority": {
+        "components": {
+          "community_interest": 94,
+          "coverage_gap": 60,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 35,
+          "testability": 0,
+          "trending_velocity": 100,
+          "utility": 70
+        },
+        "interestingness": 88,
+        "reasons": [
+          "GitHub Trending reported 1607 stars today.",
+          "Metadata contains 0 AI and 1 developer-tool signals; interest score 88/100.",
+          "Classified as developer productivity; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 62,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "interestingness: score 88/100 across 1 discovery signals; corroborated=False, low-value-pattern=False; novelty is a metadata heuristic, not a code-originality finding.",
+        "relevance: 0 AI and 1 developer-tool signals; score 35/100.",
+        "testability: HTML is outside a current CLI track; manifests still require inspection."
+      ],
+      "repository": "cathrynlavery/diagram-design",
+      "status": "DISCOVERED",
+      "url": "https://github.com/cathrynlavery/diagram-design"
+    },
+    {
+      "category": "coding agent",
+      "commit_sha": "f9767805f911240e001d508d3ddf60b9ee6426a1",
+      "description": "Chrome DevTools for coding agents",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 60,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 0,
+          "trending_velocity": 83,
+          "utility": 100
+        },
+        "interestingness": 93,
+        "reasons": [
+          "GitHub Trending reported 69 stars today.",
+          "It appeared in 2 GitHub discovery feeds/searches.",
+          "Metadata contains 3 AI and 1 developer-tool signals; interest score 93/100.",
+          "Classified as coding agent; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 78,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "risk: No high-risk static finding, but V1 provenance thresholds for trusted execution were not all met.",
+        "testability: Detected node-cli; supported=False."
+      ],
+      "repository": "ChromeDevTools/chrome-devtools-mcp",
+      "status": "SKIPPED",
+      "url": "https://github.com/ChromeDevTools/chrome-devtools-mcp"
+    },
+    {
+      "category": "browser automation",
+      "commit_sha": "c46a439e7fbad90ad33dbea6c6af329b6009809f",
+      "description": "The fastest browser for AI agents to run browser automation, built for sharing your logged-in browser state with your AI agents, like Codex or Claude Code, without disturbing you. Zero cost, zero config.",
+      "priority": {
+        "components": {
+          "community_interest": 89,
+          "coverage_gap": 60,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 0,
+          "trending_velocity": 100,
+          "utility": 100
+        },
+        "interestingness": 95,
+        "reasons": [
+          "GitHub Trending reported 535 stars today.",
+          "Metadata contains 3 AI and 2 developer-tool signals; interest score 95/100.",
+          "Classified as browser automation; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 80,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "interestingness: score 95/100 across 1 discovery signals; corroborated=False, low-value-pattern=False; novelty is a metadata heuristic, not a code-originality finding.",
+        "risk: Static screening found high-risk behavior requiring human review.",
+        "testability: Detected no V1 execution track; supported=False."
+      ],
+      "repository": "citrolabs/ego-lite",
+      "status": "SKIPPED",
+      "url": "https://github.com/citrolabs/ego-lite"
+    },
+    {
+      "category": "coding agent",
+      "commit_sha": "ea6a3dc84f9106cf78c7649f59d249f3c3090a33",
+      "description": "The free coding agent",
+      "priority": {
+        "components": {
+          "community_interest": 88,
+          "coverage_gap": 60,
+          "novelty": 40,
+          "recency": 100,
+          "relevance": 65,
+          "testability": 60,
+          "trending_velocity": 100,
+          "utility": 80
+        },
+        "interestingness": 87,
+        "reasons": [
+          "GitHub Trending reported 182 stars today.",
+          "Metadata contains 2 AI and 0 developer-tool signals; interest score 87/100.",
+          "Classified as coding agent; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 77,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "interestingness: score 87/100 across 1 discovery signals; corroborated=False, low-value-pattern=False; novelty is a metadata heuristic, not a code-originality finding.",
+        "resource_feasibility: GitHub reports 151088 KiB; the metadata screen accepts 20-102400 KiB before measuring the archive."
+      ],
+      "repository": "CodebuffAI/freebuff",
+      "status": "DISCOVERED",
+      "url": "https://github.com/CodebuffAI/freebuff"
+    },
+    {
+      "category": "MCP tool/server",
+      "commit_sha": "be2a406907dbc61b73e6827ded415c96139d13a2",
+      "description": "A curated list of awesome Claude Skills, resources, and tools for customizing Claude AI workflows",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 60,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 60,
+          "trending_velocity": 0,
+          "utility": 100
+        },
+        "interestingness": 72,
+        "reasons": [
+          "It appeared in 2 GitHub discovery feeds/searches.",
+          "Metadata contains 4 AI and 5 developer-tool signals; interest score 72/100.",
+          "Classified as MCP tool/server; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 70,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "license: GitHub detected no recognized license; checked-in terms are inspected before execution."
+      ],
+      "repository": "ComposioHQ/awesome-claude-skills",
+      "status": "DISCOVERED",
+      "url": "https://github.com/ComposioHQ/awesome-claude-skills"
+    },
+    {
+      "category": "MCP tool/server",
+      "commit_sha": "a71b812db1b00c2566ef0656ec9fbe214a6597d4",
+      "description": "Composio powers 1000+ toolkits, tool search, context management, authentication, and a sandboxed workbench to help you build AI agents that turn intent into action.",
+      "priority": {
+        "components": {
+          "community_interest": 98,
+          "coverage_gap": 60,
+          "novelty": 40,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 60,
+          "trending_velocity": 0,
+          "utility": 100
+        },
+        "interestingness": 69,
+        "reasons": [
+          "It appeared in 2 GitHub discovery feeds/searches.",
+          "Metadata contains 4 AI and 3 developer-tool signals; interest score 69/100.",
+          "Classified as MCP tool/server; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 69,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "resource_feasibility: GitHub reports 358993 KiB; the metadata screen accepts 20-102400 KiB before measuring the archive."
+      ],
+      "repository": "ComposioHQ/composio",
+      "status": "DISCOVERED",
+      "url": "https://github.com/ComposioHQ/composio"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "8cc9e33fab69e2d0476d126baaf2acb24e6a6ab4",
+      "description": "Meta-Framework of Spatiotemporal Composability",
+      "priority": {
+        "components": {
+          "community_interest": 81,
+          "coverage_gap": 40,
+          "novelty": 15,
+          "recency": 100,
+          "relevance": 20,
+          "testability": 60,
+          "trending_velocity": 100,
+          "utility": 60
+        },
+        "interestingness": 78,
+        "reasons": [
+          "GitHub Trending reported 720 stars today.",
+          "Metadata contains 0 AI and 0 developer-tool signals; interest score 78/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 61,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "interestingness: score 78/100 across 1 discovery signals; corroborated=False, low-value-pattern=False; novelty is a metadata heuristic, not a code-originality finding.",
+        "relevance: 0 AI and 0 developer-tool signals; score 20/100."
+      ],
+      "repository": "cordiverse/cordis",
+      "status": "DISCOVERED",
+      "url": "https://github.com/cordiverse/cordis"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "5b18223ca19ff50d707f35410dbc6bd440a9f74d",
+      "description": "A node.js version management utility for Windows. Ironically written in Go.",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 40,
+          "novelty": 15,
+          "recency": 30,
+          "relevance": 20,
+          "testability": 60,
+          "trending_velocity": 51,
+          "utility": 60
+        },
+        "interestingness": 55,
+        "reasons": [
+          "GitHub Trending reported 26 stars today.",
+          "Its mature public footprint is 47358 stars and 3859 forks over 4348 days.",
+          "Metadata contains 0 AI and 0 developer-tool signals; interest score 55/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 46,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "relevance: 0 AI and 0 developer-tool signals; score 20/100."
+      ],
+      "repository": "coreybutler/nvm-windows",
+      "status": "DISCOVERED",
+      "url": "https://github.com/coreybutler/nvm-windows"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "2a8044425c7bddf429c3bdedf3ab61e791d34d65",
+      "description": "Cursor plugin specification and official plugins",
+      "priority": {
+        "components": {
+          "community_interest": 76,
+          "coverage_gap": 40,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 20,
+          "testability": 60,
+          "trending_velocity": 100,
+          "utility": 60
+        },
+        "interestingness": 82,
+        "reasons": [
+          "GitHub Trending reported 149 stars today.",
+          "It appeared in 2 GitHub discovery feeds/searches.",
+          "Metadata contains 0 AI and 0 developer-tool signals; interest score 82/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 63,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "license: GitHub detected no recognized license; checked-in terms are inspected before execution.",
+        "relevance: 0 AI and 0 developer-tool signals; score 20/100."
+      ],
+      "repository": "cursor/plugins",
+      "status": "DISCOVERED",
+      "url": "https://github.com/cursor/plugins"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "030fd30e12150b4c793868acd04d4eeb5281e602",
+      "description": "🎬 Fully automated YouTube channel management with AI agents. Creates, optimizes & publishes videos 24/7. Works with FREE Gemini API or OpenAI. No coding required!",
+      "priority": {
+        "components": {
+          "community_interest": 73,
+          "coverage_gap": 40,
+          "novelty": 40,
+          "recency": 80,
+          "relevance": 100,
+          "testability": 60,
+          "trending_velocity": 67,
+          "utility": 100
+        },
+        "interestingness": 76,
+        "reasons": [
+          "GitHub Trending reported 45 stars today.",
+          "Metadata contains 3 AI and 2 developer-tool signals; interest score 76/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 77,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "interestingness: score 76/100 across 1 discovery signals; corroborated=False, low-value-pattern=False; novelty is a metadata heuristic, not a code-originality finding."
+      ],
+      "repository": "darkzOGx/youtube-automation-agent",
+      "status": "DISCOVERED",
+      "url": "https://github.com/darkzOGx/youtube-automation-agent"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "9ae39209bbfd901b653003472c4b35de9e16ffdf",
+      "description": "",
+      "priority": {
+        "components": {
+          "community_interest": 83,
+          "coverage_gap": 40,
+          "novelty": 70,
+          "recency": 60,
+          "relevance": 45,
+          "testability": 0,
+          "trending_velocity": 100,
+          "utility": 50
+        },
+        "interestingness": 73,
+        "reasons": [
+          "GitHub Trending reported 222 stars today.",
+          "Metadata contains 1 AI and 0 developer-tool signals; interest score 73/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 56,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "description_present: Repository description is present; README quality is checked during deep qualification.",
+        "interestingness: score 73/100 across 1 discovery signals; corroborated=False, low-value-pattern=False; novelty is a metadata heuristic, not a code-originality finding.",
+        "license: GitHub detected no recognized license; checked-in terms are inspected before execution.",
+        "relevance: 1 AI and 0 developer-tool signals; score 45/100.",
+        "testability: unknown language is outside a current CLI track; manifests still require inspection."
+      ],
+      "repository": "deepseek-ai/awesome-deepseek-agent",
+      "status": "DISCOVERED",
+      "url": "https://github.com/deepseek-ai/awesome-deepseek-agent"
+    },
+    {
+      "category": "MCP tool/server",
+      "commit_sha": "93e93087b4a157c3c478064729e3c0f9c1a258f9",
+      "description": "High-performance code intelligence MCP server. Indexes codebases into a persistent knowledge graph — average repo in milliseconds. 158 languages, sub-ms queries, 99% fewer tokens. Single static binary, zero dependencies.",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 60,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 80,
+          "testability": 0,
+          "trending_velocity": 0,
+          "utility": 100
+        },
+        "interestingness": 72,
+        "reasons": [
+          "It appeared in 2 GitHub discovery feeds/searches.",
+          "Metadata contains 2 AI and 4 developer-tool signals; interest score 72/100.",
+          "Classified as MCP tool/server; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 56,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "resource_feasibility: GitHub reports 188333 KiB; the metadata screen accepts 20-102400 KiB before measuring the archive.",
+        "testability: C is outside a current CLI track; manifests still require inspection."
+      ],
+      "repository": "DeusData/codebase-memory-mcp",
+      "status": "DISCOVERED",
+      "url": "https://github.com/DeusData/codebase-memory-mcp"
+    },
+    {
+      "category": "developer productivity",
+      "commit_sha": "2ed6c52c9d7e5e56942508591085fd45dea277d3",
+      "description": "Makes your AI agent think like the laziest senior dev in the room. The best code is the code you never wrote.",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 60,
+          "novelty": 100,
+          "recency": 80,
+          "relevance": 100,
+          "testability": 0,
+          "trending_velocity": 0,
+          "utility": 100
+        },
+        "interestingness": 71,
+        "reasons": [
+          "It appeared in 2 GitHub discovery feeds/searches.",
+          "Metadata contains 4 AI and 2 developer-tool signals; interest score 71/100.",
+          "Classified as developer productivity; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 61,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "risk: No high-risk static finding, but V1 provenance thresholds for trusted execution were not all met.",
+        "testability: Detected node-cli; supported=False.",
+        "v1_requirements: core_external_service in examples/rate-limit.md: | **Redis** | Distributed, scalable | Requires Redis | Production, multi-server |"
+      ],
+      "repository": "DietrichGebert/ponytail",
+      "status": "SKIPPED",
+      "url": "https://github.com/DietrichGebert/ponytail"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "d7c0ddc37465c027ec8bb116356d9ea4e97606b4",
+      "description": "The fastest and the most accurate file search SDK for AI agents, Neovim, Rust, C,  Python, Bun and NodeJS",
+      "priority": {
+        "components": {
+          "community_interest": 88,
+          "coverage_gap": 40,
+          "novelty": 40,
+          "recency": 100,
+          "relevance": 45,
+          "testability": 0,
+          "trending_velocity": 55,
+          "utility": 80
+        },
+        "interestingness": 75,
+        "reasons": [
+          "GitHub Trending reported 30 stars today.",
+          "Its mature public footprint is 10034 stars and 417 forks over 381 days.",
+          "Metadata contains 2 AI and 0 developer-tool signals; interest score 75/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 53,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "relevance: 2 AI and 0 developer-tool signals; score 45/100.",
+        "testability: Rust is outside a current CLI track; manifests still require inspection."
+      ],
+      "repository": "dmtrKovalenko/fff",
+      "status": "DISCOVERED",
+      "url": "https://github.com/dmtrKovalenko/fff"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "6417fe75e522443b25ca902e8524716bd17a75e8",
+      "description": "The modern link attribution platform. Loved by world-class marketing teams like Framer, Perplexity, Superhuman, Twilio, Buffer and more.",
+      "priority": {
+        "components": {
+          "community_interest": 97,
+          "coverage_gap": 40,
+          "novelty": 15,
+          "recency": 100,
+          "relevance": 20,
+          "testability": 60,
+          "trending_velocity": 57,
+          "utility": 60
+        },
+        "interestingness": 70,
+        "reasons": [
+          "GitHub Trending reported 33 stars today.",
+          "Its mature public footprint is 24420 stars and 3227 forks over 1450 days.",
+          "Metadata contains 0 AI and 0 developer-tool signals; interest score 70/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 54,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "license: GitHub detected NOASSERTION; checked-in terms are inspected before execution.",
+        "relevance: 0 AI and 0 developer-tool signals; score 20/100."
+      ],
+      "repository": "dubinc/dub",
+      "status": "DISCOVERED",
+      "url": "https://github.com/dubinc/dub"
+    },
+    {
+      "category": "coding agent",
+      "commit_sha": "086c32e74530564922d011ade23ff582c9d63116",
+      "description": "AI agent toolkit: unified LLM API, agent loop, TUI, coding agent CLI",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 60,
+          "novelty": 40,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 0,
+          "trending_velocity": 100,
+          "utility": 100
+        },
+        "interestingness": 94,
+        "reasons": [
+          "GitHub Trending reported 518 stars today.",
+          "Its mature public footprint is 91005 stars and 11292 forks over 372 days.",
+          "Metadata contains 4 AI and 1 developer-tool signals; interest score 94/100.",
+          "Classified as coding agent; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 80,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "risk: Static screening found high-risk behavior requiring human review.",
+        "testability: Detected node-cli; supported=False."
+      ],
+      "repository": "earendil-works/pi",
+      "status": "SKIPPED",
+      "url": "https://github.com/earendil-works/pi"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "3837c5ef4f2336fe13eaf20a36771c24032ffacf",
+      "description": "Rust tool to detect cell site simulators on an orbic mobile hotspot ",
+      "priority": {
+        "components": {
+          "community_interest": 82,
+          "coverage_gap": 40,
+          "novelty": 40,
+          "recency": 100,
+          "relevance": 35,
+          "testability": 0,
+          "trending_velocity": 51,
+          "utility": 70
+        },
+        "interestingness": 71,
+        "reasons": [
+          "GitHub Trending reported 26 stars today.",
+          "Metadata contains 0 AI and 1 developer-tool signals; interest score 71/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 48,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "interestingness: score 71/100 across 1 discovery signals; corroborated=False, low-value-pattern=False; novelty is a metadata heuristic, not a code-originality finding.",
+        "relevance: 0 AI and 1 developer-tool signals; score 35/100.",
+        "testability: Rust is outside a current CLI track; manifests still require inspection."
+      ],
+      "repository": "EFForg/rayhunter",
+      "status": "DISCOVERED",
+      "url": "https://github.com/EFForg/rayhunter"
+    },
+    {
+      "category": "MCP tool/server",
+      "commit_sha": "19d7a4cbbfd62a61a45c31dda2f7cd35f18e6c3f",
+      "description": "📻Terminal/ssh/sftp/ftp/telnet/serialport/RDP/VNC/Spice client(Linux, Mac, Windows, Android, HarmonyOS)",
+      "priority": {
+        "components": {
+          "community_interest": 92,
+          "coverage_gap": 60,
+          "novelty": 15,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 0,
+          "trending_velocity": 63,
+          "utility": 100
+        },
+        "interestingness": 81,
+        "reasons": [
+          "GitHub Trending reported 40 stars today.",
+          "Its mature public footprint is 14846 stars and 1199 forks over 3235 days.",
+          "Metadata contains 2 AI and 2 developer-tool signals; interest score 81/100.",
+          "Classified as MCP tool/server; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 71,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "risk: Static screening found behavior that is incompatible with execution.",
+        "testability: Detected node-cli; supported=False."
+      ],
+      "repository": "electerm/electerm",
+      "status": "SKIPPED",
+      "url": "https://github.com/electerm/electerm"
+    },
+    {
+      "category": "MCP tool/server",
+      "commit_sha": "bd402844fae9101da9591b8eb153871773eb3c27",
+      "description": "Open source alternative to Semrush and Ahrefs",
+      "priority": {
+        "components": {
+          "community_interest": 90,
+          "coverage_gap": 60,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 60,
+          "trending_velocity": 100,
+          "utility": 80
+        },
+        "interestingness": 90,
+        "reasons": [
+          "GitHub Trending reported 185 stars today.",
+          "Metadata contains 1 AI and 1 developer-tool signals; interest score 90/100.",
+          "Classified as MCP tool/server; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 88,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "interestingness: score 90/100 across 1 discovery signals; corroborated=False, low-value-pattern=False; novelty is a metadata heuristic, not a code-originality finding."
+      ],
+      "repository": "every-app/open-seo",
+      "status": "DISCOVERED",
+      "url": "https://github.com/every-app/open-seo"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "056df37b86b44a15590d498c2159079fa6e0da66",
+      "description": "f.k.a. Awesome ChatGPT Prompts. Share, discover, and collect prompts from the community. Free and open source — self-host for your organization with complete privacy.",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 40,
+          "novelty": 15,
+          "recency": 100,
+          "relevance": 45,
+          "testability": 0,
+          "trending_velocity": 0,
+          "utility": 10
+        },
+        "interestingness": 44,
+        "reasons": [
+          "It appeared in 2 GitHub discovery feeds/searches.",
+          "Metadata contains 2 AI and 0 developer-tool signals; interest score 44/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 35,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "interestingness: score 44/100 across 2 discovery signals; corroborated=True, low-value-pattern=True; novelty is a metadata heuristic, not a code-originality finding.",
+        "license: GitHub detected NOASSERTION; checked-in terms are inspected before execution.",
+        "relevance: 2 AI and 0 developer-tool signals; score 45/100.",
+        "resource_feasibility: GitHub reports 508330 KiB; the metadata screen accepts 20-102400 KiB before measuring the archive.",
+        "testability: HTML is outside a current CLI track; manifests still require inspection."
+      ],
+      "repository": "f/prompts.chat",
+      "status": "DISCOVERED",
+      "url": "https://github.com/f/prompts.chat"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "83637b4a269f1e4639b6e0b5036254a4e7773e18",
+      "description": "Modular logistics and supply chain operating system (LSOS)",
+      "priority": {
+        "components": {
+          "community_interest": 75,
+          "coverage_gap": 40,
+          "novelty": 15,
+          "recency": 100,
+          "relevance": 20,
+          "testability": 60,
+          "trending_velocity": 70,
+          "utility": 60
+        },
+        "interestingness": 69,
+        "reasons": [
+          "GitHub Trending reported 49 stars today.",
+          "Metadata contains 0 AI and 0 developer-tool signals; interest score 69/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 54,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "interestingness: score 69/100 across 1 discovery signals; corroborated=False, low-value-pattern=False; novelty is a metadata heuristic, not a code-originality finding.",
+        "relevance: 0 AI and 0 developer-tool signals; score 20/100."
+      ],
+      "repository": "fleetbase/fleetbase",
+      "status": "DISCOVERED",
+      "url": "https://github.com/fleetbase/fleetbase"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "bf88c9f9a82fa370c7a7257aa2b3cf10b457b65c",
+      "description": "💫 Toolkit to help you get started with Spec-Driven Development",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 40,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 65,
+          "testability": 100,
+          "trending_velocity": 100,
+          "utility": 70
+        },
+        "interestingness": 90,
+        "reasons": [
+          "GitHub Trending reported 892 stars today.",
+          "It appeared in 2 GitHub discovery feeds/searches.",
+          "Metadata contains 1 AI and 0 developer-tool signals; interest score 90/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 84,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "risk: Static screening found high-risk behavior requiring human review.",
+        "v1_requirements: core_external_service in docs/install/air-gapped.md: No network access is required — bundled assets are used by default:"
+      ],
+      "repository": "github/spec-kit",
+      "status": "SKIPPED",
+      "url": "https://github.com/github/spec-kit"
+    },
+    {
+      "category": "coding agent",
+      "commit_sha": "d065467cd3ec3ed91c5dc60554c36fc4b4d6de4c",
+      "description": "The coding agent that answers to you, your model, your machine, your rules.",
+      "priority": {
+        "components": {
+          "community_interest": 70,
+          "coverage_gap": 60,
+          "novelty": 100,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 60,
+          "trending_velocity": 94,
+          "utility": 100
+        },
+        "interestingness": 92,
+        "reasons": [
+          "GitHub Trending reported 89 stars today.",
+          "Metadata contains 6 AI and 5 developer-tool signals; interest score 92/100.",
+          "Classified as coding agent; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 88,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "interestingness: score 92/100 across 1 discovery signals; corroborated=False, low-value-pattern=False; novelty is a metadata heuristic, not a code-originality finding."
+      ],
+      "repository": "Gitlawb/zero",
+      "status": "DISCOVERED",
+      "url": "https://github.com/Gitlawb/zero"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "72aa6db7943024b48c4d41c1fbc32b57b9fa036e",
+      "description": "The Go programming language",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 40,
+          "novelty": 15,
+          "recency": 100,
+          "relevance": 20,
+          "testability": 60,
+          "trending_velocity": 63,
+          "utility": 60
+        },
+        "interestingness": 72,
+        "reasons": [
+          "GitHub Trending reported 40 stars today.",
+          "Its mature public footprint is 135782 stars and 19275 forks over 4381 days.",
+          "Metadata contains 0 AI and 0 developer-tool signals; interest score 72/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 55,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "relevance: 0 AI and 0 developer-tool signals; score 20/100.",
+        "resource_feasibility: GitHub reports 448697 KiB; the metadata screen accepts 20-102400 KiB before measuring the archive."
+      ],
+      "repository": "golang/go",
+      "status": "DISCOVERED",
+      "url": "https://github.com/golang/go"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "608d54bbc75af4142bc69c2c2b50c0c217b45731",
+      "description": "",
+      "priority": {
+        "components": {
+          "community_interest": 71,
+          "coverage_gap": 40,
+          "novelty": 70,
+          "recency": 80,
+          "relevance": 20,
+          "testability": 60,
+          "trending_velocity": 91,
+          "utility": 40
+        },
+        "interestingness": 70,
+        "reasons": [
+          "GitHub Trending reported 83 stars today.",
+          "Metadata contains 0 AI and 0 developer-tool signals; interest score 70/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 57,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "description_present: Repository description is present; README quality is checked during deep qualification.",
+        "interestingness: score 70/100 across 1 discovery signals; corroborated=False, low-value-pattern=False; novelty is a metadata heuristic, not a code-originality finding.",
+        "relevance: 0 AI and 0 developer-tool signals; score 20/100."
+      ],
+      "repository": "golbin/hop",
+      "status": "DISCOVERED",
+      "url": "https://github.com/golbin/hop"
+    },
+    {
+      "category": "developer library",
+      "commit_sha": "3dae50b20d7a724981e8ea36cda75578f80dd2dc",
+      "description": "TimesFM (Time Series Foundation Model) is a pretrained time-series foundation model developed by Google Research for time-series forecasting.",
+      "priority": {
+        "components": {
+          "community_interest": 98,
+          "coverage_gap": 60,
+          "novelty": 40,
+          "recency": 60,
+          "relevance": 65,
+          "testability": 0,
+          "trending_velocity": 100,
+          "utility": 70
+        },
+        "interestingness": 78,
+        "reasons": [
+          "GitHub Trending reported 109 stars today.",
+          "Its mature public footprint is 27874 stars and 2715 forks over 839 days.",
+          "Metadata contains 1 AI and 0 developer-tool signals; interest score 78/100.",
+          "Classified as developer library; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 64,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "risk: Static screening found high-risk behavior requiring human review.",
+        "testability: Detected python-library; supported=False."
+      ],
+      "repository": "google-research/timesfm",
+      "status": "SKIPPED",
+      "url": "https://github.com/google-research/timesfm"
+    },
+    {
+      "category": "MCP tool/server",
+      "commit_sha": "0738af373af9cf5c95f862cc5f3327fd96b4ea23",
+      "description": "Turn any codebase, with its docs, SQL schemas, configs, and PDFs, into a queryable knowledge graph. A /graphify skill for Claude Code, Cursor, Codex, and Gemini CLI: local deterministic AST parsing, every edge explained, no vector store.",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 60,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 100,
+          "trending_velocity": 0,
+          "utility": 100
+        },
+        "interestingness": 72,
+        "reasons": [
+          "It appeared in 3 GitHub discovery feeds/searches.",
+          "Metadata contains 5 AI and 4 developer-tool signals; interest score 72/100.",
+          "Classified as MCP tool/server; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 76,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "risk: Static screening found high-risk behavior requiring human review.",
+        "v1_requirements: external_api_credential in README.md: | `anthropic` | Anthropic Claude API (`--backend claude`, uses `ANTHROPIC_API_KEY`) | `uv tool install \"graphifyy[anthropic]\"` |; core_external_service in README.md: Headless `graphify extract` requires `GEMINI_API_KEY` / `GOOGLE_API_KEY` (Gemini), `MOONSHOT_API_KEY` (Kimi), `ANTHROPIC_API_KEY` (Claude), `OPENAI_API_KEY` (OpenAI), `DEEPSEEK_API_KEY` (DeepSeek), a running Ollama instance (`OLLAMA_BASE_URL`), AWS credentials via the standard provider chain (Bedroc; external_api_credential in docs/translations/README.fa-IR.md: | `ANTHROPIC_API_KEY` | بک‌اند Claude (Anthropic) | `--backend claude` |; external_api_credential in docs/translations/README.he-IL.md: | `anthropic` | Anthropic Claude API (`--backend claude`, משתמש ב-`ANTHROPIC_API_KEY`) | `uv tool install \"graphifyy[anthropic]\"` |"
+      ],
+      "repository": "Graphify-Labs/graphify",
+      "status": "SKIPPED",
+      "url": "https://github.com/Graphify-Labs/graphify"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "1f9f19c2021a68d04df228f33e9099a0c947f6f8",
+      "description": "利用 AI 大模型和自动化工作流，根据主题或关键词一键生成高清短视频。Generate HD short videos from a topic or keyword with an automated AI workflow.",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 40,
+          "novelty": 40,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 60,
+          "trending_velocity": 100,
+          "utility": 90
+        },
+        "interestingness": 92,
+        "reasons": [
+          "GitHub Trending reported 494 stars today.",
+          "It appeared in 2 GitHub discovery feeds/searches.",
+          "Metadata contains 2 AI and 1 developer-tool signals; interest score 92/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 87,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "resource_feasibility: GitHub reports 535518 KiB; the metadata screen accepts 20-102400 KiB before measuring the archive."
+      ],
+      "repository": "harry0703/MoneyPrinterTurbo",
+      "status": "DISCOVERED",
+      "url": "https://github.com/harry0703/MoneyPrinterTurbo"
+    },
+    {
+      "category": "coding agent",
+      "commit_sha": "b3f443636d279d4bad845a8ef2bddb7ca50e9bc6",
+      "description": "Compress tool outputs, logs, files, and RAG chunks before they reach the LLM. 20% fewer tokens for coding agents, 60-95% fewer tokens for JSON, same answers. Library, proxy, MCP server.",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 60,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 100,
+          "trending_velocity": 0,
+          "utility": 100
+        },
+        "interestingness": 72,
+        "reasons": [
+          "It appeared in 2 GitHub discovery feeds/searches.",
+          "Metadata contains 7 AI and 4 developer-tool signals; interest score 72/100.",
+          "Classified as coding agent; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 76,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "risk: Static screening found behavior that is incompatible with execution.",
+        "v1_requirements: external_api_credential in docs/claude-code-bedrock-headroom.md: export ANTHROPIC_API_KEY=headroom # Claude Code needs *a* key to start; model_download_size in docs/platform-stabilization.md: Cold model downloads, saturated executors, or timeout paths must pass through unchanged traffic instead of hanging agents.; external_api_credential in examples/deployment/macos-launchagent/README.md: - Missing ANTHROPIC_API_KEY environment variable; external_api_credential in examples/langchain_demo/README.md: # Run full agent comparison (requires OPENAI_API_KEY); external_api_credential in examples/langchain_demo/run_comparison.py: api_key = os.environ.get(\"OPENAI_API_KEY\")"
+      ],
+      "repository": "headroomlabs-ai/headroom",
+      "status": "SKIPPED",
+      "url": "https://github.com/headroomlabs-ai/headroom"
+    },
+    {
+      "category": "CLI utility",
+      "commit_sha": "6f372d36f8ea43dd2af23fda96646c8088ac7d2f",
+      "description": "\"CLI-Anything: Making ALL Software Agent-Native\" -- CLI-Hub: https://clianything.cc/",
+      "priority": {
+        "components": {
+          "community_interest": 100,
+          "coverage_gap": 40,
+          "novelty": 70,
+          "recency": 100,
+          "relevance": 100,
+          "testability": 0,
+          "trending_velocity": 100,
+          "utility": 80
+        },
+        "interestingness": 92,
+        "reasons": [
+          "GitHub Trending reported 384 stars today.",
+          "Metadata contains 1 AI and 1 developer-tool signals; interest score 92/100.",
+          "Classified as CLI utility; coverage is only a tie-breaker, not a quota.",
+          "Stars and trending velocity are discovery signals, not quality evidence."
+        ],
+        "total": 78,
+        "weights": {
+          "community_interest": 10,
+          "coverage_gap": 5,
+          "novelty": 5,
+          "recency": 10,
+          "relevance": 25,
+          "testability": 15,
+          "trending_velocity": 20,
+          "utility": 10
+        }
+      },
+      "reasons": [
+        "interestingness: score 92/100 across 1 discovery signals; corroborated=False, low-value-pattern=False; novelty is a metadata heuristic, not a code-originality finding.",
+        "risk: Static screening found high-risk behavior requiring human review.",
+        "testability: Detected no V1 execution track; supported=False.",
+        "v1_requirements: core_external_service in docs/hub/llms-full.txt: - Some workflows require a desktop session, local files, network access, API credentials, or user approval.; external_api_credential in docs/hub/llms.txt: - E2E operations may require a real backend application, API key, desktop session, or user-granted permission."
+      ],
+      "repository": "HKUDS/CLI-Anything",
+      "status": "SKIPPED",
+      "url": "https://github.com/HKUDS/CLI-Anything"
+    }
+  ]
+}
